@@ -65,11 +65,21 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] 冒烟：菜单栏应用启动、自动连接、页面加载完成
 - [ ] 目视确认：菜单栏图标/菜单、窗口位置保存恢复、关窗不退出、Dock 重开窗口、Settings 保存生效
 
-### Phase 3 — Native Handshake ⬜ 未开始
+### Phase 3 — Native Handshake ✅（实现完成，冒烟通过）
 
-- [ ] `host.describe`（最小 Native API）
-- [ ] `HarnessHTTPTransport` / `HarnessProtocolAdapter` / `HarnessCompatibilityResolver`
-- [ ] 失败进入 Degraded Mode，不阻止 Web UI
+- [x] 核对上游 wire contract（`@deepseek-ai/dsh-host-apiproxy` 源码 + 真实实例探测）
+  - `POST /api/host.describe`，body `{"type":"client-request","rpcId","method","payload":{}}`
+  - 响应 `{"type":"server-response","rpcId","result":{"ok":true,"value":{version,cwd,provider?,model?,attachedSessions,canOpenPath}}}`
+- [x] `HarnessHTTPTransport`（URLSession，POST `/api/<method>`）
+- [x] `HarnessProtocolAdapter` 协议（含 `HarnessDomainEvent`，规格 18 形状；events 流 Phase 4 接入）
+- [x] `HarnessGenericAdapter`（describe 握手，NSLock 保护状态，符合 Sendable 协议形状）
+- [x] `HarnessCompatibilityResolver` + `HarnessVersion`（supported / unsupported / unknown；未知版本不 crash）
+- [x] 协议模型宽松解码（规格 19：未知字段 / 可选字段缺失 / 失败分支均安全）
+- [x] 握手成功 → 菜单栏显示 Version（真实 Harness 冒烟：version 0.0.1）
+- [x] 握手失败 → `degraded(reason:)`，但 Web UI 继续可用（冒烟：临时服务 501 → degraded + 页面加载完成）
+- [x] 修复：degraded 状态下主窗口仍显示 WebView（规格 5.1）
+- [x] Build 通过
+- [x] Test 通过（41 个，含 resolver / 宽松解码 / transport mock 16 个新测试）
 
 ### Phase 4 — WebSocket Event Layer ⬜ 未开始
 

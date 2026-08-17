@@ -2,8 +2,8 @@ import SwiftUI
 
 /// 菜单栏（Menu Bar）内容。
 ///
-/// 属于 SwiftUI「基础菜单内容」职责；只消费连接状态（Phase 2 尚无活动状态数据，
-/// Sessions / Version 等展示项待 Phase 3/5 接入后补充）。
+/// 属于 SwiftUI「基础菜单内容」职责；只消费连接状态与握手信息
+/// （Sessions / 活动状态等展示项待 Phase 5 接入后补充）。
 struct MenuBarView: View {
     let coordinator: AppCoordinator
     let onOpenWindow: () -> Void
@@ -17,6 +17,11 @@ struct MenuBarView: View {
             Text(statusText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            if let version = coordinator.harnessInfo?.version {
+                Text("Version: \(version)")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
 
             Divider()
 

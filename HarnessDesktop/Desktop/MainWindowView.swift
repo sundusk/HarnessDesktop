@@ -11,9 +11,10 @@ struct MainWindowView: View {
             switch coordinator.connectionState {
             case .unknown, .discovering, .connecting:
                 PlaceholderView(text: "正在检测 DeepSeek Harness…", showsSpinner: true)
-            case .connected:
+            case .connected, .degraded:
+                // degraded（Native 增强不可用）不影响主 Web UI —— 必须继续可用（规格 5.1）。
                 connectedContent
-            case .unavailable, .reconnecting, .degraded:
+            case .unavailable, .reconnecting:
                 NotRunningView(
                     host: coordinator.settings.host,
                     port: coordinator.settings.port,

@@ -9,4 +9,5 @@ enum AppLogger {
     static let app = Logger(subsystem: "dev.harnessdesktop.HarnessDesktop", category: "app")
     static let discovery = Logger(subsystem: "dev.harnessdesktop.HarnessDesktop", category: "discovery")
     static let webview = Logger(subsystem: "dev.harnessdesktop.HarnessDesktop", category: "webview")
+    static let compatibility = Logger(subsystem: "dev.harnessdesktop.HarnessDesktop", category: "compatibility")
 }
