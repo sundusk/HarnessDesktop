@@ -14,5 +14,20 @@ struct HarnessDesktopApp: App {
                     coordinator.start()
                 }
         }
+        .commands {
+            CommandMenu("Harness") {
+                Button("Reload") {
+                    coordinator.reload()
+                }
+                .keyboardShortcut("r")
+                Button("Open in Browser") {
+                    coordinator.openInBrowser()
+                }
+                Divider()
+                Button("Check Again") {
+                    coordinator.rediscover()
+                }
+            }
+        }
     }
 }

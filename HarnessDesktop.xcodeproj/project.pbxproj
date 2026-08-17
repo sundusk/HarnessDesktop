@@ -17,6 +17,13 @@
 		B00000000000000000000008 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* AppLogger.swift */; };
 		B00000000000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
 		B0000000000000000000000A /* HarnessEndpointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* HarnessEndpointTests.swift */; };
+		B00000000000000000000012 /* HarnessDiscovering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* HarnessDiscovering.swift */; };
+		B00000000000000000000013 /* LocalHarnessDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* LocalHarnessDiscovery.swift */; };
+		B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* HarnessNavigationPolicy.swift */; };
+		B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* HarnessWebViewModel.swift */; };
+		B00000000000000000000016 /* HarnessWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* HarnessWebView.swift */; };
+		B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */; };
+		B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +55,13 @@
 		A00000000000000000000010 /* DEVELOPMENT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVELOPMENT.md; sourceTree = "<group>"; };
 		A00000000000000000000011 /* HarnessDesktop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HarnessDesktop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000012 /* HarnessDesktopTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HarnessDesktopTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000013 /* HarnessDiscovering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessDiscovering.swift; sourceTree = "<group>"; };
+		A00000000000000000000014 /* LocalHarnessDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscovery.swift; sourceTree = "<group>"; };
+		A00000000000000000000015 /* HarnessNavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000016 /* HarnessWebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebViewModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000017 /* HarnessWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebView.swift; sourceTree = "<group>"; };
+		A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscoveryTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,11 +100,40 @@
 			children = (
 				C00000000000000000000003 /* App */,
 				C00000000000000000000004 /* Domain */,
+				C0000000000000000000000F /* Harness */,
 				C00000000000000000000005 /* Desktop */,
 				C00000000000000000000006 /* Infrastructure */,
 				C00000000000000000000009 /* Resources */,
 			);
 			path = HarnessDesktop;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000F /* Harness */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000010 /* Discovery */,
+				C00000000000000000000011 /* Web */,
+			);
+			path = Harness;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000010 /* Discovery */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000013 /* HarnessDiscovering.swift */,
+				A00000000000000000000014 /* LocalHarnessDiscovery.swift */,
+			);
+			path = Discovery;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000011 /* Web */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000015 /* HarnessNavigationPolicy.swift */,
+				A00000000000000000000016 /* HarnessWebViewModel.swift */,
+				A00000000000000000000017 /* HarnessWebView.swift */,
+			);
+			path = Web;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000003 /* App */ = {
@@ -159,6 +202,8 @@
 			isa = PBXGroup;
 			children = (
 				A0000000000000000000000C /* HarnessEndpointTests.swift */,
+				A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */,
+				A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */,
 			);
 			path = HarnessDesktopTests;
 			sourceTree = "<group>";
@@ -279,6 +324,11 @@
 				B00000000000000000000006 /* AppSettings.swift in Sources */,
 				B00000000000000000000007 /* SettingsStore.swift in Sources */,
 				B00000000000000000000008 /* AppLogger.swift in Sources */,
+				B00000000000000000000012 /* HarnessDiscovering.swift in Sources */,
+				B00000000000000000000013 /* LocalHarnessDiscovery.swift in Sources */,
+				B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */,
+				B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */,
+				B00000000000000000000016 /* HarnessWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,6 +337,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B0000000000000000000000A /* HarnessEndpointTests.swift in Sources */,
+				B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */,
+				B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

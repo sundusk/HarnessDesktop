@@ -12,7 +12,7 @@ struct MainWindowView: View {
             case .unknown, .discovering, .connecting:
                 PlaceholderView(text: "正在检测 DeepSeek Harness…", showsSpinner: true)
             case .connected:
-                PlaceholderView(text: "Phase 1 将在此处显示 Harness Web UI", showsSpinner: false)
+                connectedContent
             case .unavailable, .reconnecting, .degraded:
                 NotRunningView(
                     host: coordinator.settings.host,
@@ -22,6 +22,15 @@ struct MainWindowView: View {
             }
         }
         .frame(minWidth: 900, minHeight: 600)
+    }
+
+    @ViewBuilder
+    private var connectedContent: some View {
+        if let model = coordinator.webModel {
+            HarnessWebView(model: model)
+        } else {
+            PlaceholderView(text: "正在连接…", showsSpinner: true)
+        }
     }
 }
 
