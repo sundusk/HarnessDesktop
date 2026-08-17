@@ -65,6 +65,9 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
   窗口中心不在任何屏幕可见区域时回退居中（`MainWindowController.isFrameUsable`，纯函数 + 5 个单测）
 - [x] 菜单栏（MenuBarExtra）与设置页全部中文文案；Info.plist 声明 zh-Hans
   （系统菜单项「设置…/退出」在中文系统下也显示中文）
+- [x] 菜单栏状态图标改为 App 自己的图标：新增专用 `MenuBarIcon` 模板图资源
+  （22×22 / 44×44@2x，由鲸鱼图标生成并留边距，`template-rendering-intent`），
+  避免直接加载 128pt App 图标被裁剪成黑条 / 放大；连接状态由菜单内「状态：…」文本承担
 - [x] Build 通过
 - [x] Test 通过（25 个，含 settings 持久化与 settingsDidChange 回归）
 - [x] 冒烟：菜单栏应用启动、自动连接、页面加载完成

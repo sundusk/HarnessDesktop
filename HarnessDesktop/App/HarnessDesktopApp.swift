@@ -19,8 +19,7 @@ struct HarnessDesktopApp: App {
                 onOpenWindow: { appDelegate.showMainWindow() }
             )
         } label: {
-            MenuBarStatusIcon(state: appDelegate.coordinator.connectionState)
-                .accessibilityLabel("HarnessDesktop")
+            MenuBarAppIcon()
         }
 
         Settings {

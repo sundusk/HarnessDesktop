@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// 菜单栏（Menu Bar）内容。
@@ -91,23 +92,14 @@ struct MenuBarView: View {
     }
 }
 
-/// 菜单栏状态图标。颜色只是 Presentation。
-struct MenuBarStatusIcon: View {
-    let state: HarnessConnectionState
-
+/// 菜单栏状态图标：使用 Assets 里专用的 `MenuBarIcon` 模板图。
+///
+/// 该图标是 22×22 / 44×44(@2x) 的单色模板图（`template-rendering-intent`），
+/// 由 App 图标（鲸鱼）生成并四周留了边距；系统会按菜单栏深浅色自动着色，
+/// 且尺寸固定为菜单栏标准图标大小，不会出现裁剪或放大。
+struct MenuBarAppIcon: View {
     var body: some View {
-        switch state {
-        case .connected:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-        case .unavailable:
-            Image(systemName: "xmark.circle.fill")
-                .foregroundStyle(.gray)
-        case .degraded:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-        case .unknown, .discovering, .connecting, .reconnecting:
-            Image(systemName: "circle.dotted")
-        }
+        Image("MenuBarIcon")
+            .accessibilityLabel("HarnessDesktop")
     }
 }
