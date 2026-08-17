@@ -128,9 +128,13 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 如未来需要，按规格 23 实现：NSPanel 非激活面板 / 拖拽 / 位置记忆 / 状态动画 /
 completed 闪动，状态只来自 `HarnessActivityState`。
 
-### Phase 8 — 稳定性与发布准备 ⬜ 未开始
+### Phase 8 — 稳定性与发布准备 ⬜ 进行中
 
-- [ ] diagnostics / crash-safe state restore / app icon / signing / notarization
+- [x] **App 图标**（2026-08-17）：使用用户提供的 `图标/DeepSeek.icns`（鲸鱼标志），
+  `iconutil` 提取 10 个尺寸 → `Assets.xcassets/AppIcon.appiconset` →
+  `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`；已验证嵌入构建产物
+  （Info.plist `CFBundleIconName=AppIcon`，Assets.car 含 16→1024 全部尺寸）
+- [ ] diagnostics / crash-safe state restore / signing / notarization
 
 ## Zero Mutation 手工验收
 
