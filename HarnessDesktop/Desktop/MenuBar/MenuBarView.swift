@@ -18,38 +18,38 @@ struct MenuBarView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             if coordinator.sessionCount > 0 {
-                Text("Sessions: \(coordinator.sessionCount)")
+                Text("会话数：\(coordinator.sessionCount)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             if let version = coordinator.harnessInfo?.version {
-                Text("Version: \(version)")
+                Text("版本：\(version)")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
 
             Divider()
 
-            Button("Open Harness") {
+            Button("打开 Harness") {
                 onOpenWindow()
             }
-            Button("Reload") {
+            Button("重新加载") {
                 coordinator.reload()
             }
             .keyboardShortcut("r")
-            Button("Open in Browser") {
+            Button("在浏览器中打开") {
                 coordinator.openInBrowser()
             }
-            Button("Check Again") {
+            Button("重新检测") {
                 coordinator.rediscover()
             }
 
             Divider()
 
-            Button("Settings…") {
+            Button("设置…") {
                 openSettings()
             }
-            Button("Quit HarnessDesktop") {
+            Button("退出 HarnessDesktop") {
                 NSApplication.shared.terminate(nil)
             }
             .keyboardShortcut("q")
@@ -59,34 +59,34 @@ struct MenuBarView: View {
     private var statusText: String {
         switch coordinator.connectionState {
         case .unknown, .discovering, .connecting:
-            return "Status: Detecting…"
+            return "状态：正在检测…"
         case .unavailable:
-            return "Status: Harness Not Running"
+            return "状态：Harness 未运行"
         case .reconnecting:
-            return "Status: Reconnecting…"
+            return "状态：正在重连…"
         case .connected, .degraded:
             return activityStatusText
         }
     }
 
-    /// 已连接时的活动状态文案（规格 21：Status: Working 等）。
+    /// 已连接时的活动状态文案（规格 21：Status: Working 等，中文文案）。
     private var activityStatusText: String {
         switch coordinator.activityState {
         case .disconnected:
-            return "Status: Disconnected"
+            return "状态：已断开"
         case .idle:
-            return "Status: Idle"
+            return "状态：空闲"
         case .running:
-            return "Status: Working"
+            return "状态：工作中"
         case .waitingForInput:
-            return "Status: Waiting for Input"
+            return "状态：等待输入"
         case .waitingForApproval:
-            return "Status: Waiting for Approval"
+            return "状态：等待批准"
         case .error(let message):
             if let message, !message.isEmpty {
-                return "Status: Error — \(message)"
+                return "状态：错误 — \(message)"
             }
-            return "Status: Error"
+            return "状态：错误"
         }
     }
 }

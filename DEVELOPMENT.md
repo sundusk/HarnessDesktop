@@ -49,7 +49,8 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] 人工验收·自动部分（2026-08-17）：真实 Harness 自动连接 / 未运行页 / 恢复重连 / 中途关闭进入错误状态 / Zero Mutation 校验均通过
 - [x] 验收发现并修复：AppCoordinator 默认 Discovery 未使用 settings 端口（已修复 + 3 个回归测试）
 - [x] 为可观测性补充非敏感诊断日志（连接状态 / 页面加载完成）
-- [ ] 人工验收·目视部分：官方 UI 完整显示 / 皮肤插件兼容 / 外部链接跳默认浏览器 / 「重新检测」按钮
+- [x] 皮肤插件兼容（2026-08-17 实测：裸 WKWebView 与真实 App 均完整渲染 dsh 皮肤插件，App 无需为皮肤修改代码）
+- [ ] 人工验收·目视部分：官方 UI 完整显示 / 外部链接跳默认浏览器 / 「重新检测」按钮
 
 ### Phase 2 — 原生窗口体验 ✅（实现完成，目视项待确认）
 
@@ -60,6 +61,10 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] 启动时按设置显示主窗口（`launchMainWindowAtStart`）
 - [x] 基础 Settings（Save 式：Harness Address / Port / Launch Main Window at App Start；loopback 与端口校验）
 - [x] 设置变更后重建 Discovery 并重新探测（`settingsDidChange`）
+- [x] 修复：重启后恢复的窗口 frame 可能落在已断开 / 离屏显示器上导致主窗口不可见 ——
+  窗口中心不在任何屏幕可见区域时回退居中（`MainWindowController.isFrameUsable`，纯函数 + 5 个单测）
+- [x] 菜单栏（MenuBarExtra）与设置页全部中文文案；Info.plist 声明 zh-Hans
+  （系统菜单项「设置…/退出」在中文系统下也显示中文）
 - [x] Build 通过
 - [x] Test 通过（25 个，含 settings 持久化与 settingsDidChange 回归）
 - [x] 冒烟：菜单栏应用启动、自动连接、页面加载完成

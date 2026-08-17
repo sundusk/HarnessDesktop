@@ -20,12 +20,26 @@ final class MainWindowController: NSWindowController {
         window.title = "HarnessDesktop"
         window.minSize = NSSize(width: 700, height: 480)
         window.contentView = NSHostingView(rootView: MainWindowView(coordinator: coordinator))
-        // 先恢复上次保存的 frame，再启用自动保存。
-        window.setFrameUsingName(Self.frameAutosaveName)
+        // 先恢复上次保存的 frame。
+        let restored = window.setFrameUsingName(Self.frameAutosaveName)
+        // 修复：恢复的 frame 可能落在已断开 / 离屏的显示器上，导致窗口不可见
+        // （此前无条件 center()，既覆盖了恢复的位置，也兜不住离屏 frame）。
+        // 仅当「恢复了且窗口中心仍在某个屏幕可见区域内」时才保留；否则回退到屏幕居中。
+        let visibleFrames = NSScreen.screens.map(\.visibleFrame)
+        if !(restored && Self.isFrameUsable(window.frame, visibleFrames: visibleFrames)) {
+            window.center()
+        }
         window.setFrameAutosaveName(Self.frameAutosaveName)
-        window.center()
 
         super.init(window: window)
+    }
+
+    /// 判断恢复的窗口 frame 是否仍然可用：窗口中心必须落在某个屏幕的可见区域内。
+    ///
+    /// 纯函数（不依赖真实 `NSScreen`），便于单元测试。
+    static func isFrameUsable(_ frame: NSRect, visibleFrames: [NSRect]) -> Bool {
+        let center = NSPoint(x: frame.midX, y: frame.midY)
+        return visibleFrames.contains { $0.contains(center) }
     }
 
     @available(*, unavailable)

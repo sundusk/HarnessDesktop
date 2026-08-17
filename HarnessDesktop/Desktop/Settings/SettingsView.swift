@@ -26,10 +26,10 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
-                TextField("Harness Address", text: $host)
-                TextField("Harness Port", text: $portText)
-                Toggle("Launch Main Window at App Start", isOn: $launchAtStart)
-                Toggle("Enable Notifications", isOn: $notificationsEnabled)
+                TextField("Harness 地址", text: $host)
+                TextField("Harness 端口", text: $portText)
+                Toggle("启动时显示主窗口", isOn: $launchAtStart)
+                Toggle("启用通知", isOn: $notificationsEnabled)
             }
             .formStyle(.grouped)
 
@@ -43,10 +43,10 @@ struct SettingsView: View {
 
             HStack {
                 Spacer()
-                Button("Cancel") {
+                Button("取消") {
                     resetFields()
                 }
-                Button("Save") {
+                Button("保存") {
                     save()
                 }
                 .keyboardShortcut(.defaultAction)
