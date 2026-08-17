@@ -63,7 +63,8 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 | 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
 | 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
 | 6 | Notifications（approval/question 立即、完成/错误通知、debounce/dedupe） | ✅ |
-| 7+ | Pet / 发布准备 | ⬜ 未开始 |
+| 7 | Floating Pet | 🚫 用户决定不实现 |
+| 8 | 稳定性与发布准备 | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 

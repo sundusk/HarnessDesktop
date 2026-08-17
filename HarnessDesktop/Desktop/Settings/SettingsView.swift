@@ -2,8 +2,8 @@ import SwiftUI
 
 /// 基础设置页（规格 26 极简设置项）。
 ///
-/// V1 当前阶段生效项：Harness Address / Harness Port / Launch Main Window at App Start /
-/// Enable Notifications（Pet 开关在 Phase 7 加入）。
+/// V1 生效项：Harness Address / Harness Port / Launch Main Window at App Start /
+/// Enable Notifications。
 struct SettingsView: View {
     let settings: AppSettings
     let onSettingsChanged: () -> Void

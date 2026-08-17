@@ -122,9 +122,11 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] Test 通过（85 个，含 6 个防抖策略测试）
 - [x] 冒烟：应用运行正常（首次启动会弹通知授权提示）
 
-### Phase 7 — Floating Pet ⬜ 未开始
+### Phase 7 — Floating Pet 🚫 不实现（用户决定）
 
-- [ ] `NSPanel` 悬浮状态球；拖拽；位置保存；状态动画
+用户明确决定不做悬浮状态球，相关代码已删除（`Desktop/Pet/`、设置项、测试）。
+如未来需要，按规格 23 实现：NSPanel 非激活面板 / 拖拽 / 位置记忆 / 状态动画 /
+completed 闪动，状态只来自 `HarnessActivityState`。
 
 ### Phase 8 — 稳定性与发布准备 ⬜ 未开始
 
