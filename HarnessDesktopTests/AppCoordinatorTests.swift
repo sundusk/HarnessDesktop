@@ -41,4 +41,27 @@ final class AppCoordinatorTests: XCTestCase {
         XCTAssertEqual(discovery?.host, custom.host)
         XCTAssertEqual(discovery?.port, custom.port)
     }
+
+    func testSettingsDidChangeRebuildsDiscovery() {
+        let settings = makeSettings(host: "127.0.0.1", port: 3080)
+        let coordinator = AppCoordinator(settings: settings)
+        XCTAssertEqual((coordinator.discovery as? LocalHarnessDiscovery)?.port, 3080)
+
+        settings.port = 9999
+        settings.host = "localhost"
+        coordinator.settingsDidChange()
+
+        let discovery = coordinator.discovery as? LocalHarnessDiscovery
+        XCTAssertEqual(discovery?.host, "localhost")
+        XCTAssertEqual(discovery?.port, 9999)
+    }
+
+    func testLaunchMainWindowAtStartPersists() {
+        let settings = makeSettings()
+        XCTAssertEqual(settings.launchMainWindowAtStart, true)
+
+        settings.launchMainWindowAtStart = false
+        let reloaded = AppSettings(store: SettingsStore(defaults: UserDefaults(suiteName: suiteName)!))
+        XCTAssertEqual(reloaded.launchMainWindowAtStart, false)
+    }
 }

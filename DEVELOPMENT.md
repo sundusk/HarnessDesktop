@@ -51,11 +51,19 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] 为可观测性补充非敏感诊断日志（连接状态 / 页面加载完成）
 - [ ] 人工验收·目视部分：官方 UI 完整显示 / 皮肤插件兼容 / 外部链接跳默认浏览器 / 「重新检测」按钮
 
-### Phase 2 — 原生窗口体验 ⬜ 未开始
+### Phase 2 — 原生窗口体验 ✅（实现完成，目视项待确认）
 
-- [ ] AppKit WindowCoordinator / 窗口位置恢复
-- [ ] Menu Bar（NSStatusItem）
-- [ ] 基础 Settings
+- [x] AppKit `MainWindowController`（NSWindow + `setFrameAutosaveName` 窗口位置/尺寸恢复）
+- [x] Menu Bar（SwiftUI `MenuBarExtra`：状态图标 + Open/Reload/Open in Browser/Check Again/Settings/Quit）
+- [x] 关闭主窗口不退出应用（`applicationShouldTerminateAfterLastWindowClosed = false`）
+- [x] 点击 Dock 图标重新打开主窗口（`applicationShouldHandleReopen`）
+- [x] 启动时按设置显示主窗口（`launchMainWindowAtStart`）
+- [x] 基础 Settings（Save 式：Harness Address / Port / Launch Main Window at App Start；loopback 与端口校验）
+- [x] 设置变更后重建 Discovery 并重新探测（`settingsDidChange`）
+- [x] Build 通过
+- [x] Test 通过（25 个，含 settings 持久化与 settingsDidChange 回归）
+- [x] 冒烟：菜单栏应用启动、自动连接、页面加载完成
+- [ ] 目视确认：菜单栏图标/菜单、窗口位置保存恢复、关窗不退出、Dock 重开窗口、Settings 保存生效
 
 ### Phase 3 — Native Handshake ⬜ 未开始
 

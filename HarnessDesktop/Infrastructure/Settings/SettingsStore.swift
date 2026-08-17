@@ -7,6 +7,7 @@ struct SettingsStore {
     private enum Key {
         static let host = "settings.host"
         static let port = "settings.port"
+        static let launchMainWindowAtStart = "settings.launchMainWindowAtStart"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -24,5 +25,12 @@ struct SettingsStore {
             return stored == 0 ? 3080 : stored
         }
         set { defaults.set(newValue, forKey: Key.port) }
+    }
+
+    var launchMainWindowAtStart: Bool {
+        get {
+            defaults.object(forKey: Key.launchMainWindowAtStart) as? Bool ?? true
+        }
+        set { defaults.set(newValue, forKey: Key.launchMainWindowAtStart) }
     }
 }

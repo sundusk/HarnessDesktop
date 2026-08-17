@@ -13,7 +13,7 @@ final class AppCoordinator {
 
     let settings: AppSettings
     /// 内部可见：协议边界可 mock（规格 29.10），测试可注入或校验。
-    let discovery: any HarnessDiscovering
+    var discovery: any HarnessDiscovering
     private var healthCheckTask: Task<Void, Never>?
 
     init(settings: AppSettings = AppSettings(),
@@ -44,6 +44,14 @@ final class AppCoordinator {
     /// 在默认浏览器中打开 Harness。
     func openInBrowser() {
         webModel?.openInBrowser()
+    }
+
+    /// 设置变更后调用：用新 host/port 重建 Discovery 并重新探测。
+    func settingsDidChange() {
+        discovery = LocalHarnessDiscovery(host: settings.host, port: settings.port)
+        healthCheckTask?.cancel()
+        webModel = nil
+        Task { await performDiscovery() }
     }
 
     // MARK: - Private

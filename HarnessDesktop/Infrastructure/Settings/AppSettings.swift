@@ -31,4 +31,10 @@ final class AppSettings {
             store.port = newValue
         }
     }
+
+    /// 启动时是否显示主窗口。
+    var launchMainWindowAtStart: Bool {
+        get { store.launchMainWindowAtStart }
+        set { store.launchMainWindowAtStart = newValue }
+    }
 }

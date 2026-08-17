@@ -25,6 +25,10 @@
 		B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */; };
 		B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */; };
 		B00000000000000000000019 /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* AppCoordinatorTests.swift */; };
+		B0000000000000000000001A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* AppDelegate.swift */; };
+		B0000000000000000000001B /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* MainWindowController.swift */; };
+		B0000000000000000000001C /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001D /* MenuBarView.swift */; };
+		B0000000000000000000001D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +68,10 @@
 		A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscoveryTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicyTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000001A /* AppCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinatorTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000001B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A0000000000000000000001C /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		A0000000000000000000001D /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
+		A0000000000000000000001E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +151,7 @@
 			children = (
 				A00000000000000000000001 /* HarnessDesktopApp.swift */,
 				A00000000000000000000002 /* AppCoordinator.swift */,
+				A0000000000000000000001B /* AppDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -160,8 +169,35 @@
 			isa = PBXGroup;
 			children = (
 				A00000000000000000000005 /* MainWindowView.swift */,
+				C00000000000000000000012 /* Window */,
+				C00000000000000000000013 /* MenuBar */,
+				C00000000000000000000014 /* Settings */,
 			);
 			path = Desktop;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000012 /* Window */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001C /* MainWindowController.swift */,
+			);
+			path = Window;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000013 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001D /* MenuBarView.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000014 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001E /* SettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000006 /* Infrastructure */ = {
@@ -332,6 +368,10 @@
 				B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */,
 				B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */,
 				B00000000000000000000016 /* HarnessWebView.swift in Sources */,
+				B0000000000000000000001A /* AppDelegate.swift in Sources */,
+				B0000000000000000000001B /* MainWindowController.swift in Sources */,
+				B0000000000000000000001C /* MenuBarView.swift in Sources */,
+				B0000000000000000000001D /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
