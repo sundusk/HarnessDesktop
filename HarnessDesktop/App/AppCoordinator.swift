@@ -20,6 +20,8 @@ final class AppCoordinator {
 
     private var healthCheckTask: Task<Void, Never>?
     private var handshakeTask: Task<Void, Never>?
+    private var eventTask: Task<Void, Never>?
+    private var nativeAdapter: HarnessGenericAdapter?
 
     init(settings: AppSettings = AppSettings(),
          discovery: (any HarnessDiscovering)? = nil,
@@ -40,6 +42,8 @@ final class AppCoordinator {
     func rediscover() {
         healthCheckTask?.cancel()
         handshakeTask?.cancel()
+        eventTask?.cancel()
+        tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
         Task { await performDiscovery() }
@@ -60,9 +64,19 @@ final class AppCoordinator {
         discovery = LocalHarnessDiscovery(host: settings.host, port: settings.port)
         healthCheckTask?.cancel()
         handshakeTask?.cancel()
+        eventTask?.cancel()
+        tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
         Task { await performDiscovery() }
+    }
+
+    /// 释放 Native Adapter（断开事件流）。
+    private func tearDownNativeAdapter() {
+        if let adapter = nativeAdapter {
+            Task { await adapter.disconnect() }
+        }
+        nativeAdapter = nil
     }
 
     // MARK: - Private
@@ -129,20 +143,42 @@ final class AppCoordinator {
                 case .supported, .unknown:
                     // unknown 版本不 crash、宽容视为可用（规格 33 验收）。
                     self.harnessInfo = adapter.harnessInfo
+                    self.nativeAdapter = adapter
+                    self.consumeAdapterEvents(adapter)
                     AppLogger.compatibility.info(
                         "Native handshake 成功：version \(self.harnessInfo?.version ?? "?", privacy: .public)"
                     )
                 case .unsupported:
                     self.harnessInfo = nil
+                    self.tearDownNativeAdapter()
                     self.updateState(.degraded(reason: "不支持的 Harness 版本"))
                 }
             } catch {
                 self.harnessInfo = nil
+                self.tearDownNativeAdapter()
                 self.updateState(.degraded(reason: "Native 握手失败"))
                 AppLogger.compatibility.error(
                     "Native handshake 失败：\(String(describing: error), privacy: .public)"
                 )
             }
         }
+    }
+
+    /// 消费 Adapter 的 Domain Event 流。
+    ///
+    /// Phase 4：只记录事件类型（非敏感）；Phase 5 起交给 ActivityReducer 聚合。
+    private func consumeAdapterEvents(_ adapter: HarnessGenericAdapter) {
+        eventTask?.cancel()
+        eventTask = Task { [weak self] in
+            guard let self else { return }
+            for await event in adapter.events {
+                self.handleDomainEvent(event)
+            }
+        }
+    }
+
+    private func handleDomainEvent(_ event: HarnessDomainEvent) {
+        AppLogger.activity.debug("Domain event：\(event.typeName, privacy: .public)")
+        // Phase 5：ActivityReducer 在这里消费事件。
     }
 }

@@ -81,10 +81,21 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] Build 通过
 - [x] Test 通过（41 个，含 resolver / 宽松解码 / transport mock 16 个新测试）
 
-### Phase 4 — WebSocket Event Layer ⬜ 未开始
+### Phase 4 — WebSocket Event Layer ✅（实现完成，冒烟通过）
 
-- [ ] `/api/events.host`、`/api/events.mux`（必须先核对上游 wire contract）
-- [ ] reconnect / decode / unknown frame handling / Domain Event mapping
+- [x] 核对上游 wire contract（`dsh-client-connection` 服务器源码 + 真实 WebSocket 探测）
+  - **运行实例的 events 传输是 WebSocket**（upstream npm 客户端包是 SSE fetch 变体，差异隔离在传输层）：
+    `GET` upgrade 到 `ws://<host>:<port>/api/events.<mux|host>`，由路径决定流；
+  - 客户端**只收不发**——发送任何数据消息都会被服务器以 1008 "downlink only" 关闭；
+  - 每帧 JSON：`server-request` 信封，`payload` 为事件帧（`session/subscribed`、`host/session-status`、`approval/*`、`question/*` 等）
+- [x] `HarnessWebSocketTransport`（URLSessionWebSocketTask；坏帧记录+跳过，不拖垮流）
+- [x] `HarnessEventFrames` 宽松模型 + Adapter 双流消费（mux / host 独立重连）
+- [x] 退避重连：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（+jitter，规格 20）
+- [x] Domain Event 映射：session-added/removed/status、agent-error、approval-requested/resolved、question-requested/resolved
+- [x] 未知帧类型 / 坏帧：忽略 + debug log，不关闭流（规格 19）
+- [x] 真实冒烟：连接后收到 6 个 `session/subscribed` 基线帧（6 个附加会话），流持久打开、无崩溃
+- [x] Build 通过
+- [x] Test 通过（59 个，含 WS 帧解析 / URL 构造 / 映射 / 宽松解码 18 个新测试）
 
 ### Phase 5 — ActivityReducer ⬜ 未开始
 

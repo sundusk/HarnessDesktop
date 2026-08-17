@@ -60,7 +60,8 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 | 1 | Attach + WKWebView（发现 / 未运行页 / 导航策略 / Reload / Open in Browser） | ✅ |
 | 2 | 原生窗口体验（窗口恢复 / Menu Bar / Settings） | ✅ |
 | 3 | Native Handshake（`host.describe` / Transport / Adapter / Compatibility Resolver，降级不阻断 Web UI） | ✅ |
-| 4+ | WebSocket / Reducer / 通知 / Pet / 发布准备 | ⬜ 未开始 |
+| 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
+| 5+ | ActivityReducer / 通知 / Pet / 发布准备 | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
