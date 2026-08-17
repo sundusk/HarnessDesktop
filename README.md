@@ -61,7 +61,8 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 | 2 | 原生窗口体验（窗口恢复 / Menu Bar / Settings） | ✅ |
 | 3 | Native Handshake（`host.describe` / Transport / Adapter / Compatibility Resolver，降级不阻断 Web UI） | ✅ |
 | 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
-| 5+ | ActivityReducer / 通知 / Pet / 发布准备 | ⬜ 未开始 |
+| 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
+| 6+ | 通知 / Pet / 发布准备 | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 

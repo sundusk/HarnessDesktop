@@ -40,6 +40,10 @@
 		B00000000000000000000029 /* HarnessWebSocketTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* HarnessWebSocketTransport.swift */; };
 		B00000000000000000000027 /* HarnessEventMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* HarnessEventMappingTests.swift */; };
 		B0000000000000000000002A /* HarnessWebSocketTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */; };
+		B0000000000000000000002B /* HarnessActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002C /* HarnessActivityState.swift */; };
+		B0000000000000000000002C /* SessionRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002D /* SessionRuntimeState.swift */; };
+		B0000000000000000000002D /* ActivityReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002E /* ActivityReducer.swift */; };
+		B0000000000000000000002E /* ActivityReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002F /* ActivityReducerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -94,6 +98,10 @@
 		A0000000000000000000002A /* HarnessWebSocketTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebSocketTransport.swift; sourceTree = "<group>"; };
 		A00000000000000000000028 /* HarnessEventMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEventMappingTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebSocketTransportTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000002C /* HarnessActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessActivityState.swift; sourceTree = "<group>"; };
+		A0000000000000000000002D /* SessionRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRuntimeState.swift; sourceTree = "<group>"; };
+		A0000000000000000000002E /* ActivityReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducer.swift; sourceTree = "<group>"; };
+		A0000000000000000000002F /* ActivityReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -205,6 +213,9 @@
 			children = (
 				A00000000000000000000003 /* HarnessEndpoint.swift */,
 				A00000000000000000000004 /* HarnessConnectionState.swift */,
+				A0000000000000000000002C /* HarnessActivityState.swift */,
+				A0000000000000000000002D /* SessionRuntimeState.swift */,
+				A0000000000000000000002E /* ActivityReducer.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -292,6 +303,7 @@
 				A00000000000000000000025 /* HarnessHTTPTransportTests.swift */,
 				A00000000000000000000028 /* HarnessEventMappingTests.swift */,
 				A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */,
+				A0000000000000000000002F /* ActivityReducerTests.swift */,
 			);
 			path = HarnessDesktopTests;
 			sourceTree = "<group>";
@@ -408,6 +420,9 @@
 				B00000000000000000000002 /* AppCoordinator.swift in Sources */,
 				B00000000000000000000003 /* HarnessEndpoint.swift in Sources */,
 				B00000000000000000000004 /* HarnessConnectionState.swift in Sources */,
+				B0000000000000000000002B /* HarnessActivityState.swift in Sources */,
+				B0000000000000000000002C /* SessionRuntimeState.swift in Sources */,
+				B0000000000000000000002D /* ActivityReducer.swift in Sources */,
 				B00000000000000000000005 /* MainWindowView.swift in Sources */,
 				B00000000000000000000006 /* AppSettings.swift in Sources */,
 				B00000000000000000000007 /* SettingsStore.swift in Sources */,
@@ -443,6 +458,7 @@
 				B00000000000000000000024 /* HarnessHTTPTransportTests.swift in Sources */,
 				B00000000000000000000027 /* HarnessEventMappingTests.swift in Sources */,
 				B0000000000000000000002A /* HarnessWebSocketTransportTests.swift in Sources */,
+				B0000000000000000000002E /* ActivityReducerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

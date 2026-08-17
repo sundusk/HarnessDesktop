@@ -187,7 +187,8 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         }
 
         switch payload.type {
-        case "host/session-added":
+        case "host/session-added", "session/subscribed":
+            // session/subscribed：mux 基线帧，表示该 session 已附加 → 视为已存在。
             return payload.sessionId.map { .sessionAdded(id: $0) }
         case "host/session-removed":
             return payload.sessionId.map { .sessionRemoved(id: $0) }

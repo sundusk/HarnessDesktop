@@ -16,6 +16,12 @@ final class HarnessEventMappingTests: XCTestCase {
         XCTAssertEqual(event, .sessionAdded(id: "s1"))
     }
 
+    /// mux 基线帧：session/subscribed 表示已附加的 session → sessionAdded。
+    func testSessionSubscribedMapsToSessionAdded() {
+        let event = HarnessGenericAdapter.mapFrame(makeFrame(type: "session/subscribed", extra: ["sessionId": "s1", "lastSeq": 3]))
+        XCTAssertEqual(event, .sessionAdded(id: "s1"))
+    }
+
     func testHostSessionRemoved() {
         let event = HarnessGenericAdapter.mapFrame(makeFrame(type: "host/session-removed", extra: ["sessionId": "s1"]))
         XCTAssertEqual(event, .sessionRemoved(id: "s1"))
@@ -55,7 +61,6 @@ final class HarnessEventMappingTests: XCTestCase {
     func testUnknownFrameTypeReturnsNil() {
         XCTAssertNil(HarnessGenericAdapter.mapFrame(makeFrame(type: "host/workspace-changed")))
         XCTAssertNil(HarnessGenericAdapter.mapFrame(makeFrame(type: "session/event")))
-        XCTAssertNil(HarnessGenericAdapter.mapFrame(makeFrame(type: "session/subscribed")))
         XCTAssertNil(HarnessGenericAdapter.mapFrame(makeFrame(type: "totally/new-frame")))
     }
 

@@ -22,6 +22,23 @@ final class AppCoordinator {
     private var handshakeTask: Task<Void, Never>?
     private var eventTask: Task<Void, Never>?
     private var nativeAdapter: HarnessGenericAdapter?
+    private var reducer = ActivityReducer()
+
+    /// 全局活动状态（规格 9：所有 UI 只依赖此状态）。
+    var activityState: HarnessActivityState {
+        switch connectionState {
+        case .connected, .degraded:
+            return reducer.globalState()
+        default:
+            // 连接不存在 → disconnected（规格 8 规则 1）。
+            return .disconnected
+        }
+    }
+
+    /// 当前跟踪的 Session 数（菜单栏展示）。
+    var sessionCount: Int {
+        reducer.sessions.count
+    }
 
     init(settings: AppSettings = AppSettings(),
          discovery: (any HarnessDiscovering)? = nil,
@@ -46,6 +63,7 @@ final class AppCoordinator {
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
+        reducer = ActivityReducer()
         Task { await performDiscovery() }
     }
 
@@ -68,6 +86,7 @@ final class AppCoordinator {
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
+        reducer = ActivityReducer()
         Task { await performDiscovery() }
     }
 
@@ -178,7 +197,12 @@ final class AppCoordinator {
     }
 
     private func handleDomainEvent(_ event: HarnessDomainEvent) {
+        reducer.reduce(event)
+        // transient 完成事件（Phase 6 转通知）；session id 截断记录。
+        let completions = reducer.drainCompletions()
+        for completion in completions {
+            AppLogger.activity.info("任务完成（session \(completion.sessionID.prefix(8)), privacy: .public)")
+        }
         AppLogger.activity.debug("Domain event：\(event.typeName, privacy: .public)")
-        // Phase 5：ActivityReducer 在这里消费事件。
     }
 }

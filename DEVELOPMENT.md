@@ -97,9 +97,17 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] Build 通过
 - [x] Test 通过（59 个，含 WS 帧解析 / URL 构造 / 映射 / 宽松解码 18 个新测试）
 
-### Phase 5 — ActivityReducer ⬜ 未开始
+### Phase 5 — ActivityReducer ✅
 
-- [ ] `SessionRuntimeState` / 多 Session / 全局活动状态 / transient completion event
+- [x] `SessionRuntimeState`（多 Session，规格 7.4；禁止单一 isRunning 代表整个 Harness）
+- [x] `ActivityReducer`：事件 → `SessionRuntimeState[]` → 全局 `HarnessActivityState`
+- [x] 全局优先级（规格 8）：Error > Waiting For Approval > Waiting For Input > Running > Idle
+- [x] transient completion（规格 7.3）：running→idle 与 `taskCompleted` 事件产出 `HarnessCompletionEvent`
+- [x] 映射补充：`session/subscribed`（mux 基线帧）→ `sessionAdded`（基线会话可跟踪）
+- [x] AppCoordinator 接入 reducer，暴露 `activityState` / `sessionCount`；连接不存在 → `.disconnected`
+- [x] 菜单栏显示活动状态（Working / Waiting for Approval / Waiting for Input / Error / Idle）+ Sessions 数
+- [x] 真实冒烟：基线帧 → 6 个 `sessionAdded`，reducer 跟踪 6 个会话
+- [x] Test 通过（79 个，含 19 个 reducer 测试：单 Session 各状态 / 多 Session 优先级 / transient completion / 容错）
 
 ### Phase 6 — Notifications ⬜ 未开始
 
