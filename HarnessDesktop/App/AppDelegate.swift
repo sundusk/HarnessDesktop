@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         coordinator.start()
+        coordinator.requestNotificationAuthorization()
         if coordinator.settings.launchMainWindowAtStart {
             showMainWindow()
         }

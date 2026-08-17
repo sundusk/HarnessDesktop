@@ -8,6 +8,7 @@ struct SettingsStore {
         static let host = "settings.host"
         static let port = "settings.port"
         static let launchMainWindowAtStart = "settings.launchMainWindowAtStart"
+        static let notificationsEnabled = "settings.notificationsEnabled"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -32,5 +33,12 @@ struct SettingsStore {
             defaults.object(forKey: Key.launchMainWindowAtStart) as? Bool ?? true
         }
         set { defaults.set(newValue, forKey: Key.launchMainWindowAtStart) }
+    }
+
+    var notificationsEnabled: Bool {
+        get {
+            defaults.object(forKey: Key.notificationsEnabled) as? Bool ?? true
+        }
+        set { defaults.set(newValue, forKey: Key.notificationsEnabled) }
     }
 }

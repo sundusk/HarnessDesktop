@@ -44,6 +44,9 @@
 		B0000000000000000000002C /* SessionRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002D /* SessionRuntimeState.swift */; };
 		B0000000000000000000002D /* ActivityReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002E /* ActivityReducer.swift */; };
 		B0000000000000000000002E /* ActivityReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002F /* ActivityReducerTests.swift */; };
+		B0000000000000000000002F /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000030 /* NotificationCoordinator.swift */; };
+		B00000000000000000000030 /* NotificationDebouncePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* NotificationDebouncePolicy.swift */; };
+		B00000000000000000000031 /* NotificationDebouncePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,6 +105,9 @@
 		A0000000000000000000002D /* SessionRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRuntimeState.swift; sourceTree = "<group>"; };
 		A0000000000000000000002E /* ActivityReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducer.swift; sourceTree = "<group>"; };
 		A0000000000000000000002F /* ActivityReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducerTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000030 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000031 /* NotificationDebouncePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDebouncePolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDebouncePolicyTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -227,8 +233,18 @@
 				C00000000000000000000012 /* Window */,
 				C00000000000000000000013 /* MenuBar */,
 				C00000000000000000000014 /* Settings */,
+				C00000000000000000000017 /* Notifications */,
 			);
 			path = Desktop;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000017 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000030 /* NotificationCoordinator.swift */,
+				A00000000000000000000031 /* NotificationDebouncePolicy.swift */,
+			);
+			path = Notifications;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000012 /* Window */ = {
@@ -304,6 +320,7 @@
 				A00000000000000000000028 /* HarnessEventMappingTests.swift */,
 				A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */,
 				A0000000000000000000002F /* ActivityReducerTests.swift */,
+				A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */,
 			);
 			path = HarnessDesktopTests;
 			sourceTree = "<group>";
@@ -436,6 +453,8 @@
 				B0000000000000000000001B /* MainWindowController.swift in Sources */,
 				B0000000000000000000001C /* MenuBarView.swift in Sources */,
 				B0000000000000000000001D /* SettingsView.swift in Sources */,
+				B0000000000000000000002F /* NotificationCoordinator.swift in Sources */,
+				B00000000000000000000030 /* NotificationDebouncePolicy.swift in Sources */,
 				B0000000000000000000001E /* HarnessHTTPTransport.swift in Sources */,
 				B0000000000000000000001F /* HarnessProtocolAdapter.swift in Sources */,
 				B00000000000000000000020 /* HarnessCompatibilityResolver.swift in Sources */,
@@ -459,6 +478,7 @@
 				B00000000000000000000027 /* HarnessEventMappingTests.swift in Sources */,
 				B0000000000000000000002A /* HarnessWebSocketTransportTests.swift in Sources */,
 				B0000000000000000000002E /* ActivityReducerTests.swift in Sources */,
+				B00000000000000000000031 /* NotificationDebouncePolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

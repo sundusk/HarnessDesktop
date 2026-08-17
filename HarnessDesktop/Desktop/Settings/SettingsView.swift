@@ -2,8 +2,8 @@ import SwiftUI
 
 /// 基础设置页（规格 26 极简设置项）。
 ///
-/// V1 当前阶段生效项：Harness Address / Harness Port / Launch Main Window at App Start。
-/// 其余设置项（Notifications / Pet 等）在对应阶段实现后加入。
+/// V1 当前阶段生效项：Harness Address / Harness Port / Launch Main Window at App Start /
+/// Enable Notifications（Pet 开关在 Phase 7 加入）。
 struct SettingsView: View {
     let settings: AppSettings
     let onSettingsChanged: () -> Void
@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var host: String
     @State private var portText: String
     @State private var launchAtStart: Bool
+    @State private var notificationsEnabled: Bool
     @State private var errorMessage: String?
 
     init(settings: AppSettings, onSettingsChanged: @escaping () -> Void = {}) {
@@ -19,6 +20,7 @@ struct SettingsView: View {
         _host = State(initialValue: settings.host)
         _portText = State(initialValue: String(settings.port))
         _launchAtStart = State(initialValue: settings.launchMainWindowAtStart)
+        _notificationsEnabled = State(initialValue: settings.notificationsEnabled)
     }
 
     var body: some View {
@@ -27,6 +29,7 @@ struct SettingsView: View {
                 TextField("Harness Address", text: $host)
                 TextField("Harness Port", text: $portText)
                 Toggle("Launch Main Window at App Start", isOn: $launchAtStart)
+                Toggle("Enable Notifications", isOn: $notificationsEnabled)
             }
             .formStyle(.grouped)
 
@@ -57,6 +60,7 @@ struct SettingsView: View {
         host = settings.host
         portText = String(settings.port)
         launchAtStart = settings.launchMainWindowAtStart
+        notificationsEnabled = settings.notificationsEnabled
         errorMessage = nil
     }
 
@@ -74,6 +78,7 @@ struct SettingsView: View {
         settings.host = trimmedHost
         settings.port = port
         settings.launchMainWindowAtStart = launchAtStart
+        settings.notificationsEnabled = notificationsEnabled
         errorMessage = nil
         onSettingsChanged()
     }

@@ -23,6 +23,7 @@ final class AppCoordinator {
     private var eventTask: Task<Void, Never>?
     private var nativeAdapter: HarnessGenericAdapter?
     private var reducer = ActivityReducer()
+    private let notificationCoordinator: NotificationCoordinator
 
     /// 全局活动状态（规格 9：所有 UI 只依赖此状态）。
     var activityState: HarnessActivityState {
@@ -47,6 +48,12 @@ final class AppCoordinator {
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
         self.compatibilityResolver = compatibilityResolver
+        self.notificationCoordinator = NotificationCoordinator(settings: settings)
+    }
+
+    /// 请求通知授权（应用启动时调用）。
+    func requestNotificationAuthorization() {
+        Task { await notificationCoordinator.requestAuthorization() }
     }
 
     /// 应用启动时调用。
@@ -198,9 +205,11 @@ final class AppCoordinator {
 
     private func handleDomainEvent(_ event: HarnessDomainEvent) {
         reducer.reduce(event)
+        notificationCoordinator.handle(event: event)
         // transient 完成事件（Phase 6 转通知）；session id 截断记录。
         let completions = reducer.drainCompletions()
         for completion in completions {
+            notificationCoordinator.handleCompletion(completion)
             AppLogger.activity.info("任务完成（session \(completion.sessionID.prefix(8)), privacy: .public)")
         }
         AppLogger.activity.debug("Domain event：\(event.typeName, privacy: .public)")

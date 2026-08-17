@@ -37,4 +37,10 @@ final class AppSettings {
         get { store.launchMainWindowAtStart }
         set { store.launchMainWindowAtStart = newValue }
     }
+
+    /// 是否启用通知。
+    var notificationsEnabled: Bool {
+        get { store.notificationsEnabled }
+        set { store.notificationsEnabled = newValue }
+    }
 }

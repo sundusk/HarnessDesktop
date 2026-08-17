@@ -109,9 +109,18 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] 真实冒烟：基线帧 → 6 个 `sessionAdded`，reducer 跟踪 6 个会话
 - [x] Test 通过（79 个，含 19 个 reducer 测试：单 Session 各状态 / 多 Session 优先级 / transient completion / 容错）
 
-### Phase 6 — Notifications ⬜ 未开始
+### Phase 6 — Notifications ✅
 
-- [ ] approval / question / completion / error；dedupe / debounce
+- [x] `NotificationCoordinator`（UNUserNotificationCenter）
+- [x] approval / question requested → 立即通知
+- [x] running → idle 任务完成 → 通知（**App 前台时抑制**，防瞬态抖动）
+- [x] agent-error → 通知（60s debounce）
+- [x] 同 Session 同类事件 debounce / dedupe（`NotificationDebouncePolicy`，30s/60s）
+- [x] 通知正文不含错误消息 / prompt / 会话内容；session id 只显示截断前缀
+- [x] Settings 新增「Enable Notifications」开关（默认开）
+- [x] 启动时请求通知授权
+- [x] Test 通过（85 个，含 6 个防抖策略测试）
+- [x] 冒烟：应用运行正常（首次启动会弹通知授权提示）
 
 ### Phase 7 — Floating Pet ⬜ 未开始
 
