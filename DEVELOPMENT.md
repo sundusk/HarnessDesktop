@@ -46,6 +46,10 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] Unit Tests（Endpoint 校验 / Discovery mock / 导航策略）
 - [x] Build 通过
 - [x] Test 通过
+- [x] 人工验收·自动部分（2026-08-17）：真实 Harness 自动连接 / 未运行页 / 恢复重连 / 中途关闭进入错误状态 / Zero Mutation 校验均通过
+- [x] 验收发现并修复：AppCoordinator 默认 Discovery 未使用 settings 端口（已修复 + 3 个回归测试）
+- [x] 为可观测性补充非敏感诊断日志（连接状态 / 页面加载完成）
+- [ ] 人工验收·目视部分：官方 UI 完整显示 / 皮肤插件兼容 / 外部链接跳默认浏览器 / 「重新检测」按钮
 
 ### Phase 2 — 原生窗口体验 ⬜ 未开始
 

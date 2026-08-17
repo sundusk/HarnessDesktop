@@ -117,6 +117,7 @@ private final class NavigationCoordinator: NSObject, WKNavigationDelegate, WKUID
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) {
         model?.isLoading = false
         model?.refreshNavigationState()
+        AppLogger.webview.info("Harness Web UI 页面加载完成")
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation?, withError error: Error) {

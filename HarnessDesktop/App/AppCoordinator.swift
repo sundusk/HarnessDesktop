@@ -12,13 +12,15 @@ final class AppCoordinator {
     private(set) var webModel: HarnessWebViewModel?
 
     let settings: AppSettings
-    private let discovery: any HarnessDiscovering
+    /// 内部可见：协议边界可 mock（规格 29.10），测试可注入或校验。
+    let discovery: any HarnessDiscovering
     private var healthCheckTask: Task<Void, Never>?
 
     init(settings: AppSettings = AppSettings(),
-         discovery: any HarnessDiscovering = LocalHarnessDiscovery()) {
+         discovery: (any HarnessDiscovering)? = nil) {
         self.settings = settings
-        self.discovery = discovery
+        // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
+        self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
     }
 
     /// 应用启动时调用。
@@ -47,20 +49,29 @@ final class AppCoordinator {
     // MARK: - Private
 
     private func performDiscovery() async {
-        connectionState = .discovering
+        updateState(.discovering)
         guard let endpoint = await discovery.discover() else {
-            connectionState = .unavailable
+            updateState(.unavailable)
             return
         }
         connect(to: endpoint)
     }
 
     private func connect(to endpoint: HarnessEndpoint) {
-        connectionState = .connected
+        updateState(.connected)
         let model = HarnessWebViewModel(endpoint: endpoint)
         webModel = model
         model.loadInitial()
         startHealthCheck()
+    }
+
+    /// 统一的状态转换入口：只记录连接状态（非敏感），不记录任何内容数据。
+    private func updateState(_ newState: HarnessConnectionState) {
+        let old = connectionState
+        connectionState = newState
+        if old != newState {
+            AppLogger.app.info("连接状态：\(String(describing: newState), privacy: .public)")
+        }
     }
 
     /// 连接期间低频健康检查（每 5 秒一次，不高频轮询）。
@@ -75,7 +86,7 @@ final class AppCoordinator {
                 guard !Task.isCancelled, let self else { return }
                 let endpoint = await self.discovery.discover()
                 guard endpoint == nil else { continue }
-                self.connectionState = .unavailable
+                self.updateState(.unavailable)
                 self.webModel = nil
                 return
             }
