@@ -70,6 +70,7 @@ private final class TimeoutFlag: @unchecked Sendable {
 /// 需要在常见安装位置补查。
 enum HarnessTerminalLocator {
     /// 在 PATH 与常见位置中查找可执行文件（npx / npm）。
+    @Sendable
     static func resolveExecutable(_ name: String) -> String? {
         let pathEnv = ProcessInfo.processInfo.environment["PATH"] ?? ""
         var dirs = pathEnv.split(separator: ":", omittingEmptySubsequences: true).map(String.init)
