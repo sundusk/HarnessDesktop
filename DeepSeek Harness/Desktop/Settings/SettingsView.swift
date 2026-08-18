@@ -21,6 +21,11 @@ struct SettingsView: View {
     @State private var launchAtStart: Bool
     @State private var notificationsEnabled: Bool
     @State private var errorMessage: String?
+    /// 运行环境页「即时生效」项：用 @State 镜像驱动 UI，写透到 settings。
+    /// （AppSettings 是普通类、非 @Observable，直接绑定 get:set: 不会触发视图重绘，
+    /// 导致点击后选中态不刷新，直到切换页面才显示。）
+    @State private var launchManagedHarnessAtAppStart: Bool
+    @State private var stopManagedHarnessOnQuit: Bool
 
     enum Tab: String, CaseIterable, Identifiable {
         case general = "常规"
@@ -43,6 +48,8 @@ struct SettingsView: View {
         _portText = State(initialValue: String(settings.port))
         _launchAtStart = State(initialValue: settings.launchMainWindowAtStart)
         _notificationsEnabled = State(initialValue: settings.notificationsEnabled)
+        _launchManagedHarnessAtAppStart = State(initialValue: settings.launchManagedHarnessAtAppStart)
+        _stopManagedHarnessOnQuit = State(initialValue: settings.stopManagedHarnessOnQuit)
     }
 
     var body: some View {
@@ -201,12 +208,18 @@ struct SettingsView: View {
 
                     Section {
                         Toggle("打开 App 时自动启动 Managed Harness", isOn: Binding(
-                            get: { settings.launchManagedHarnessAtAppStart },
-                            set: { settings.launchManagedHarnessAtAppStart = $0 }
+                            get: { launchManagedHarnessAtAppStart },
+                            set: {
+                                launchManagedHarnessAtAppStart = $0
+                                settings.launchManagedHarnessAtAppStart = $0
+                            }
                         ))
                         Picker("退出 App 时", selection: Binding(
-                            get: { settings.stopManagedHarnessOnQuit },
-                            set: { settings.stopManagedHarnessOnQuit = $0 }
+                            get: { stopManagedHarnessOnQuit },
+                            set: {
+                                stopManagedHarnessOnQuit = $0
+                                settings.stopManagedHarnessOnQuit = $0
+                            }
                         )) {
                             Text("停止 Managed Harness").tag(true)
                             Text("保持 Managed Harness 运行").tag(false)
