@@ -156,6 +156,7 @@ private struct NotRunningView: View {
                 onPrepareRuntime()
             }
             .controlSize(.large)
+            .accessibilityLabel("一键准备运行环境")
         }
     }
 
@@ -170,10 +171,12 @@ private struct NotRunningView: View {
                     onStartManaged()
                 }
                 .controlSize(.large)
+                .accessibilityLabel("启动 Managed Harness")
                 if isManagedRunning {
                     Button("停止 Harness") {
                         onStopManaged()
                     }
+                    .accessibilityLabel("停止 Managed Harness")
                 }
             }
         }

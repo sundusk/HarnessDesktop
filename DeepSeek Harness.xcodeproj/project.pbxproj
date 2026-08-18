@@ -89,6 +89,8 @@
 		B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */; };
 		B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* HarnessUpdateTransaction.swift */; };
 		B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */; };
+		B0000000000000000000005E /* DiagnosticsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DiagnosticsSnapshot.swift */; };
+		B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -188,6 +190,8 @@
 		A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedProcessSupervisorTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000059 /* HarnessUpdateTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateTransaction.swift; sourceTree = "<group>"; };
 		A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateTransactionTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000061 /* DiagnosticsSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSnapshot.swift; sourceTree = "<group>"; };
+		A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSnapshotTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -411,8 +415,17 @@
 			children = (
 				C00000000000000000000007 /* Settings */,
 				C00000000000000000000008 /* Logging */,
+				C0000000000000000000001B /* Diagnostics */,
 			);
 			path = Infrastructure;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000001B /* Diagnostics */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000061 /* DiagnosticsSnapshot.swift */,
+			);
+			path = Diagnostics;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000007 /* Settings */ = {
@@ -469,6 +482,7 @@
 				A00000000000000000000057 /* RuntimePreparationTests.swift */,
 				A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */,
 				A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */,
+				A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -670,6 +684,7 @@
 				B00000000000000000000053 /* RuntimePreparation.swift in Sources */,
 				B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */,
 				B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */,
+				B0000000000000000000005E /* DiagnosticsSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -700,6 +715,7 @@
 				B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */,
 				B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */,
 				B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */,
+				B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

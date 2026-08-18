@@ -16,6 +16,7 @@ struct DeepSeekHarnessApp: App {
     var body: some Scene {
         Settings {
             SettingsView(
+                coordinator: appDelegate.coordinator,
                 settings: appDelegate.coordinator.settings,
                 petSettings: appDelegate.coordinator.petSettings,
                 onResetBallPosition: { appDelegate.resetBallPosition() },

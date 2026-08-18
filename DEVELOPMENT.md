@@ -412,7 +412,37 @@ Smoke D（Update）：Managed vA → mock latest vB → update → vB 校验成�
 Smoke E（Failed Update）：Managed vA → 候选 vB 失败 → 恢复 vA → App 可继续使用
 ```
 
-## 2.0 Phase 13 — UX Polish ⬜ 未开始
+## 2.0 Phase 13 — UX Polish ✅（核心实现完成，Build + 208 测试通过）
+
+文档：`2.0开发文档.md` §46。
+
+- [x] Runtime Settings tab（文档 §26）：设置页新增「运行环境」标签
+  - Harness 模式（外部 / Managed / 未运行）、Managed 当前/上一/最新版本
+  - [检查更新] [更新 Harness…] [回退…] 动作（启用条件与文档一致：Managed + 有更新 /
+    有上一版本）
+  - 启动：打开 App 时自动启动 Managed Harness（即时生效）
+  - 退出：停止 / 保持运行（`stopManagedHarnessOnQuit`，即时生效）；
+    footer 明确「External Harness 永远不会被本应用停止」
+  - 数据：隔离模式 + ManagedHarnessHome 路径显示
+- [x] 未运行页升级（Phase 10/11 已完成：一键准备 / 启动 / 停止 / 免责说明）
+- [x] Error diagnostics（文档 §28 / §30）：`DiagnosticsSnapshot`（App 版本 / macOS /
+  端点 / 可达 / Harness 版本 / 连接状态 / Native 集成 / Managed Runtime / 版本 /
+  最近错误）——非敏感；菜单栏「复制诊断信息」导出
+- [x] Accessibility labels：一键准备 / 启动 / 停止按钮（VoiceOver 可用）
+- [x] 中文文案统一（菜单 / 设置 / 弹窗全中文）
+- [x] Offline UX：版本检查失败静默降级（不打扰；菜单栏状态显示 unknown）
+- [x] Unit Tests（新增 4 个，累计 208 全通过）：诊断快照字段渲染 / unknown /
+  nil managed / 错误字段
+- [x] Build 通过（0 Swift warning；仅环境噪音警告）
+- [x] Test 通过（208 个）
+
+待人工验收：
+
+```text
+- 设置页「运行环境」标签交互 / 即时生效
+- 菜单栏「复制诊断信息」输出内容目视
+- Intel（x86_64）机器 smoke（本机为 arm64，机制已按架构分支处理）
+```
 
 ## 2.0 Phase 14 — Release Hardening ⬜ 未开始
 

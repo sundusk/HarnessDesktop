@@ -90,6 +90,8 @@ final class MenuBarCoordinator {
         menu.addItem(makeActionItem("重新检测", #selector(rediscoverAction)))
         // Phase 8：手动检查更新（忽略节流；失败只影响菜单栏状态）
         menu.addItem(makeActionItem("检查 Harness 更新…", #selector(checkForUpdatesAction)))
+        // Phase 13：诊断信息导出（非敏感）
+        menu.addItem(makeActionItem("复制诊断信息", #selector(copyDiagnosticsAction)))
         // Phase 11：停止 Managed Harness（只对 App 自己启动的进程显示；External 永不停止）
         stopManagedItem = makeActionItem("停止 Harness", #selector(stopManagedAction))
         stopManagedItem?.isHidden = true
@@ -275,6 +277,13 @@ final class MenuBarCoordinator {
 
     @objc private func checkForUpdatesAction() {
         coordinator.checkForUpdates()
+    }
+
+    @objc private func copyDiagnosticsAction() {
+        let text = coordinator.diagnosticsText()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        menuBarLog.info("诊断信息已复制")
     }
 
     @objc private func stopManagedAction() {

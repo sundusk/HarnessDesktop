@@ -29,6 +29,8 @@ final class AppCoordinator {
     private(set) var activeManagedIdentity: ManagedHarnessIdentity?
     /// Phase 12：更新 / 回退是否进行中（防并发）。
     private(set) var isUpdatingManaged = false
+    /// Phase 13：最近一次连接错误（诊断导出用；只存错误类型，非敏感）。
+    private(set) var lastConnectionError: String?
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -554,6 +556,7 @@ final class AppCoordinator {
                 }
             } catch {
                 self.harnessInfo = nil
+                self.lastConnectionError = String(describing: error)
                 self.tearDownNativeAdapter()
                 self.updateState(.degraded(reason: "Native 握手失败"))
                 AppLogger.compatibility.error(
@@ -588,5 +591,48 @@ final class AppCoordinator {
             AppLogger.activity.info("任务完成（session \(completion.sessionID.prefix(8)), privacy: .public)")
         }
         AppLogger.activity.debug("Domain event：\(event.typeName, privacy: .public)")
+    }
+}
+
+// MARK: - Phase 13：诊断数据提供（文档 §28）
+
+extension AppCoordinator: DiagnosticsProviding {
+    var settingsHost: String { settings.host }
+    var settingsPort: Int { settings.port }
+    var harnessVersion: String? { harnessInfo?.version }
+    var managedVersion: HarnessVersion? { environmentReport.managedVersion }
+    var latestVersion: HarnessVersion? { environmentReport.latestVersion }
+
+    var connectionStateDescription: String {
+        switch connectionState {
+        case .unknown: return "未知"
+        case .discovering: return "正在检测"
+        case .unavailable: return "Harness 未运行"
+        case .connecting: return "连接中"
+        case .connected: return "已连接"
+        case .reconnecting: return "重连中"
+        case .degraded(let reason): return "降级（\(reason)）"
+        }
+    }
+
+    var nativeIntegrationDescription: String {
+        switch connectionState {
+        case .connected: return "正常（handshake + 事件流）"
+        case .degraded: return "不可用（已降级，Web UI 正常）"
+        default: return "未建立"
+        }
+    }
+
+    var managedRuntimeDescription: String {
+        switch environmentReport.managedRuntime {
+        case .unknown: return "未知"
+        case .missing: return "未准备"
+        case .ready: return "已就绪"
+        }
+    }
+
+    /// 诊断快照文本（复制用）。
+    func diagnosticsText() -> String {
+        DiagnosticsFactory.make(coordinator: self).text
     }
 }

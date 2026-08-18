@@ -2,9 +2,12 @@ import SwiftUI
 
 /// 设置页：左右标签页布局。
 ///
-/// - 左侧标签：**常规**（Harness 连接，Save 式）与 **悬浮球**（心情球设置，即时生效）；
+/// - 左侧标签：**常规**（Harness 连接，Save 式）、**运行环境**（2.0 Runtime Manager，即时生效）
+///   与 **悬浮球**（心情球设置，即时生效）；
 /// - 右侧内容区随标签切换。
 struct SettingsView: View {
+    /// Phase 13：coordinator 提供环境报告与 Runtime 动作（更新 / 回退 / 检查）。
+    let coordinator: AppCoordinator
     let settings: AppSettings
     let onSettingsChanged: () -> Void
     let onResetBallPosition: () -> Void
@@ -21,14 +24,17 @@ struct SettingsView: View {
 
     enum Tab: String, CaseIterable, Identifiable {
         case general = "常规"
+        case runtime = "运行环境"
         case moodBall = "悬浮球"
         var id: String { rawValue }
     }
 
-    init(settings: AppSettings,
+    init(coordinator: AppCoordinator,
+         settings: AppSettings,
          petSettings: MoodBallSettings,
          onResetBallPosition: @escaping () -> Void = {},
          onSettingsChanged: @escaping () -> Void = {}) {
+        self.coordinator = coordinator
         self.settings = settings
         self.petSettings = petSettings
         self.onResetBallPosition = onResetBallPosition
@@ -51,13 +57,15 @@ struct SettingsView: View {
                 switch tab {
                 case .general:
                     generalTab
+                case .runtime:
+                    runtimeTab
                 case .moodBall:
                     moodBallTab
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 640, height: 560)
+        .frame(width: 680, height: 580)
     }
 
     // MARK: - 左侧标签栏
@@ -99,6 +107,7 @@ struct SettingsView: View {
     private func icon(for tab: Tab) -> String {
         switch tab {
         case .general: return "network"
+        case .runtime: return "gearshape.2"
         case .moodBall: return "circle.hexagongrid.fill"
         }
     }
@@ -170,6 +179,121 @@ struct SettingsView: View {
         settings.notificationsEnabled = notificationsEnabled
         errorMessage = nil
         onSettingsChanged()
+    }
+
+    // MARK: - 运行环境（2.0 Runtime Manager，即时生效）
+
+    private var runtimeTab: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Form {
+                    Section {
+                        runtimeModeSection
+                    } header: {
+                        Text("Harness 模式")
+                    }
+
+                    Section {
+                        runtimeVersionSection
+                    } header: {
+                        Text("Managed Harness")
+                    }
+
+                    Section {
+                        Toggle("打开 App 时自动启动 Managed Harness", isOn: Binding(
+                            get: { settings.launchManagedHarnessAtAppStart },
+                            set: { settings.launchManagedHarnessAtAppStart = $0 }
+                        ))
+                        Picker("退出 App 时", selection: Binding(
+                            get: { settings.stopManagedHarnessOnQuit },
+                            set: { settings.stopManagedHarnessOnQuit = $0 }
+                        )) {
+                            Text("停止 Managed Harness").tag(true)
+                            Text("保持 Managed Harness 运行").tag(false)
+                        }
+                        .pickerStyle(.radioGroup)
+                    } header: {
+                        Text("启动 / 退出")
+                    } footer: {
+                        Text("External Harness（终端启动的）永远不会被本应用停止。")
+                    }
+
+                    Section {
+                        LabeledContent("数据模式") {
+                            Text("隔离模式（ManagedHarnessHome）")
+                        }
+                        LabeledContent("数据路径") {
+                            Text(managedHomePath)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        }
+                    } header: {
+                        Text("数据")
+                    }
+                }
+                .formStyle(.grouped)
+            }
+        }
+    }
+
+    /// Harness 模式：外部 / HarnessDesktop / 未运行。
+    private var runtimeModeSection: some View {
+        LabeledContent("当前") {
+            Text(runtimeModeText)
+        }
+    }
+
+    private var runtimeModeText: String {
+        switch coordinator.environmentReport.ownership {
+        case .external:
+            return "外部 Harness（已连接）"
+        case .managed:
+            return "Managed Harness（HarnessDesktop 启动）"
+        case nil:
+            return "未运行"
+        }
+    }
+
+    /// Managed Harness 版本 + 更新 / 回退动作（文档 §26）。
+    @ViewBuilder
+    private var runtimeVersionSection: some View {
+        LabeledContent("当前版本") {
+            Text(settings.managedVersion ?? "未配置")
+        }
+        LabeledContent("上一版本") {
+            Text(settings.previousManagedVersion ?? "无")
+        }
+        LabeledContent("最新版本") {
+            Text(coordinator.environmentReport.latestVersion?.description ?? "unknown")
+        }
+        if let summary = coordinator.environmentReport.updateStatus.summary {
+            Text(summary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        HStack(spacing: 12) {
+            Button("检查更新") {
+                coordinator.checkForUpdates()
+            }
+            Button("更新 Harness…") {
+                coordinator.updateManagedHarness()
+            }
+            .disabled(!canUpdate)
+            Button("回退…") {
+                coordinator.rollbackManagedHarness()
+            }
+            .disabled(settings.previousManagedVersion == nil)
+        }
+    }
+
+    private var canUpdate: Bool {
+        coordinator.environmentReport.updateStatus.hasUpdate
+            && (coordinator.environmentReport.ownership == .managed
+                || coordinator.activeManagedIdentity != nil)
+    }
+
+    private var managedHomePath: String {
+        ManagedRuntimePaths.makeDefault()?.managedHarnessHome.path ?? "不可用"
     }
 
     // MARK: - 悬浮球（即时生效）
