@@ -26,10 +26,26 @@ struct HarnessEnvironmentReport: Equatable, Sendable {
     var updateStatus: HarnessUpdateStatus = .unknown
 }
 
+extension HarnessVersion {
+    /// `host.describe` 可能返回上游硬编码占位版本（如恒为 `0.0.1`），
+    /// 不代表真实安装版本；参与版本比较时应视为“当前版本未知”。
+    var isDescribePlaceholder: Bool {
+        self == HarnessVersion("0.0.1")
+    }
+}
+
 extension HarnessEnvironmentReport {
     /// 当前应参与版本比较的版本（终端检测优先，其次运行中，其次 managed）。
+    ///
+    /// `host.describe` 的占位版本（如 `0.0.1`）视为“当前版本未知”，
+    /// 以 latest 兜底——用户经 `npx @deepseek-ai/dsh` 运行时即跟踪 latest，
+    /// 避免一直显示上游占位版本（0.0.1）而看不到真实版本。
     var currentVersion: HarnessVersion? {
-        detectedVersion ?? runningVersion ?? managedVersion
+        let raw = detectedVersion ?? runningVersion ?? managedVersion
+        if let raw, raw.isDescribePlaceholder {
+            return latestVersion
+        }
+        return raw
     }
 
     /// 刷新 updateStatus（以 current / latest 为准）。

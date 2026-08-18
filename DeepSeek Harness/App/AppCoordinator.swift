@@ -356,29 +356,26 @@ final class AppCoordinator {
     /// 2. 最新版本：`versionService` 直查 npm registry（URLSession，忽略节流）；
     /// 3. 比较后弹出结果面板（「您使用的就是最新版本」或「有最新版本需要更新」+ 终端更新命令）。
     ///
-    /// 检测到的当前版本会持久化（"记住版本"），参与更新状态比较（握手值可能为上游硬编码占位）。
+    /// `host.describe` 的占位版本（如 0.0.1）不持久化、不参与比较——由报告层
+    /// `currentVersion` 以 latest 兜底，避免一直显示占位版本。
     func checkForUpdates() {
         guard !isCheckingVersion else { return }
         isCheckingVersion = true
         Task {
             defer { isCheckingVersion = false }
             // 1. 当前版本（无需 shell：host.describe 已通过 Native 握手拿到）。
-            let current: HarnessVersion?
-            if let harnessVersion = harnessInfo.flatMap({ HarnessVersion($0.version) }) {
-                current = harnessVersion
-            } else if let persisted = settings.lastDetectedHarnessVersion.flatMap(HarnessVersion.init) {
-                current = persisted
-            } else {
-                current = nil
-            }
+            let described = harnessInfo.flatMap { HarnessVersion($0.version) }
             // 2. 最新版本（npm registry 直查；失败返回 nil，不打扰）。
             let latest = await versionService.latestVersion(force: true)
-            if let current {
-                settings.lastDetectedHarnessVersion = current.description
+            // 只持久化真实版本（describe 占位值 0.0.1 不代表安装版本，不记）。
+            if let described, !described.isDescribePlaceholder {
+                settings.lastDetectedHarnessVersion = described.description
             }
-            environmentReport.runningVersion = current
+            environmentReport.runningVersion = described
             environmentReport.latestVersion = latest
             environmentReport.refreshUpdateStatus()
+            // 弹窗以报告层 currentVersion 为准（占位值自动以 latest 兜底）。
+            let current = environmentReport.currentVersion
             AppLogger.version.info(
                 "版本检查完成：current \(current?.description ?? "?", privacy: .public) / latest \(latest?.description ?? "?", privacy: .public)"
             )

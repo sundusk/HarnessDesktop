@@ -180,8 +180,8 @@ final class MenuBarCoordinator {
         if coordinator.sessionCount > 0 {
             details.append("会话数：\(coordinator.sessionCount)")
         }
-        // 版本优先取终端检测值（握手值可能为上游硬编码占位）。
-        if let version = coordinator.settings.lastDetectedHarnessVersion ?? coordinator.harnessInfo?.version {
+        // 版本优先取 currentVersion（占位值 0.0.1 由报告层以 latest 兜底）。
+        if let version = coordinator.environmentReport.currentVersion {
             details.append("版本：\(version)")
         }
         // Phase 8：当前 / 最新版本 + 更新状态（规格 §20 / §24）

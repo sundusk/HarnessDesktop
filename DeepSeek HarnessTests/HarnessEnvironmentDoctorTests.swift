@@ -64,6 +64,22 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         XCTAssertEqual(report.updateStatus, .unknown)
     }
 
+    /// describe 返回上游硬编码占位版本（0.0.1）→ currentVersion 以 latest 兜底
+    /// （用户经 `npx @deepseek-ai/dsh` 运行时即跟踪 latest），不显示占位值。
+    func testDescribePlaceholderVersionFallsBackToLatest() async {
+        let doctor = makeDoctor(
+            discovery: MockDiscovery(endpoint: endpoint),
+            describe: { _ in HarnessVersion("0.0.1") },
+            latest: HarnessVersion("0.1.0-rc.8")
+        )
+        let report = await doctor.inspect()
+
+        // runningVersion 保留原始 describe 值（占位），但比较用 currentVersion（= latest）。
+        XCTAssertEqual(report.runningVersion, HarnessVersion("0.0.1"))
+        XCTAssertEqual(report.currentVersion, HarnessVersion("0.1.0-rc.8"))
+        XCTAssertEqual(report.updateStatus, .upToDate(current: HarnessVersion("0.1.0-rc.8")!))
+    }
+
     /// latest 查询失败（网络不可用）→ 不影响 Attach / 报告其余部分。
     func testLatestFailureDoesNotBreakReport() async {
         let doctor = makeDoctor(
