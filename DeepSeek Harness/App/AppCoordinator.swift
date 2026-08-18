@@ -20,8 +20,12 @@ final class AppCoordinator {
     let settings: AppSettings
     /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
     let versionService: HarnessVersionService
+    /// App 自身（macOS 应用）最新版本查询（GitHub releases/latest，沙箱安全）。
+    let appUpdateProvider: any GitHubLatestReleaseProviding
     /// 手动检查版本是否进行中（防重复点击）。
     private(set) var isCheckingVersion = false
+    /// 手动检查 App 更新是否进行中（防重复点击）。
+    private(set) var isCheckingAppUpdate = false
     /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
     let runtimeManager: any HarnessRuntimeManaging
     /// Phase 10：一键准备是否进行中（防重复点击）。
@@ -71,7 +75,8 @@ final class AppCoordinator {
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
          petSettings: MoodBallSettings? = nil,
          versionService: HarnessVersionService? = nil,
-         runtimeManager: (any HarnessRuntimeManaging)? = nil) {
+         runtimeManager: (any HarnessRuntimeManaging)? = nil,
+         appUpdateProvider: (any GitHubLatestReleaseProviding)? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
@@ -81,6 +86,8 @@ final class AppCoordinator {
         self.versionService = versionService ?? HarnessVersionService(cache: settings)
         // Phase 9：默认 XPC 客户端（惰性连接；测试注入 fake）。
         self.runtimeManager = runtimeManager ?? RuntimeManagerClient()
+        // App 自身更新查询（GitHub releases/latest）。
+        self.appUpdateProvider = appUpdateProvider ?? GitHubLatestReleaseProvider()
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
         // 默认参数在 nonisolated 上下文求值；放在 init 体内（MainActor）创建。
         self.petSettings = petSettings ?? MoodBallSettings()
@@ -391,6 +398,57 @@ final class AppCoordinator {
         alert.informativeText = content.detail
         alert.addButton(withTitle: "好")
         alert.runModal()
+    }
+
+    /// 菜单栏「检查 App 更新…」：检测 DeepSeek Harness（macOS App）自身是否有新版本。
+    ///
+    /// 沙箱安全：当前版本读 `Bundle.main`，最新版本查 GitHub `releases/latest`（URLSession）。
+    /// 与 Harness 的「检查更新」分开：Harness 版本管理归设置页，菜单栏只负责 App 自身更新。
+    func checkForAppUpdates() {
+        guard !isCheckingAppUpdate else { return }
+        isCheckingAppUpdate = true
+        Task {
+            defer { isCheckingAppUpdate = false }
+            let current = AppUpdateChecker.currentVersion
+            let latest: String?
+            do {
+                latest = try await appUpdateProvider.fetchLatestTag()
+            } catch {
+                AppLogger.version.error("App 更新查询失败：\(String(describing: error), privacy: .public)")
+                latest = nil
+            }
+            let status = AppUpdateStatus.status(current: current, latest: latest)
+            AppLogger.version.info("App 更新检查：\(status, privacy: .public)")
+            showAppUpdatePopup(status: status)
+        }
+    }
+
+    /// 弹出版本检查结果面板：有新版时提供「打开下载页」跳 GitHub release。
+    private func showAppUpdatePopup(status: AppUpdateStatus) {
+        let alert = NSAlert()
+        switch status {
+        case .unknown:
+            alert.messageText = "App 版本检测失败"
+            alert.informativeText = "无法获取最新版本信息，请检查网络连接。"
+            alert.addButton(withTitle: "好")
+        case .upToDate(let current):
+            alert.messageText = "您使用的就是最新版本"
+            alert.informativeText = "当前版本：\(current)"
+            alert.addButton(withTitle: "好")
+        case .updateAvailable(let current, let latest):
+            alert.messageText = "有新版本需要更新"
+            alert.informativeText = "当前版本：\(current)\n最新版本：\(HarnessVersion(latest)?.description ?? latest)"
+            alert.addButton(withTitle: "打开下载页")
+            alert.addButton(withTitle: "好")
+        case .aheadOfLatest(let current, let latest):
+            alert.messageText = "当前版本高于最新版本"
+            alert.informativeText = "当前版本：\(current)\n最新版本：\(HarnessVersion(latest)?.description ?? latest)"
+            alert.addButton(withTitle: "好")
+        }
+        let response = alert.runModal()
+        if case .updateAvailable = status, response == .alertFirstButtonReturn {
+            NSWorkspace.shared.open(AppUpdateChecker.releasePageURL)
+        }
     }
 
     /// 设置变更后调用：用新 host/port 重建 Discovery 并重新探测。

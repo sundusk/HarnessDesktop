@@ -88,8 +88,8 @@ final class MenuBarCoordinator {
         menu.addItem(makeActionItem("重新加载", #selector(reloadAction), keyEquivalent: "r"))
         menu.addItem(makeActionItem("在浏览器中打开", #selector(openInBrowserAction)))
         menu.addItem(makeActionItem("重新检测", #selector(rediscoverAction)))
-        // Phase 8：手动检查更新（忽略节流；失败只影响菜单栏状态）
-        menu.addItem(makeActionItem("检查 Harness 更新…", #selector(checkForUpdatesAction)))
+        // App 自身更新检查（Harness 的更新管理在「设置 → 运行环境」，这里只查 App 版本）
+        menu.addItem(makeActionItem("检查 App 更新…", #selector(checkForAppUpdatesAction)))
         // Phase 13：诊断信息导出（非敏感）
         menu.addItem(makeActionItem("复制诊断信息", #selector(copyDiagnosticsAction)))
         // Phase 11：停止 Managed Harness（只对 App 自己启动的进程显示；External 永不停止）
@@ -276,8 +276,8 @@ final class MenuBarCoordinator {
         coordinator.rediscover()
     }
 
-    @objc private func checkForUpdatesAction() {
-        coordinator.checkForUpdates()
+    @objc private func checkForAppUpdatesAction() {
+        coordinator.checkForAppUpdates()
     }
 
     @objc private func copyDiagnosticsAction() {
