@@ -1998,3 +1998,31 @@ The most important constraints are:
 Do not broaden the scope without an explicit architecture decision.
 ```
 
+
+---
+
+# 44. 2.0 永久约束（Runtime Manager 阶段，`2.0开发文档.md` §48）
+
+以下约束对后续所有 AI Coding Agent 永久生效，优先级与第 0 节一致：
+
+1. **Never stop External Harness** —— 不是本 App 创建的 Harness（Terminal / 其他 App / LaunchAgent）
+   一律视为 external，只允许 Attach / 读取版本 / 检查更新；禁止 Stop / Restart / Update / Rollback。
+2. **Never expose arbitrary shell execution** —— 禁止 `runCommand(_:)` / `runShell(_:)` /
+   `execute(arguments:)` 一类任意命令接口；Runtime Helper API 必须是强类型能力白名单
+   （inspect / prepare / start(version:port:dataMode:) / stop(identity:) / status(identity:)）。
+3. **Never edit `~/.dsh` directly** —— 不编辑 / 删除 / 重建 `~/.dsh`、settings.yaml、Profile
+   manifest、插件、皮肤、用户 Shell 配置、系统 PATH；不执行 `brew install` / `npm install -g`。
+4. **Never auto-update Harness** —— 自动检查可以静默（启动时、菜单栏标记），自动修改不可以；
+   更新必须用户明确确认，且事务化（candidate 通过 health check 前不 commit）。
+5. **Never start `@latest` for Managed Harness** —— Managed 每次启动必须使用 exact version
+   （`managedVersion`），禁止 `npx @deepseek-ai/dsh@latest`。
+6. **Managed Harness always uses exact version** —— `managedVersion` / `previousManagedVersion`
+   保存在 Desktop 自己的设置中，禁止写进 Harness Profile。
+7. **Runtime writes only to App-owned paths** —— App-owned Node Runtime / npm cache /
+   ManagedHarnessHome 只允许在 App 的 Application Support 目录；禁止写
+   `/usr/local`、`/opt/homebrew`、`~/.npm`、`~/.nvm` 等系统或用户全局路径。
+8. **Native Runtime failure must not break Web Core** —— Environment Doctor / Version Service /
+   Helper 失败只允许降级（菜单栏状态、未运行页提示），必须继续显示官方 Web UI。
+9. **Every process mutation requires ownership verification** —— Start 前重新检查 endpoint
+   是否已被占用；Stop / Update / Rollback 前验证 generationID + pid + helper-owned 引用，
+   防止 PID reuse 误杀。

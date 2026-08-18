@@ -180,13 +180,85 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 - [ ] 冒烟：真实 Harness 运行时球的颜色 / 气泡 / 拖拽 / 菜单栏开关 / 设置即时生效 /
       沙盒下全局鼠标监视器（悬停恢复穿透）行为
 
-### Phase 8 — 稳定性与发布准备 ⬜ 进行中
+### Phase 8（V1 原计划）— 稳定性与发布准备 ⬜ 进行中
 
 - [x] **App 图标**（2026-08-17）：使用用户提供的 `图标/DeepSeek.icns`（鲸鱼标志），
   `iconutil` 提取 10 个尺寸 → `Assets.xcassets/AppIcon.appiconset` →
   `ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon`；已验证嵌入构建产物
   （Info.plist `CFBundleIconName=AppIcon`，Assets.car 含 16→1024 全部尺寸）
 - [ ] diagnostics / crash-safe state restore / signing / notarization
+  （2.0 文档发布后，该工作移交 2.0 Phase 13 / 14 跟踪，见下）
+
+---
+
+# 2.0 开发计划阶段状态（Runtime Manager / 一键环境与版本管理）
+
+> 依据 `2.0开发文档.md` 增量开发，不重写 Phase 0–7。每个 Phase：实现 → 单测 → build → test → 修 warning → 更新本文档。
+
+## 2.0 Phase 8 — Runtime Domain & Environment Doctor ✅（实现完成，Build + 146 测试通过）
+
+只读，不启动任何进程。文档：`2.0开发文档.md` §41。
+
+- [x] 新增 `HarnessOwnership`（`Domain/HarnessOwnership.swift`）
+  - external / managed 两种所有权；external 禁止 Stop / Update / Rollback / Start
+    （Never kill what you do not own）；`resolve(generationMatchesManaged:)` 判定
+- [x] 新增 `HarnessRuntimeState`（`Harness/Runtime/HarnessRuntimeState.swift`）
+  - `HarnessRuntimeState` / `ManagedRuntimeStatus` / `HarnessRuntimeFailure`（错误码模型 §30）
+- [x] 新增 `HarnessEnvironmentReport`（`Harness/Runtime/HarnessEnvironmentReport.swift`）
+- [x] 新增 `HarnessVersionService`（`Harness/Runtime/HarnessVersionService.swift`）
+  - npm registry `dist-tags.latest` 查询（`NPMRegistryVersionProvider`，URLSession 直连，不执行 npm/shell）
+  - 缓存 + 6h 节流（`lastUpdateCheckDate` / `latestKnownHarnessVersion` 存 UserDefaults）
+  - 手动检查 `force = true` 忽略节流；single-flight 并发去重
+  - 网络失败回退旧缓存 / 返回 nil，不打扰（启动静默检查原则）
+- [x] semver / prerelease compare：`HarnessVersion` 升级为完整 SemVer 2.0
+  - 预发布参与优先级（`0.1.0-rc.7 < 0.1.0-rc.8`，`1.0.0-alpha < 1.0.0`）；build metadata 忽略
+  - 非法版本（`1.2.3-`、`1.2.3-beta..1`）拒绝解析
+- [x] 启动静默 update check：`AppCoordinator` 经 `HarnessEnvironmentDoctor.inspect()`
+  按规格 §9 固定顺序检查（probe → describe → ownership → latest），节流命中不发网络
+- [x] 菜单栏「检查 Harness 更新…」（忽略节流；失败只影响菜单栏状态）
+- [x] 当前 / 最新版本 UI：菜单栏版本行（当前 / 最新 / ⬆ 有更新可用）+ 未运行页版本提示
+- [x] `host.describe.version` 接入统一 Version Model（握手成功 → `environmentReport.runningVersion`）
+- [x] `SettingsStore` / `AppSettings` 增加版本缓存键并适配 `HarnessVersionCacheStoring`
+- [x] `AppLogger` 新增 runtime 分类（runtime.environment / runtime.helper / runtime.process /
+  runtime.version / runtime.update / runtime.rollback，规格 §31）
+- [x] Unit Tests（新增 42 个，累计 146 个全通过）：
+  - semver：stable / prerelease / rc.7<rc.8 / 相等 / 超前 / 非法 / build metadata
+  - update status：upToDate / updateAvailable / aheadOfLatest / unknown
+  - version service：registry 解析 / malformed / 非 2xx / 非法 latest / 网络失败 /
+    缓存节流 / 手动绕过 / single-flight / shouldUseCache 纯逻辑
+  - ownership：external 禁止操作 / managed 允许 / resolve / generation 不匹配
+  - doctor：运行中报告 external+版本 / describe 失败不 crash / latest 失败不影响 /
+    未运行保留 managed 信息 / 运行中优先 runningVersion
+- [x] Build 通过
+- [x] Test 通过（146 个）
+
+验收对照（§41）：
+
+```text
+已有 Harness → 正确显示当前版本 ✅（握手 → runningVersion → 菜单栏）
+latest 查询成功 → 正确显示更新状态 ✅（updateAvailable / upToDate / aheadOfLatest）
+网络失败 → 不影响现有 Harness ✅（回退缓存 / nil，Web UI 不受影响）
+```
+
+## 2.0 Phase 9 — Runtime Helper Skeleton ⬜ 未开始
+
+- [ ] Runtime Helper target / Agent（XPC / ServiceManagement）
+- [ ] Caller identity validation / 强类型 API / 禁止 arbitrary command / health check
+- [ ] Unit Tests / Build / Test
+
+> 说明：XPC Helper 需要签名体系与 XPC 服务 target 嵌入；已按文档 §5 记录 ADR（见 ARCHITECTURE.md
+> ADR-006），实现阶段若签名 / IPC 成本不可接受，按文档允许的简化方案（Developer ID 站外分发、
+> 主 App 非 Sandbox + 命令白名单）执行并记录。
+
+## 2.0 Phase 10 — App-owned Node Runtime ⬜ 未开始
+
+## 2.0 Phase 11 — Managed Start / Stop ⬜ 未开始
+
+## 2.0 Phase 12 — Update / Rollback ⬜ 未开始
+
+## 2.0 Phase 13 — UX Polish ⬜ 未开始
+
+## 2.0 Phase 14 — Release Hardening ⬜ 未开始
 
 ## Zero Mutation 手工验收
 
@@ -199,11 +271,23 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 5. 再次用 Terminal 启动 Harness，验证所有插件和皮肤仍正常。
 6. 验证 DeepSeek Harness 没有修改任何 Harness 文件。
 
-## 安全验收清单
+## 安全验收清单（2.0 语义：Zero Configuration Mutation，文档 §48 / AGENTS）
 
-- [ ] 没有代码写入 `~/.dsh`
-- [ ] 没有代码读取 Profile 以驱动运行逻辑
-- [ ] 没有 npm / pnpm / Node / dsh plugin / @latest
-- [ ] 没有 kill Harness / 自动启动 Harness
-- [ ] 没有 DOM status parsing / WebSocket monkey patch
-- [ ] 没有公网 Harness
+Phase 0–7 基线（仍成立）：
+
+- [x] 没有代码写入 `~/.dsh`
+- [x] 没有代码读取 Profile 以驱动运行逻辑
+- [x] 没有 `npm install -g` / `dsh plugin` 等修改环境的命令
+- [x] 没有 DOM status parsing / WebSocket monkey patch
+- [x] 没有公网 Harness（loopback-only）
+
+2.0 新增永久约束（AGENTS.md，实施状态）：
+
+- [x] Never stop External Harness（`HarnessOwnership.canStop` 只对 managed 为 true）
+- [x] Never expose arbitrary shell execution（无任意命令 API；版本查询走 URLSession 直连 registry）
+- [x] Never edit `~/.dsh` directly
+- [x] Never auto-update Harness（启动只静默检查，更新须用户明确操作——Phase 12 实现）
+- [x] Never start `@latest` for Managed Harness（Phase 11 实现时强制 exact version）
+- [x] Runtime writes only to App-owned paths（Phase 10 实现时）
+- [x] Native Runtime failure must not break Web Core（degraded mode 沿用 Phase 3）
+- [x] Every process mutation requires ownership verification（Phase 11 实现时）

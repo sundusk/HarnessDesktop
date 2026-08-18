@@ -12,12 +12,13 @@ DeepSeek Harness 是一个 macOS 原生客户端 / 宿主，为已经安装并�
 - **需要用户自己运行 Harness**：请在终端运行 `npx @deepseek-ai/dsh web`。
 - **默认连接 `127.0.0.1:3080`**（仅 loopback）。
 - **不修改 `~/.dsh`**：应用从权限模型上（App Sandbox）就没有理由写入 Harness 数据。
-- **不自动更新 Harness**，不执行任何 npm / pnpm / dsh plugin 命令。
+- **自动检查版本，但不自动更新**，不执行任何 npm / pnpm / dsh plugin 命令；
+  External Harness（终端启动的）永远不会被本应用停止。
 
 ## 架构原则
 
 1. **Attach First** — 只连接用户已经运行的 Harness，不负责启动 / 安装 / 管理。
-2. **Zero Mutation** — 不修改用户的任何 Harness 环境数据。
+2. **Zero Configuration Mutation** — 不直接修改用户的任何 Harness 配置资产（`~/.dsh` / Profile / 插件 / Shell / PATH）。
 3. **Web Core + Native Enhancement** — 官方 Web UI 是核心；原生能力是增强，失败时优雅降级。
 
 详见 [ARCHITECTURE.md](ARCHITECTURE.md)。
@@ -49,9 +50,14 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 
 2. 启动 DeepSeek Harness。
 3. 应用自动检测 `http://127.0.0.1:3080`：
-   - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；
+   - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；菜单栏显示当前版本；
    - 未检测到 → 显示「DeepSeek Harness 未运行」页，可复制启动命令或重新检测（**不会自动运行命令**）。
-4. 桌面右下角出现**心情球**悬浮灯：随 Harness 状态实时呼吸变色
+4. **版本检查（2.0 Phase 8）**：
+   - 启动时静默检查 npm registry 上 `@deepseek-ai/dsh` 的最新版本（6 小时内不重复检查）；
+   - 菜单栏显示「当前 / 最新 / ⬆ 有更新可用」；
+   - 菜单栏「检查 Harness 更新…」手动强制检查；
+   - 仅提示，**不自动更新**；网络不可用不影响任何功能。
+5. 桌面右下角出现**心情球**悬浮灯：随 Harness 状态实时呼吸变色
    （蓝=空闲 / 绿=工作中 / 黄=等待批准 / 粉=等待输入 / 红=出错 / 灰=未连接），
    任务完成时短暂「搞定啦」庆祝。按住可拖到任意位置（位置会记住），双击会兴奋晃动。
    - 菜单栏（鲸鱼图标）只有「显示悬浮球」开关（显示/隐藏心情球）；
@@ -71,7 +77,9 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
 | 6 | Notifications（approval/question 立即、完成/错误通知、debounce/dedupe） | ✅ |
 | 7 | 心情球悬浮球（内置 MoodBall，状态来自 Native 活动状态；菜单栏开关 + 设置页悬浮球设置） | ✅ |
-| 8 | 稳定性与发布准备 | ⬜ 未开始 |
+| 8（V1） | 稳定性与发布准备（App 图标已完成；signing/notarization 移交 2.0 Phase 13/14） | ⬜ 进行中 |
+| 2.0-8 | Runtime Domain & Environment Doctor（所有权模型 / 版本服务 / npm registry 查询 / semver 比较 / 启动静默检查 / 菜单栏检查更新 / 当前与最新版本 UI） | ✅ |
+| 2.0-9 … 14 | Runtime Helper / App-owned Node Runtime / Managed Start-Stop / Update-Rollback / UX / Release | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 

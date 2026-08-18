@@ -85,6 +85,8 @@ final class MenuBarCoordinator {
         menu.addItem(makeActionItem("重新加载", #selector(reloadAction), keyEquivalent: "r"))
         menu.addItem(makeActionItem("在浏览器中打开", #selector(openInBrowserAction)))
         menu.addItem(makeActionItem("重新检测", #selector(rediscoverAction)))
+        // Phase 8：手动检查更新（忽略节流；失败只影响菜单栏状态）
+        menu.addItem(makeActionItem("检查 Harness 更新…", #selector(checkForUpdatesAction)))
 
         menu.addItem(.separator())
 
@@ -129,6 +131,10 @@ final class MenuBarCoordinator {
                 _ = coordinator.sessionCount
                 _ = coordinator.harnessInfo?.version
                 _ = coordinator.petSettings.isBallVisible
+                // Phase 8：版本 / 更新状态（检查更新后菜单栏即时刷新）
+                _ = coordinator.environmentReport.updateStatus
+                _ = coordinator.environmentReport.runningVersion
+                _ = coordinator.environmentReport.latestVersion
             } onChange: { [weak self] in
                 Task { @MainActor in
                     self?.resumeChangeWait()
@@ -154,6 +160,18 @@ final class MenuBarCoordinator {
         }
         if let version = coordinator.harnessInfo?.version {
             details.append("版本：\(version)")
+        }
+        // Phase 8：当前 / 最新版本 + 更新状态（规格 §20 / §24）
+        if let latest = coordinator.environmentReport.latestVersion {
+            details.append("最新：\(latest)")
+        }
+        switch coordinator.environmentReport.updateStatus {
+        case .checking:
+            details.append("正在检查更新…")
+        case .updateAvailable:
+            details.append("⬆ 有更新可用")
+        default:
+            break
         }
         detailsItem?.title = details.joined(separator: " · ")
         detailsItem?.isHidden = details.isEmpty
@@ -218,6 +236,10 @@ final class MenuBarCoordinator {
 
     @objc private func rediscoverAction() {
         coordinator.rediscover()
+    }
+
+    @objc private func checkForUpdatesAction() {
+        coordinator.checkForUpdates()
     }
 
     @objc private func openSettingsAction() {

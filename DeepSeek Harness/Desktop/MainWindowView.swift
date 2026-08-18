@@ -18,6 +18,7 @@ struct MainWindowView: View {
                 NotRunningView(
                     host: coordinator.settings.host,
                     port: coordinator.settings.port,
+                    versionHint: coordinator.environmentReport.updateStatus.summary,
                     onRediscover: { coordinator.rediscover() }
                 )
             }
@@ -58,6 +59,8 @@ private struct PlaceholderView: View {
 private struct NotRunningView: View {
     let host: String
     let port: Int
+    /// Phase 8：最新版本 / 更新状态一行提示（nil 不显示；规格 §25 / §28）。
+    let versionHint: String?
     let onRediscover: () -> Void
 
     @State private var copied = false
@@ -86,6 +89,11 @@ private struct NotRunningView: View {
                     onRediscover()
                 }
                 .keyboardShortcut(.defaultAction)
+            }
+            if let versionHint {
+                Text(versionHint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
             Text("检测地址：\(host):\(port)")
                 .font(.caption)

@@ -43,4 +43,22 @@ final class AppSettings {
         get { store.notificationsEnabled }
         set { store.notificationsEnabled = newValue }
     }
+
+    // MARK: - Phase 8：版本检查缓存（规格 §12.1）
+
+    /// 最近一次成功版本检查时间（nil = 从未成功检查）。
+    var lastUpdateCheckDate: Date? {
+        get { store.lastUpdateCheckDate }
+        set { store.lastUpdateCheckDate = newValue }
+    }
+
+    /// 最近一次已知最新版本（字符串形式）。
+    var latestKnownHarnessVersion: String? {
+        get { store.latestKnownHarnessVersion }
+        set { store.latestKnownHarnessVersion = newValue }
+    }
 }
+
+// MARK: - Phase 8：版本服务缓存适配
+
+extension AppSettings: HarnessVersionCacheStoring {}

@@ -55,6 +55,16 @@
 		B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000038 /* MoodBallCoordinator.swift */; };
 		B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000039 /* MoodBallSettingsTests.swift */; };
 		B0000000000000000000003A /* MoodBallModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003A /* MoodBallModelTests.swift */; };
+		B0000000000000000000003B /* HarnessOwnership.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003C /* HarnessOwnership.swift */; };
+		B0000000000000000000003C /* HarnessUpdateStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003D /* HarnessUpdateStatus.swift */; };
+		B0000000000000000000003D /* HarnessVersionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003E /* HarnessVersionService.swift */; };
+		B0000000000000000000003E /* HarnessRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003F /* HarnessRuntimeState.swift */; };
+		B0000000000000000000003F /* HarnessEnvironmentReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000040 /* HarnessEnvironmentReport.swift */; };
+		B00000000000000000000040 /* HarnessEnvironmentDoctor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */; };
+		B00000000000000000000041 /* HarnessVersionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000042 /* HarnessVersionServiceTests.swift */; };
+		B00000000000000000000042 /* HarnessUpdateStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000043 /* HarnessUpdateStatusTests.swift */; };
+		B00000000000000000000043 /* HarnessOwnershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000044 /* HarnessOwnershipTests.swift */; };
+		B00000000000000000000044 /* HarnessEnvironmentDoctorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -124,6 +134,16 @@
 		A00000000000000000000038 /* MoodBallCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000039 /* MoodBallSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallSettingsTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000003A /* MoodBallModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallModelTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000003C /* HarnessOwnership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessOwnership.swift; sourceTree = "<group>"; };
+		A0000000000000000000003D /* HarnessUpdateStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateStatus.swift; sourceTree = "<group>"; };
+		A0000000000000000000003E /* HarnessVersionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessVersionService.swift; sourceTree = "<group>"; };
+		A0000000000000000000003F /* HarnessRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessRuntimeState.swift; sourceTree = "<group>"; };
+		A00000000000000000000040 /* HarnessEnvironmentReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEnvironmentReport.swift; sourceTree = "<group>"; };
+		A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEnvironmentDoctor.swift; sourceTree = "<group>"; };
+		A00000000000000000000042 /* HarnessVersionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessVersionServiceTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000043 /* HarnessUpdateStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateStatusTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000044 /* HarnessOwnershipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessOwnershipTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEnvironmentDoctorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,8 +197,21 @@
 				C00000000000000000000011 /* Web */,
 				C00000000000000000000015 /* Transport */,
 				C00000000000000000000016 /* Compatibility */,
+				C00000000000000000000019 /* Runtime */,
 			);
 			path = Harness;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000019 /* Runtime */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000003D /* HarnessUpdateStatus.swift */,
+				A0000000000000000000003E /* HarnessVersionService.swift */,
+				A0000000000000000000003F /* HarnessRuntimeState.swift */,
+				A00000000000000000000040 /* HarnessEnvironmentReport.swift */,
+				A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */,
+			);
+			path = Runtime;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000015 /* Transport */ = {
@@ -238,6 +271,7 @@
 				A0000000000000000000002C /* HarnessActivityState.swift */,
 				A0000000000000000000002D /* SessionRuntimeState.swift */,
 				A0000000000000000000002E /* ActivityReducer.swift */,
+				A0000000000000000000003C /* HarnessOwnership.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -353,6 +387,10 @@
 				A00000000000000000000033 /* MainWindowControllerTests.swift */,
 				A00000000000000000000039 /* MoodBallSettingsTests.swift */,
 				A0000000000000000000003A /* MoodBallModelTests.swift */,
+				A00000000000000000000042 /* HarnessVersionServiceTests.swift */,
+				A00000000000000000000043 /* HarnessUpdateStatusTests.swift */,
+				A00000000000000000000044 /* HarnessOwnershipTests.swift */,
+				A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -498,6 +536,12 @@
 				B00000000000000000000036 /* MoodBallView.swift in Sources */,
 				B00000000000000000000037 /* MoodBallPanel.swift in Sources */,
 				B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */,
+				B0000000000000000000003B /* HarnessOwnership.swift in Sources */,
+				B0000000000000000000003C /* HarnessUpdateStatus.swift in Sources */,
+				B0000000000000000000003D /* HarnessVersionService.swift in Sources */,
+				B0000000000000000000003E /* HarnessRuntimeState.swift in Sources */,
+				B0000000000000000000003F /* HarnessEnvironmentReport.swift in Sources */,
+				B00000000000000000000040 /* HarnessEnvironmentDoctor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -519,6 +563,10 @@
 				B00000000000000000000033 /* MainWindowControllerTests.swift in Sources */,
 				B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */,
 				B0000000000000000000003A /* MoodBallModelTests.swift in Sources */,
+				B00000000000000000000041 /* HarnessVersionServiceTests.swift in Sources */,
+				B00000000000000000000042 /* HarnessUpdateStatusTests.swift in Sources */,
+				B00000000000000000000043 /* HarnessOwnershipTests.swift in Sources */,
+				B00000000000000000000044 /* HarnessEnvironmentDoctorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

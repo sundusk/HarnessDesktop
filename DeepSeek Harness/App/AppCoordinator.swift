@@ -12,8 +12,14 @@ final class AppCoordinator {
     private(set) var webModel: HarnessWebViewModel?
     /// Native 握手成功后读取的 Harness 描述信息（version 等）。
     private(set) var harnessInfo: HarnessDescribeInfo?
+    /// Phase 8：环境报告（运行版本 / 所有权 / Managed Runtime / 最新版本 / 更新状态）。
+    /// 只由 Environment Doctor 与 Native 握手填充，UI 不自行推断。
+    private(set) var environmentReport = HarnessEnvironmentReport()
 
     let settings: AppSettings
+    /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
+    let versionService: HarnessVersionService
+
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
     /// 心情球呈现模型（由本协调器的 activityState 派生；coordinator 引用在 init 末尾注入）。
@@ -48,12 +54,15 @@ final class AppCoordinator {
     init(settings: AppSettings = AppSettings(),
          discovery: (any HarnessDiscovering)? = nil,
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
-         petSettings: MoodBallSettings? = nil) {
+         petSettings: MoodBallSettings? = nil,
+         versionService: HarnessVersionService? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
         self.compatibilityResolver = compatibilityResolver
         self.notificationCoordinator = NotificationCoordinator(settings: settings)
+        // Phase 8：版本服务缓存复用 AppSettings（UserDefaults）。
+        self.versionService = versionService ?? HarnessVersionService(cache: settings)
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
         // 默认参数在 nonisolated 上下文求值；放在 init 体内（MainActor）创建。
         self.petSettings = petSettings ?? MoodBallSettings()
@@ -83,6 +92,7 @@ final class AppCoordinator {
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
+        environmentReport = HarnessEnvironmentReport()
         reducer = ActivityReducer()
         Task { await performDiscovery() }
     }
@@ -97,6 +107,18 @@ final class AppCoordinator {
         webModel?.openInBrowser()
     }
 
+    /// Phase 8：菜单栏「检查 Harness 更新…」（规格 §12.2）。
+    /// 手动检查忽略 6h 节流；失败只影响菜单栏状态，不打扰用户。
+    func checkForUpdates() {
+        Task {
+            environmentReport.updateStatus = .checking
+            let latest = await versionService.latestVersion(force: true)
+            environmentReport.latestVersion = latest
+            environmentReport.refreshUpdateStatus()
+            AppLogger.version.info("手动检查更新完成：\(latest?.description ?? "unknown", privacy: .public)")
+        }
+    }
+
     /// 设置变更后调用：用新 host/port 重建 Discovery 并重新探测。
     func settingsDidChange() {
         discovery = LocalHarnessDiscovery(host: settings.host, port: settings.port)
@@ -106,6 +128,7 @@ final class AppCoordinator {
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
+        environmentReport = HarnessEnvironmentReport()
         reducer = ActivityReducer()
         Task { await performDiscovery() }
     }
@@ -120,9 +143,31 @@ final class AppCoordinator {
 
     // MARK: - Private
 
+    /// Phase 8：Environment Doctor（规格 §9 检查顺序，只读）。
+    ///
+    /// 依赖全部来自本协调器：Discovery、host.describe（HTTP Transport）、版本服务。
+    /// 每次构造（computed property）保证读取最新 discovery / versionService。
+    private var environmentDoctor: HarnessEnvironmentDoctor {
+        HarnessEnvironmentDoctor(
+            discovery: discovery,
+            describe: { endpoint in
+                let transport = HarnessHTTPTransport()
+                guard let info = try? await transport.describe(endpoint: endpoint) else { return nil }
+                return HarnessVersion(info.version)
+            },
+            managedRuntimeStatus: { .unknown },
+            managedVersion: { nil },
+            latestVersionProvider: { [versionService] in
+                await versionService.latestVersion(force: false)
+            }
+        )
+    }
+
     private func performDiscovery() async {
         updateState(.discovering)
-        guard let endpoint = await discovery.discover() else {
+        let report = await environmentDoctor.inspect()
+        environmentReport = report
+        guard let endpoint = report.discoveredEndpoint else {
             updateState(.unavailable)
             return
         }
@@ -184,6 +229,10 @@ final class AppCoordinator {
                     self.harnessInfo = adapter.harnessInfo
                     self.nativeAdapter = adapter
                     self.consumeAdapterEvents(adapter)
+                    // Phase 8：host.describe.version 接入统一 Version Model（规格 §10 / §41）。
+                    self.environmentReport.runningVersion = adapter.harnessInfo.flatMap { HarnessVersion($0.version) }
+                    self.environmentReport.ownership = .external
+                    self.environmentReport.refreshUpdateStatus()
                     AppLogger.compatibility.info(
                         "Native handshake 成功：version \(self.harnessInfo?.version ?? "?", privacy: .public)"
                     )
