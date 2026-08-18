@@ -19,7 +19,10 @@ struct MainWindowView: View {
                     host: coordinator.settings.host,
                     port: coordinator.settings.port,
                     versionHint: coordinator.environmentReport.updateStatus.summary,
-                    onRediscover: { coordinator.rediscover() }
+                    runtimeStatus: coordinator.environmentReport.managedRuntime,
+                    isPreparingRuntime: coordinator.isPreparingRuntime,
+                    onRediscover: { coordinator.rediscover() },
+                    onPrepareRuntime: { coordinator.prepareManagedRuntime() }
                 )
             }
         }
@@ -61,7 +64,13 @@ private struct NotRunningView: View {
     let port: Int
     /// Phase 8：最新版本 / 更新状态一行提示（nil 不显示；规格 §25 / §28）。
     let versionHint: String?
+    /// Phase 10：Managed Runtime 状态（未准备 → 显示一键准备）。
+    let runtimeStatus: ManagedRuntimeStatus
+    /// Phase 10：一键准备是否进行中。
+    let isPreparingRuntime: Bool
     let onRediscover: () -> Void
+    /// Phase 10：一键准备（只调用 Helper 强类型 API，不执行任意命令）。
+    let onPrepareRuntime: () -> Void
 
     @State private var copied = false
 
@@ -74,6 +83,22 @@ private struct NotRunningView: View {
                 .foregroundStyle(.secondary)
             Text("DeepSeek Harness 未运行")
                 .font(.title2.weight(.semibold))
+
+            if isPreparingRuntime {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("正在准备运行环境…")
+                        .foregroundStyle(.secondary)
+                }
+            } else if runtimeStatus == .missing {
+                prepareSection
+            } else if runtimeStatus == .ready {
+                Text("运行环境已就绪（一键启动即将提供）")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
             Text("请先在终端运行：")
                 .foregroundStyle(.secondary)
             Text(Self.command)
@@ -100,6 +125,22 @@ private struct NotRunningView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(40)
+    }
+
+    /// 一键准备区（文档 §25）：说明 + 主按钮。
+    @ViewBuilder
+    private var prepareSection: some View {
+        VStack(spacing: 8) {
+            Text("DeepSeek HarnessDesktop 可以为你准备隔离的运行环境。")
+                .font(.callout)
+            Text("不会修改系统 Node、Homebrew、Shell 配置或已有 Harness 数据。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("一键准备") {
+                onPrepareRuntime()
+            }
+            .controlSize(.large)
+        }
     }
 
     private func copyCommand() {

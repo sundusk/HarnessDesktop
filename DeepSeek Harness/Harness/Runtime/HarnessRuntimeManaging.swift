@@ -58,14 +58,6 @@ struct RuntimeInspection: Equatable, Sendable {
     static let missing = RuntimeInspection(nodeVersion: nil, runtimeReady: false, managedHomeReady: false)
 }
 
-/// 一键准备运行环境的结果。
-struct RuntimePreparationResult: Equatable, Sendable {
-    /// App-owned Node Runtime 版本。
-    let nodeVersion: String
-    /// Prepare 时固定的 exact Harness version（文档 §13：禁止 @latest）。
-    let managedVersion: String
-}
-
 // MARK: - 强类型能力协议（文档 §6：禁止 runCommand / runShell / execute）
 
 /// Runtime Manager 能力协议（App 侧视图）。
@@ -75,8 +67,9 @@ protocol HarnessRuntimeManaging: Sendable {
     /// 检查运行环境（只读）。
     func inspectRuntime() async throws -> RuntimeInspection
 
-    /// 一键准备运行环境（App-owned Node Runtime + 固定 exact Harness version）。
-    func prepareRuntime() async throws -> RuntimePreparationResult
+    /// 一键准备运行环境（App-owned Node Runtime + 私有 npm cache + Managed Harness Home）。
+    /// - Parameter version: 要固定的 exact Harness version（App 侧解析，文档 §13：禁止 @latest）。
+    func prepareRuntime(version: String) async throws -> RuntimePreparationResult
 
     /// 启动 Managed Harness。
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity

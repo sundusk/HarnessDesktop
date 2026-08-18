@@ -284,7 +284,49 @@ latest 查询成功 → 正确显示更新状态 ✅（updateAvailable / upToDat
 - 验收对照（§42）：主 App 能查询 Helper 状态 ✅（`refreshManagedRuntimeStatus`）；
   Helper 没有 shell API ✅（强类型协议，无任意命令）。
 
-## 2.0 Phase 10 — App-owned Node Runtime ⬜ 未开始
+## 2.0 Phase 10 — App-owned Node Runtime ✅（核心实现完成，Build + 181 测试通过）
+
+普通用户不依赖系统 Node。文档：`2.0开发文档.md` §43。
+
+- [x] Node Runtime packaging 机制：`Scripts/fetch-node-runtime.sh`
+  - 从 Node.js 官方 tarball（HTTPS）下载 v22 LTS，arm64 / x64 分架构
+  - 解包到 `DeepSeek Harness/Resources/Runtime/node/<arch>/`（已 gitignore，Release 打包时随 App 携带）
+  - `BundledNodeRuntimeLocator` 按当前架构在 App bundle 中定位 `bin/node`（未携带 → nil）
+- [x] arm64 / x86_64：脚本支持 `--all` 双架构；locator 用 `#if arch(arm64)` 区分
+- [x] Runtime version inspection：`ManagedRuntimePreparer.validateNode` 用 `ProcessRunner`
+  运行 App-owned node `--version`（stdout/stderr 有界 64KB，文档 §32）
+- [x] private npm cache：`ManagedPackageCache` 生成子进程环境
+  （`npm_config_cache=<AppSupport>/Runtime/npm-cache` + 关闭更新提示），不写全局 npm config
+- [x] Managed Harness Home：`ManagedRuntimePaths.managedHarnessHome`（隔离 DSH_HOME 目录）
+- [x] `ManagedRuntimePaths`：App-owned 目录布局 + **根目录限制**
+  （`isInsideRoot` / `child(relativePath:)` 拒绝 `..`、绝对路径、越界——文档 §32）
+- [x] 一键准备流程：`RuntimePreparation` 状态机（固定顺序：
+  校验 Node → 校验 exact 版本 → 准备 cache → 拉取包 → 验证可执行），执行器协议注入，
+  单测不启动真实 Node / npm（规格 §34）
+- [x] Helper 侧实现：`ManagedRuntimePreparer`（App-owned npm install exact version 到
+  私有目录，`--no-save/--no-audit/--no-fund`；验证 `node_modules/.bin/dsh` 可执行）
+- [x] XPC 契约扩展：`prepareRuntime(version:)` + `RuntimePreparationResultDTO`；
+  客户端 `HarnessRuntimeManaging.prepareRuntime(version:)` 透传 exact version；
+  错误码 `packagePreparationFailed` 映射
+- [x] Runtime preparation UI（文档 §25）：未运行页在 Managed Runtime 未就绪时显示
+  「一键准备」+ 免责说明（不会修改系统 Node / Homebrew / Shell / 已有 Harness 数据），
+  准备中显示进度；`AppCoordinator.prepareManagedRuntime()`（exact 版本由版本服务解析，
+  防重复点击门控）
+- [x] Helper entitlements 增加 `network.client`（npm 拉取需要网络，最小化）
+- [x] Zero system mutation smoke：机制上不写 `/usr/local`、`/opt/homebrew`、`~/.npm`；
+  真实 Node 下载 / 拉包的 smoke 需在 Release 环境执行（见下）
+- [x] Build 通过（0 warning）
+- [x] Test 通过（181 个，新增 13 个：路径限制 / cache 环境 / 版本安全 /
+  准备状态机成功与各步失败 / 客户端 prepareRuntime 透传与错误）
+
+待人工/Release 验收：
+
+```text
+一台没有 Homebrew / Node 的 Mac
+→ 运行 Scripts/fetch-node-runtime.sh --all（或 Release 构建时打包）
+→ App 一键准备 → Helper 用 App-owned Node 拉取 exact dsh 包
+→ 系统 PATH 不变 ✅（机制保证，需实机验证）
+```
 
 ## 2.0 Phase 11 — Managed Start / Stop ⬜ 未开始
 

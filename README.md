@@ -80,7 +80,8 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 8（V1） | 稳定性与发布准备（App 图标已完成；signing/notarization 移交 2.0 Phase 13/14） | ⬜ 进行中 |
 | 2.0-8 | Runtime Domain & Environment Doctor（所有权模型 / 版本服务 / npm registry 查询 / semver 比较 / 启动静默检查 / 菜单栏检查更新 / 当前与最新版本 UI） | ✅ |
 | 2.0-9 | Runtime Helper Skeleton（内嵌 XPC Service target / 强类型能力 API / 调用方身份校验 / 所有权验证 / health check；无任意命令） | ✅ |
-| 2.0-10 … 14 | App-owned Node Runtime / Managed Start-Stop / Update-Rollback / UX / Release | ⬜ 未开始 |
+| 2.0-10 | App-owned Node Runtime（目录与根限制 / 私有 npm cache / 隔离 DSH_HOME / 一键准备状态机与 UI / Release 打包脚本；Node 二进制由脚本获取） | ✅ |
+| 2.0-11 … 14 | Managed Start-Stop / Update-Rollback / UX / Release | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 

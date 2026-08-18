@@ -21,6 +21,8 @@ final class AppCoordinator {
     let versionService: HarnessVersionService
     /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
     let runtimeManager: any HarnessRuntimeManaging
+    /// Phase 10：一键准备是否进行中（防重复点击）。
+    private(set) var isPreparingRuntime = false
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -104,6 +106,37 @@ final class AppCoordinator {
             // Helper 不可用（开发构建无同 team 签名 / 尚未实现）→ 未就绪，不打扰用户。
             environmentReport.managedRuntime = .missing
             AppLogger.runtimeHelper.info("Helper 不可用：\(String(describing: error), privacy: .public)")
+        }
+    }
+
+    /// Phase 10：一键准备运行环境（文档 §14）。
+    ///
+    /// - exact 版本由本 App 的版本服务解析（强制检查，失败回退缓存）；
+    /// - 只调用 Helper 的强类型 `prepareRuntime(version:)`，不执行任意命令；
+    /// - 重复点击去重（`isPreparingRuntime` 门控）。
+    func prepareManagedRuntime() {
+        guard !isPreparingRuntime else { return }
+        isPreparingRuntime = true
+        Task {
+            defer { isPreparingRuntime = false }
+            // 解析 exact version（文档 §13：禁止 @latest；由 registry latest 固定）
+            guard let version = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) else {
+                environmentReport.managedRuntime = .missing
+                AppLogger.runtimeEnvironment.info("一键准备失败：无法解析 exact 版本")
+                return
+            }
+            do {
+                let result = try await runtimeManager.prepareRuntime(version: version.description)
+                environmentReport.managedVersion = version
+                environmentReport.managedRuntime = .ready
+                environmentReport.refreshUpdateStatus()
+                AppLogger.runtimeEnvironment.info(
+                    "一键准备完成：node \(result.nodeVersion, privacy: .public) / dsh \(result.managedVersion, privacy: .public)"
+                )
+            } catch {
+                environmentReport.managedRuntime = .missing
+                AppLogger.runtimeEnvironment.info("一键准备失败：\(String(describing: error), privacy: .public)")
+            }
         }
     }
 

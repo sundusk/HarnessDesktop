@@ -5,6 +5,7 @@ import Foundation
 /// Helper 传输层协议：客户端与 XPC 传输解耦，单测用 fake transport。
 protocol RuntimeHelperTransporting: Sendable {
     func inspectRuntime() async throws -> RuntimeInspection
+    func prepareRuntime(version: String) async throws -> RuntimePreparationResult
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity
     func stopHarness(identity: ManagedHarnessIdentity) async throws
     func status(identity: ManagedHarnessIdentity) async throws -> ManagedHarnessProcessStatus
@@ -67,6 +68,28 @@ final class NSXPCRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked S
                     nodeVersion: dto.nodeVersion,
                     runtimeReady: dto.runtimeReady,
                     managedHomeReady: dto.managedHomeReady
+                ))
+            }
+        }
+    }
+
+    func prepareRuntime(version: String) async throws -> RuntimePreparationResult {
+        try await call { (continuation: CheckedContinuation<RuntimePreparationResult, Error>) in
+            let proxy = self.proxyWithHandler { error in
+                continuation.resume(throwing: Self.mapError(error))
+            }
+            proxy.prepareRuntime(version: version) { dto, error in
+                if let error {
+                    continuation.resume(throwing: Self.mapError(error))
+                    return
+                }
+                guard let dto else {
+                    continuation.resume(throwing: HarnessRuntimeFailure.packagePreparationFailed)
+                    return
+                }
+                continuation.resume(returning: RuntimePreparationResult(
+                    nodeVersion: dto.nodeVersion,
+                    managedVersion: dto.managedVersion
                 ))
             }
         }
@@ -179,6 +202,7 @@ final class NSXPCRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked S
         case RuntimeHelperErrorCode.stopFailed.rawValue: return .stopFailed
         case RuntimeHelperErrorCode.updateFailed.rawValue: return .updateFailed
         case RuntimeHelperErrorCode.rollbackFailed.rawValue: return .rollbackFailed
+        case RuntimeHelperErrorCode.packagePreparationFailed.rawValue: return .packagePreparationFailed
         default: return .helperUnavailable
         }
     }
@@ -201,9 +225,8 @@ final class RuntimeManagerClient: HarnessRuntimeManaging, @unchecked Sendable {
         try await transport.inspectRuntime()
     }
 
-    func prepareRuntime() async throws -> RuntimePreparationResult {
-        // Phase 9 骨架：准备流程由 Phase 10（App-owned Node Runtime）实现。
-        throw HarnessRuntimeFailure.runtimeMissing
+    func prepareRuntime(version: String) async throws -> RuntimePreparationResult {
+        try await transport.prepareRuntime(version: version)
     }
 
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity {

@@ -26,6 +26,7 @@ public enum RuntimeHelperErrorCode: Int {
     case updateFailed = 8
     case rollbackFailed = 9
     case notImplemented = 10
+    case packagePreparationFailed = 11
 }
 
 /// 运行环境检查结果 DTO（`inspectRuntime` 返回值）。
@@ -102,11 +103,44 @@ public final class ManagedHarnessIdentityDTO: NSObject, NSSecureCoding {
     }
 }
 
+/// 一键准备结果 DTO（`prepareRuntime` 返回值）。
+@objc(RuntimePreparationResultDTO)
+public final class RuntimePreparationResultDTO: NSObject, NSSecureCoding {
+    public static var supportsSecureCoding: Bool { true }
+
+    public let nodeVersion: String
+    public let managedVersion: String
+
+    public init(nodeVersion: String, managedVersion: String) {
+        self.nodeVersion = nodeVersion
+        self.managedVersion = managedVersion
+        super.init()
+    }
+
+    public required init?(coder: NSCoder) {
+        guard let nodeVersion = coder.decodeObject(of: NSString.self, forKey: "nodeVersion") as String?,
+              let managedVersion = coder.decodeObject(of: NSString.self, forKey: "managedVersion") as String? else {
+            return nil
+        }
+        self.nodeVersion = nodeVersion
+        self.managedVersion = managedVersion
+    }
+
+    public func encode(with coder: NSCoder) {
+        coder.encode(nodeVersion as NSString, forKey: "nodeVersion")
+        coder.encode(managedVersion as NSString, forKey: "managedVersion")
+    }
+}
+
 /// Helper XPC 接口（强类型白名单，禁止任意命令）。
 @objc(RuntimeHelperProtocol)
 public protocol RuntimeHelperProtocol {
     /// 检查运行环境（只读）。
     func inspectRuntime(withReply reply: @escaping (RuntimeInspectionDTO?, Error?) -> Void)
+
+    /// 一键准备运行环境（App-owned Node Runtime + 私有 npm cache + Managed Harness Home）。
+    /// exact version 由 App 侧解析后传入（文档 §13：禁止 @latest）。
+    func prepareRuntime(version: String, withReply reply: @escaping (RuntimePreparationResultDTO?, Error?) -> Void)
 
     /// 启动 Managed Harness（固定 exact version）。
     func startHarness(version: String, port: Int, dataMode: String,

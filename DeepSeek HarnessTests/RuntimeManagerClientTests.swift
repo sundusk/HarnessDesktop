@@ -5,15 +5,22 @@ import XCTest
 final class FakeRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked Sendable {
     var inspection: RuntimeInspection = .missing
     var inspectionError: Error?
+    var prepareResult: Result<RuntimePreparationResult, Error> = .failure(HarnessRuntimeFailure.packagePreparationFailed)
     var startResult: Result<ManagedHarnessIdentity, Error> = .failure(HarnessRuntimeFailure.startFailed)
     var stopError: Error?
     var statusResult: Result<ManagedHarnessProcessStatus, Error> = .success(.stopped)
     private(set) var stoppedIdentities: [ManagedHarnessIdentity] = []
     private(set) var statusedIdentities: [ManagedHarnessIdentity] = []
+    private(set) var preparedVersions: [String] = []
 
     func inspectRuntime() async throws -> RuntimeInspection {
         if let inspectionError { throw inspectionError }
         return inspection
+    }
+
+    func prepareRuntime(version: String) async throws -> RuntimePreparationResult {
+        preparedVersions.append(version)
+        return try prepareResult.get()
     }
 
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity {
@@ -140,17 +147,33 @@ final class RuntimeManagerClientTests: XCTestCase {
         XCTAssertFalse(healthy)
     }
 
-    // MARK: - Phase 9 骨架：未实现的能力返回明确错误（不静默成功）
+    // MARK: - Phase 10：prepareRuntime
 
-    func testPrepareRuntimeThrowsRuntimeMissingInSkeleton() async {
-        let client = makeClient(FakeRuntimeHelperTransport())
+    func testPrepareRuntimePassesVersionAndReturnsResult() async throws {
+        let transport = FakeRuntimeHelperTransport()
+        transport.prepareResult = .success(RuntimePreparationResult(nodeVersion: "v22.0.0", managedVersion: "0.1.0-rc.7"))
+        let client = makeClient(transport)
+
+        let result = try await client.prepareRuntime(version: "0.1.0-rc.7")
+        XCTAssertEqual(transport.preparedVersions, ["0.1.0-rc.7"], "exact version 必须透传给 Helper")
+        XCTAssertEqual(result.nodeVersion, "v22.0.0")
+        XCTAssertEqual(result.managedVersion, "0.1.0-rc.7")
+    }
+
+    func testPrepareRuntimePropagatesError() async {
+        let transport = FakeRuntimeHelperTransport()
+        transport.prepareResult = .failure(HarnessRuntimeFailure.packagePreparationFailed)
+        let client = makeClient(transport)
+
         do {
-            _ = try await client.prepareRuntime()
-            XCTFail("Phase 9 骨架应返回 runtimeMissing")
+            _ = try await client.prepareRuntime(version: "0.1.0-rc.7")
+            XCTFail("应抛出 packagePreparationFailed")
         } catch {
-            XCTAssertEqual(error as? HarnessRuntimeFailure, .runtimeMissing)
+            XCTAssertEqual(error as? HarnessRuntimeFailure, .packagePreparationFailed)
         }
     }
+
+    // MARK: - Phase 9 骨架：未实现的能力返回明确错误（不静默成功）
 
     func testStartHarnessThrowsStartFailedInSkeleton() async {
         let client = makeClient(FakeRuntimeHelperTransport())

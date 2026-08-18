@@ -33,8 +33,40 @@ final class RuntimeHelperService: NSObject, NSXPCListenerDelegate, RuntimeHelper
     // MARK: - RuntimeHelperProtocol（强类型能力，禁止任意命令）
 
     func inspectRuntime(withReply reply: @escaping (RuntimeInspectionDTO?, Error?) -> Void) {
-        // Phase 9 骨架：Managed Runtime 尚未准备（Phase 10 实现 App-owned Node Runtime）。
-        reply(RuntimeInspectionDTO(nodeVersion: nil, runtimeReady: false, managedHomeReady: false), nil)
+        guard let paths = ManagedRuntimePaths.makeDefault() else {
+            reply(RuntimeInspectionDTO(nodeVersion: nil, runtimeReady: false, managedHomeReady: false), nil)
+            return
+        }
+        let fm = FileManager.default
+        let node = BundledNodeRuntimeLocator.bundledNodeURL()
+        let runtimeReady = node != nil
+        let homeReady = fm.fileExists(atPath: paths.managedHarnessHome.path)
+        reply(RuntimeInspectionDTO(
+            nodeVersion: nil,
+            runtimeReady: runtimeReady,
+            managedHomeReady: homeReady
+        ), nil)
+    }
+
+    func prepareRuntime(version: String, withReply reply: @escaping (RuntimePreparationResultDTO?, Error?) -> Void) {
+        guard let paths = ManagedRuntimePaths.makeDefault() else {
+            reply(nil, runtimeHelperError(.runtimeMissing))
+            return
+        }
+        let preparation = RuntimePreparation(
+            executor: ManagedRuntimePreparer(paths: paths, runner: ProcessRunner())
+        )
+        Task {
+            do {
+                let result = try await preparation.prepare(version: version)
+                reply(RuntimePreparationResultDTO(
+                    nodeVersion: result.nodeVersion,
+                    managedVersion: result.managedVersion
+                ), nil)
+            } catch {
+                reply(nil, Self.mapPreparationError(error))
+            }
+        }
     }
 
     func startHarness(version: String, port: Int, dataMode: String,
@@ -86,5 +118,19 @@ final class RuntimeHelperService: NSObject, NSXPCListenerDelegate, RuntimeHelper
             return nil
         }
         return dict[kSecCodeInfoTeamIdentifier] as? String
+    }
+
+    /// 准备错误 → XPC 错误码。
+    private static func mapPreparationError(_ error: Error) -> NSError {
+        switch error as? ManagedRuntimeError {
+        case .runtimeMissing:
+            return runtimeHelperError(.runtimeMissing)
+        case .runtimeIncompatible:
+            return runtimeHelperError(.runtimeIncompatible)
+        case .packagePreparationFailed:
+            return runtimeHelperError(.packagePreparationFailed)
+        case nil:
+            return runtimeHelperError(.helperUnavailable)
+        }
     }
 }

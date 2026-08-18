@@ -4,5 +4,8 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Phase 10：Helper 需要网络以从 npm registry 拉取 exact Harness package（私有 cache） -->
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>
