@@ -240,15 +240,49 @@ latest 查询成功 → 正确显示更新状态 ✅（updateAvailable / upToDat
 网络失败 → 不影响现有 Harness ✅（回退缓存 / nil，Web UI 不受影响）
 ```
 
-## 2.0 Phase 9 — Runtime Helper Skeleton ⬜ 未开始
+## 2.0 Phase 9 — Runtime Helper Skeleton ✅（实现完成，Build + 168 测试通过）
 
-- [ ] Runtime Helper target / Agent（XPC / ServiceManagement）
-- [ ] Caller identity validation / 强类型 API / 禁止 arbitrary command / health check
-- [ ] Unit Tests / Build / Test
+建立安全进程边界，不启动 Harness。文档：`2.0开发文档.md` §42。
 
-> 说明：XPC Helper 需要签名体系与 XPC 服务 target 嵌入；已按文档 §5 记录 ADR（见 ARCHITECTURE.md
-> ADR-006），实现阶段若签名 / IPC 成本不可接受，按文档允许的简化方案（Developer ID 站外分发、
-> 主 App 非 Sandbox + 命令白名单）执行并记录。
+- [x] Runtime Helper target：新增 `RuntimeHelper.xpc`（`com.apple.product-type.xpc-service`）
+  - 嵌入 App `Contents/XPCServices/RuntimeHelper.xpc`（Copy Files 阶段
+    `dstSubfolderSpec=16` + `dstPath=$(CONTENTS_FOLDER_PATH)/XPCServices`）
+  - 由 launchd 按需启动（`NSXPCListener.service()` + RunLoop，`main.swift`）
+  - 独立 Info.plist（`CFBundlePackageType=XPC!`）+ 独立 entitlements（app-sandbox）
+- [x] XPC / IPC：`NSXPCConnection(serviceName:)` + `NSXPCListener`；
+  `RuntimeHelperProtocol`（@objc）强类型接口，DTO 全部 `NSSecureCoding`
+- [x] Caller identity validation：Helper 接受连接前用 `SecCodeCopyGuestWithAttributes`（pid）
+  读取调用方 Team ID 并与自身比较（`RuntimeHelperCallerValidator`）——
+  只接受同 team 签名的主 App；ad-hoc 开发构建下拒绝连接（优雅降级为 helperUnavailable）
+- [x] 强类型 API（`HarnessRuntimeManaging`，文档 §6）：
+  `inspectRuntime` / `prepareRuntime` / `startHarness(version:port:dataMode:)` /
+  `stopHarness(identity:)` / `status(identity:)` / `healthCheck`
+  —— **没有任何 runCommand / runShell / execute(arguments:) 任意命令接口**
+- [x] `ManagedHarnessIdentity`（文档 §17：generationID + pid + startedAt + version + port，不存单一 PID）
+- [x] `ManagedProcessOwnership`：generationID + pid 双验证，PID reuse 不误杀
+- [x] Helper health check：`inspectRuntime`（只读；Phase 9 返回 runtime 未就绪）
+- [x] 主 App 接入：`AppCoordinator.runtimeManager`（可注入，默认 XPC 客户端）——
+  启动时 `refreshManagedRuntimeStatus()` 查询 Helper 状态写入环境报告；
+  Helper 不可用 → `managedRuntime = .missing`，不影响 Web Core / Attach
+- [x] XPC 错误映射：`RuntimeHelperErrorDomain` + 错误码 → `HarnessRuntimeFailure`（不携带敏感信息）
+- [x] Unit Tests（新增 22 个，累计 168 个全通过）：
+  - client：inspect 透传 / 错误传播 / stop 身份透传 / status 映射 / health check /
+    骨架能力返回明确错误（prepare→runtimeMissing、start→startFailed）
+  - identity：同 team 接受 / 异 team 拒绝 / nil team 拒绝 / generation+pid 双验证 /
+    DTO NSSecureCoding 往返 / status wire code 映射 / 错误码
+- [x] Build 通过（App + RuntimeHelper 双 target，0 warning）
+- [x] Test 通过（168 个）
+
+说明：
+
+- **ServiceManagement 注册**：内嵌 XPC Service 由 launchd 按需自动拉起，
+  不需要 `SMAppService` 注册（后者面向 LoginItems / LaunchAgent）。
+- **签名约束（ADR-007）**：XPC 要求 App 与 Helper 同一 team 签名。本工程为可移植性
+  使用 ad-hoc 签名（无 team）——开发构建下 Helper 连接被拒 → `helperUnavailable`
+  优雅降级（菜单栏 / 环境报告显示未就绪，Web UI 完全不受影响）；
+  正式分发（同一 Developer ID / Apple Development 签名）时连接正常工作。
+- 验收对照（§42）：主 App 能查询 Helper 状态 ✅（`refreshManagedRuntimeStatus`）；
+  Helper 没有 shell API ✅（强类型协议，无任意命令）。
 
 ## 2.0 Phase 10 — App-owned Node Runtime ⬜ 未开始
 

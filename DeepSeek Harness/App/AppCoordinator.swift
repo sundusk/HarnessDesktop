@@ -19,6 +19,8 @@ final class AppCoordinator {
     let settings: AppSettings
     /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
     let versionService: HarnessVersionService
+    /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
+    let runtimeManager: any HarnessRuntimeManaging
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -55,7 +57,8 @@ final class AppCoordinator {
          discovery: (any HarnessDiscovering)? = nil,
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
          petSettings: MoodBallSettings? = nil,
-         versionService: HarnessVersionService? = nil) {
+         versionService: HarnessVersionService? = nil,
+         runtimeManager: (any HarnessRuntimeManaging)? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
@@ -63,6 +66,8 @@ final class AppCoordinator {
         self.notificationCoordinator = NotificationCoordinator(settings: settings)
         // Phase 8：版本服务缓存复用 AppSettings（UserDefaults）。
         self.versionService = versionService ?? HarnessVersionService(cache: settings)
+        // Phase 9：默认 XPC 客户端（惰性连接；测试注入 fake）。
+        self.runtimeManager = runtimeManager ?? RuntimeManagerClient()
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
         // 默认参数在 nonisolated 上下文求值；放在 init 体内（MainActor）创建。
         self.petSettings = petSettings ?? MoodBallSettings()
@@ -82,6 +87,24 @@ final class AppCoordinator {
     func start() {
         guard connectionState == .unknown else { return }
         Task { await performDiscovery() }
+        // Phase 9：启动时查询 Helper 状态（只读；Helper 不可用 → managedRuntime = missing，
+        // 优雅降级，不影响 Web Core / Attach）。
+        Task { await refreshManagedRuntimeStatus() }
+    }
+
+    /// Phase 9：查询 Runtime Helper 状态并写入环境报告（规格 §42 验收：主 App 能查询 Helper 状态）。
+    func refreshManagedRuntimeStatus() async {
+        do {
+            let inspection = try await runtimeManager.inspectRuntime()
+            environmentReport.managedRuntime = inspection.runtimeReady ? .ready : .missing
+            AppLogger.runtimeHelper.info(
+                "Helper 状态：ready=\(inspection.runtimeReady, privacy: .public) node=\(inspection.nodeVersion ?? "nil", privacy: .public)"
+            )
+        } catch {
+            // Helper 不可用（开发构建无同 team 签名 / 尚未实现）→ 未就绪，不打扰用户。
+            environmentReport.managedRuntime = .missing
+            AppLogger.runtimeHelper.info("Helper 不可用：\(String(describing: error), privacy: .public)")
+        }
     }
 
     /// 用户点击「重新检测」时调用。

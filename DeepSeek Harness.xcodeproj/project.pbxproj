@@ -65,6 +65,17 @@
 		B00000000000000000000042 /* HarnessUpdateStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000043 /* HarnessUpdateStatusTests.swift */; };
 		B00000000000000000000043 /* HarnessOwnershipTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000044 /* HarnessOwnershipTests.swift */; };
 		B00000000000000000000044 /* HarnessEnvironmentDoctorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */; };
+		B00000000000000000000045 /* RuntimeHelperContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000047 /* RuntimeHelperContract.swift */; };
+		B00000000000000000000046 /* RuntimeHelperIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000048 /* RuntimeHelperIdentity.swift */; };
+		B00000000000000000000047 /* HarnessRuntimeManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004D /* HarnessRuntimeManaging.swift */; };
+		B00000000000000000000048 /* RuntimeManagerClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004E /* RuntimeManagerClient.swift */; };
+		B00000000000000000000049 /* RuntimeHelperContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000047 /* RuntimeHelperContract.swift */; };
+		B0000000000000000000004A /* RuntimeHelperIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000048 /* RuntimeHelperIdentity.swift */; };
+		B0000000000000000000004B /* RuntimeHelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000049 /* RuntimeHelperService.swift */; };
+		B0000000000000000000004C /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004A /* main.swift */; };
+		B0000000000000000000004D /* RuntimeHelper.xpc in Embed XPCServices */ = {isa = PBXBuildFile; fileRef = A00000000000000000000046 /* RuntimeHelper.xpc */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		B0000000000000000000004E /* RuntimeManagerClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000004F /* RuntimeManagerClientTests.swift */; };
+		B0000000000000000000004F /* RuntimeHelperIdentityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -144,6 +155,17 @@
 		A00000000000000000000043 /* HarnessUpdateStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateStatusTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000044 /* HarnessOwnershipTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessOwnershipTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEnvironmentDoctorTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000046 /* RuntimeHelper.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = RuntimeHelper.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000047 /* RuntimeHelperContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperContract.swift; sourceTree = "<group>"; };
+		A00000000000000000000048 /* RuntimeHelperIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperIdentity.swift; sourceTree = "<group>"; };
+		A00000000000000000000049 /* RuntimeHelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperService.swift; sourceTree = "<group>"; };
+		A0000000000000000000004A /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		A0000000000000000000004B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A0000000000000000000004C /* RuntimeHelper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RuntimeHelper.entitlements; sourceTree = "<group>"; };
+		A0000000000000000000004D /* HarnessRuntimeManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessRuntimeManaging.swift; sourceTree = "<group>"; };
+		A0000000000000000000004E /* RuntimeManagerClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeManagerClient.swift; sourceTree = "<group>"; };
+		A0000000000000000000004F /* RuntimeManagerClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeManagerClientTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperIdentityTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +177,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000008 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -183,11 +212,24 @@
 				C00000000000000000000003 /* App */,
 				C00000000000000000000004 /* Domain */,
 				C0000000000000000000000F /* Harness */,
+				C0000000000000000000001A /* RuntimeHelper */,
 				C00000000000000000000005 /* Desktop */,
 				C00000000000000000000006 /* Infrastructure */,
 				C00000000000000000000009 /* Resources */,
 			);
 			path = "DeepSeek Harness";
+			sourceTree = "<group>";
+		};
+		C0000000000000000000001A /* RuntimeHelper */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000047 /* RuntimeHelperContract.swift */,
+				A00000000000000000000048 /* RuntimeHelperIdentity.swift */,
+				A00000000000000000000049 /* RuntimeHelperService.swift */,
+				A0000000000000000000004A /* main.swift */,
+				A0000000000000000000004B /* Info.plist */,
+			);
+			path = RuntimeHelper;
 			sourceTree = "<group>";
 		};
 		C0000000000000000000000F /* Harness */ = {
@@ -210,6 +252,8 @@
 				A0000000000000000000003F /* HarnessRuntimeState.swift */,
 				A00000000000000000000040 /* HarnessEnvironmentReport.swift */,
 				A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */,
+				A0000000000000000000004D /* HarnessRuntimeManaging.swift */,
+				A0000000000000000000004E /* RuntimeManagerClient.swift */,
 			);
 			path = Runtime;
 			sourceTree = "<group>";
@@ -365,6 +409,7 @@
 			children = (
 				A00000000000000000000009 /* Info.plist */,
 				A0000000000000000000000A /* DeepSeek Harness.entitlements */,
+				A0000000000000000000004C /* RuntimeHelper.entitlements */,
 				A0000000000000000000000B /* Assets.xcassets */,
 			);
 			path = Resources;
@@ -391,6 +436,8 @@
 				A00000000000000000000043 /* HarnessUpdateStatusTests.swift */,
 				A00000000000000000000044 /* HarnessOwnershipTests.swift */,
 				A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */,
+				A0000000000000000000004F /* RuntimeManagerClientTests.swift */,
+				A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -400,6 +447,7 @@
 			children = (
 				A00000000000000000000011 /* DeepSeek Harness.app */,
 				A00000000000000000000012 /* DeepSeek HarnessTests.xctest */,
+				A00000000000000000000046 /* RuntimeHelper.xpc */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -414,6 +462,7 @@
 				D00000000000000000000001 /* Sources */,
 				D00000000000000000000002 /* Frameworks */,
 				D00000000000000000000003 /* Resources */,
+				D0000000000000000000000A /* Embed XPCServices */,
 			);
 			buildRules = (
 			);
@@ -423,6 +472,23 @@
 			productName = "DeepSeek Harness";
 			productReference = A00000000000000000000011 /* DeepSeek Harness.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000003 /* RuntimeHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F20000000000000000000004 /* Build configuration list for PBXNativeTarget "RuntimeHelper" */;
+			buildPhases = (
+				D00000000000000000000007 /* Sources */,
+				D00000000000000000000008 /* Frameworks */,
+				D00000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RuntimeHelper;
+			productName = RuntimeHelper;
+			productReference = A00000000000000000000046 /* RuntimeHelper.xpc */;
+			productType = "com.apple.product-type.xpc-service";
 		};
 		E00000000000000000000002 /* DeepSeek HarnessTests */ = {
 			isa = PBXNativeTarget;
@@ -476,6 +542,7 @@
 			targets = (
 				E00000000000000000000001 /* DeepSeek Harness */,
 				E00000000000000000000002 /* DeepSeek HarnessTests */,
+				E00000000000000000000003 /* RuntimeHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -496,7 +563,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D00000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D0000000000000000000000A /* Embed XPCServices */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/XPCServices";
+			dstSubfolderSpec = 16;
+			files = (
+				B0000000000000000000004D /* RuntimeHelper.xpc in Embed XPCServices */,
+			);
+			name = "Embed XPCServices";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D00000000000000000000001 /* Sources */ = {
@@ -542,6 +630,10 @@
 				B0000000000000000000003E /* HarnessRuntimeState.swift in Sources */,
 				B0000000000000000000003F /* HarnessEnvironmentReport.swift in Sources */,
 				B00000000000000000000040 /* HarnessEnvironmentDoctor.swift in Sources */,
+				B00000000000000000000045 /* RuntimeHelperContract.swift in Sources */,
+				B00000000000000000000046 /* RuntimeHelperIdentity.swift in Sources */,
+				B00000000000000000000047 /* HarnessRuntimeManaging.swift in Sources */,
+				B00000000000000000000048 /* RuntimeManagerClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -567,6 +659,19 @@
 				B00000000000000000000042 /* HarnessUpdateStatusTests.swift in Sources */,
 				B00000000000000000000043 /* HarnessOwnershipTests.swift in Sources */,
 				B00000000000000000000044 /* HarnessEnvironmentDoctorTests.swift in Sources */,
+				B0000000000000000000004E /* RuntimeManagerClientTests.swift in Sources */,
+				B0000000000000000000004F /* RuntimeHelperIdentityTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000049 /* RuntimeHelperContract.swift in Sources */,
+				B0000000000000000000004A /* RuntimeHelperIdentity.swift in Sources */,
+				B0000000000000000000004B /* RuntimeHelperService.swift in Sources */,
+				B0000000000000000000004C /* main.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -783,6 +888,56 @@
 			};
 			name = Release;
 		};
+		F10000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "DeepSeek Harness/Resources/RuntimeHelper.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "DeepSeek Harness/RuntimeHelper/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F10000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "DeepSeek Harness/Resources/RuntimeHelper.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "DeepSeek Harness/RuntimeHelper/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -809,6 +964,15 @@
 			buildConfigurations = (
 				F10000000000000000000005 /* Debug */,
 				F10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F20000000000000000000004 /* Build configuration list for PBXNativeTarget "RuntimeHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000007 /* Debug */,
+				F10000000000000000000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
