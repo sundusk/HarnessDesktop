@@ -375,7 +375,42 @@ Smoke C（Collision）：Start 前另一进程占用 port → 不启动第二份
 Smoke A（External）：Terminal Harness 运行 → App Attach → Stop 不可用 → 退出 App 不影响
 ```
 
-## 2.0 Phase 12 — Update / Rollback ⬜ 未开始
+## 2.0 Phase 12 — Update / Rollback ✅（核心实现完成，Build + 204 测试通过）
+
+文档：`2.0开发文档.md` §45（更新事务化语义 §23 / 更新 UX §20 / 回退 §22）。
+
+- [x] `managedVersion` / `previousManagedVersion` 持久化（Desktop 自己的设置，
+  禁止写 Harness Profile；更新成功后交换记录）
+- [x] `HarnessUpdateTransaction` 状态机（协议注入，单测不启动真实进程）：
+  - Update：PrepareCandidate → StopCurrent → LaunchCandidate → 版本校验 → Commit
+  - 候选准备失败 → 当前版本**完全不受影响**（.failed）
+  - 候选启动失败 / 版本不符 → 自动恢复 fallback（.restored）
+  - 恢复也失败 → 明确错误（.failed，不删除任何版本记录）
+  - Rollback：StopCurrent → LaunchPrevious → 版本校验 → Commit（失败保留当前记录）
+- [x] health-check-before-commit（§23）：`verifyHarnessVersion`——等待 loopback ready
+  后 `host.describe` 报告版本 == expected 才提交（version mismatch protection）
+- [x] 版本隔离：候选包落在 version-keyed 目录（Phase 10），更新不触碰当前版本缓存
+- [x] 更新确认 UI（§21）：菜单栏「更新 Harness…」（仅 Managed + 有更新可用时显示）
+  → NSAlert 确认（当前/最新 + 快速迭代兼容性警告）→ 事务执行
+- [x] 回退 UI（§22）：菜单栏「回退到 X…」（仅 Managed + 有上一版本时显示）
+  → NSAlert 确认 → 事务执行（成功后 managedVersion ↔ previousManagedVersion 交换）
+- [x] 更新失败恢复：候选失败自动恢复原版本并重新 Attach
+- [x] 并发控制：`isUpdatingManaged` 门控（更新与回退互斥）
+- [x] 日志：`runtime.update` / `runtime.rollback` 分类（只记录版本与阶段，非敏感）
+- [x] Unit Tests（新增 10 个，累计 204 全通过）：
+  - update 成功（阶段顺序 / committed）、候选准备失败（不停止不启动）、
+    停止失败、候选启动失败→恢复、版本校验失败→恢复、恢复也失败、
+    rollback 成功 / 启动失败、verify 不可达快速失败、previousManagedVersion 持久化
+- [x] Build 通过（0 warning）
+- [x] Test 通过（204 个）
+
+待实机验收：
+
+```text
+Smoke D（Update）：Managed vA → mock latest vB → update → vB 校验成功 →
+  managedVersion=vB / previous=vA
+Smoke E（Failed Update）：Managed vA → 候选 vB 失败 → 恢复 vA → App 可继续使用
+```
 
 ## 2.0 Phase 13 — UX Polish ⬜ 未开始
 

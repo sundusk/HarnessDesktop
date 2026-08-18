@@ -21,6 +21,8 @@ final class MenuBarCoordinator {
     private var detailsItem: NSMenuItem?
     private var toggleItem: NSMenuItem?
     private var stopManagedItem: NSMenuItem?
+    private var updateItem: NSMenuItem?
+    private var rollbackItem: NSMenuItem?
     private var observationTask: Task<Void, Never>?
     private var changeContinuation: CheckedContinuation<Void, Never>?
 
@@ -92,6 +94,13 @@ final class MenuBarCoordinator {
         stopManagedItem = makeActionItem("停止 Harness", #selector(stopManagedAction))
         stopManagedItem?.isHidden = true
         menu.addItem(stopManagedItem!)
+        // Phase 12：更新 / 回退（仅 Managed；确认后执行）
+        updateItem = makeActionItem("更新 Harness…", #selector(updateManagedAction))
+        updateItem?.isHidden = true
+        menu.addItem(updateItem!)
+        rollbackItem = makeActionItem("回退到…", #selector(rollbackManagedAction))
+        rollbackItem?.isHidden = true
+        menu.addItem(rollbackItem!)
 
         menu.addItem(.separator())
 
@@ -142,6 +151,10 @@ final class MenuBarCoordinator {
                 _ = coordinator.environmentReport.latestVersion
                 // Phase 11：Managed 运行状态（停止项显隐）
                 _ = coordinator.activeManagedIdentity
+                // Phase 12：更新 / 回退状态
+                _ = coordinator.isUpdatingManaged
+                _ = coordinator.environmentReport.ownership
+                _ = coordinator.environmentReport.updateStatus
             } onChange: { [weak self] in
                 Task { @MainActor in
                     self?.resumeChangeWait()
@@ -188,6 +201,18 @@ final class MenuBarCoordinator {
 
         // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」
         stopManagedItem?.isHidden = coordinator.activeManagedIdentity == nil
+
+        // Phase 12：Managed 且可更新 → 显示「更新 Harness…」；有上一版本 → 显示「回退到 X…」
+        let isManaged = coordinator.activeManagedIdentity != nil
+            || coordinator.environmentReport.ownership == .managed
+        let notBusy = !coordinator.isUpdatingManaged
+        updateItem?.isHidden = !(isManaged && coordinator.environmentReport.updateStatus.hasUpdate && notBusy)
+        if let previous = coordinator.settings.previousManagedVersion {
+            rollbackItem?.title = "回退到 \(previous)…"
+            rollbackItem?.isHidden = !(isManaged && notBusy)
+        } else {
+            rollbackItem?.isHidden = true
+        }
     }
 
     // MARK: - 文案
@@ -254,6 +279,30 @@ final class MenuBarCoordinator {
 
     @objc private func stopManagedAction() {
         coordinator.stopManagedHarness()
+    }
+
+    @objc private func updateManagedAction() {
+        guard let current = coordinator.environmentReport.managedVersion,
+              case .updateAvailable(_, let latest) = coordinator.environmentReport.updateStatus else { return }
+        let alert = NSAlert()
+        alert.messageText = "DeepSeek Harness 有新版本"
+        alert.informativeText = "当前：\(current)\n最新：\(latest)\n\nDeepSeek Harness 仍处于快速迭代阶段，新版本可能影响第三方插件或 Native API 兼容。"
+        alert.addButton(withTitle: "更新并重新启动")
+        alert.addButton(withTitle: "取消")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        coordinator.updateManagedHarness()
+    }
+
+    @objc private func rollbackManagedAction() {
+        guard let current = coordinator.settings.managedVersion,
+              let previous = coordinator.settings.previousManagedVersion else { return }
+        let alert = NSAlert()
+        alert.messageText = "回退到 \(previous)"
+        alert.informativeText = "当前：\(current)\n回退：\(previous)"
+        alert.addButton(withTitle: "回退并重新启动")
+        alert.addButton(withTitle: "取消")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        coordinator.rollbackManagedHarness()
     }
 
     @objc private func openSettingsAction() {

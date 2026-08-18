@@ -82,7 +82,8 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 2.0-9 | Runtime Helper Skeleton（内嵌 XPC Service target / 强类型能力 API / 调用方身份校验 / 所有权验证 / health check；无任意命令） | ✅ |
 | 2.0-10 | App-owned Node Runtime（目录与根限制 / 私有 npm cache / 隔离 DSH_HOME / 一键准备状态机与 UI / Release 打包脚本；Node 二进制由脚本获取） | ✅ |
 | 2.0-11 | Managed Start/Stop（posix_spawn 进程组 / generation 所有权 / endpoint 碰撞保护 / 优雅停止 SIGINT→SIGTERM→SIGKILL / 意外退出处理 / 自动启动与退出策略 / External 保护） | ✅ |
-| 2.0-12 … 14 | Update-Rollback / UX / Release | ⬜ 未开始 |
+| 2.0-12 | Update/Rollback（事务化更新 PrepareCandidate→Stop→Launch→版本校验→Commit / 失败自动恢复 / 一键回退 / 确认 UI） | ✅ |
+| 2.0-13 … 14 | UX / Release | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 

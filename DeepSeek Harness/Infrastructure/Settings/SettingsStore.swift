@@ -16,6 +16,7 @@ struct SettingsStore {
         static let launchManagedHarnessAtAppStart = "runtime.launchManagedHarnessAtAppStart"
         static let stopManagedHarnessOnQuit = "runtime.stopManagedHarnessOnQuit"
         static let managedVersion = "runtime.managedVersion"
+        static let previousManagedVersion = "runtime.previousManagedVersion"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -101,6 +102,18 @@ extension SettingsStore {
                 defaults.set(newValue, forKey: Key.managedVersion)
             } else {
                 defaults.removeObject(forKey: Key.managedVersion)
+            }
+        }
+    }
+
+    /// 上一版本（文档 §13 / §21：更新时保存旧版，供回退；禁止写 Harness Profile）。
+    var previousManagedVersion: String? {
+        get { defaults.string(forKey: Key.previousManagedVersion) }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.previousManagedVersion)
+            } else {
+                defaults.removeObject(forKey: Key.previousManagedVersion)
             }
         }
     }

@@ -87,6 +87,8 @@
 		B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000057 /* RuntimePreparationTests.swift */; };
 		B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* ManagedProcessSupervisor.swift */; };
 		B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */; };
+		B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000059 /* HarnessUpdateTransaction.swift */; };
+		B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -184,6 +186,8 @@
 		A00000000000000000000056 /* ManagedRuntimePreparer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedRuntimePreparer.swift; sourceTree = "<group>"; };
 		A00000000000000000000057 /* RuntimePreparationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimePreparationTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedProcessSupervisorTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000059 /* HarnessUpdateTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateTransaction.swift; sourceTree = "<group>"; };
+		A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateTransactionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -277,6 +281,7 @@
 				A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */,
 				A0000000000000000000004D /* HarnessRuntimeManaging.swift */,
 				A0000000000000000000004E /* RuntimeManagerClient.swift */,
+				A00000000000000000000059 /* HarnessUpdateTransaction.swift */,
 			);
 			path = Runtime;
 			sourceTree = "<group>";
@@ -463,6 +468,7 @@
 				A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */,
 				A00000000000000000000057 /* RuntimePreparationTests.swift */,
 				A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */,
+				A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -663,6 +669,7 @@
 				B00000000000000000000052 /* ManagedPackageCache.swift in Sources */,
 				B00000000000000000000053 /* RuntimePreparation.swift in Sources */,
 				B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */,
+				B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -692,6 +699,7 @@
 				B0000000000000000000004F /* RuntimeHelperIdentityTests.swift in Sources */,
 				B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */,
 				B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */,
+				B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

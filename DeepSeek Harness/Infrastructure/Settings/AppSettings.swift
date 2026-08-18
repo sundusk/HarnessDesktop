@@ -77,6 +77,12 @@ final class AppSettings {
         get { store.managedVersion }
         set { store.managedVersion = newValue }
     }
+
+    /// 上一版本（文档 §13 / §21 / §22：供回退）。
+    var previousManagedVersion: String? {
+        get { store.previousManagedVersion }
+        set { store.previousManagedVersion = newValue }
+    }
 }
 
 // MARK: - Phase 8：版本服务缓存适配

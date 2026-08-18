@@ -27,6 +27,8 @@ final class AppCoordinator {
     private(set) var isStartingManaged = false
     /// Phase 11：活跃 Managed Harness 身份（App 记录，供停止 / 状态查询）。
     private(set) var activeManagedIdentity: ManagedHarnessIdentity?
+    /// Phase 12：更新 / 回退是否进行中（防并发）。
+    private(set) var isUpdatingManaged = false
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -170,6 +172,87 @@ final class AppCoordinator {
         }
     }
 
+    /// Phase 12：更新 Managed Harness（文档 §21 / §23 事务化）。
+    ///
+    /// 流程：latest 重新验证 → 事务（PrepareCandidate → StopCurrent → LaunchCandidate
+    /// → 版本校验 → Commit）；候选失败自动恢复原版本；只在成功提交后才更新
+    /// `managedVersion` / `previousManagedVersion`。
+    func updateManagedHarness() {
+        guard !isUpdatingManaged,
+              let current = settings.managedVersion.flatMap(HarnessVersion.init) else { return }
+        isUpdatingManaged = true
+        Task {
+            defer { isUpdatingManaged = false }
+            // 1. latest 重新从 registry 验证（手动检查忽略节流）
+            guard let latest = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) else {
+                AppLogger.runtimeUpdate.info("更新失败：无法解析最新版本")
+                return
+            }
+            let currentString = current.description
+            let latestString = latest.description
+            guard latestString != currentString else {
+                AppLogger.runtimeUpdate.info("已是最新版本，无需更新")
+                return
+            }
+
+            let executor = LiveUpdateExecutor(coordinator: self)
+            let transaction = HarnessUpdateTransaction(executor: executor)
+            let result = await transaction.update(from: currentString, candidate: latestString)
+
+            switch result {
+            case .committed(let version):
+                self.settings.previousManagedVersion = currentString
+                self.settings.managedVersion = version
+                self.environmentReport.managedVersion = HarnessVersion(version)
+                self.environmentReport.managedRuntime = .ready
+                self.environmentReport.ownership = .managed
+                self.environmentReport.refreshUpdateStatus()
+                AppLogger.runtimeUpdate.info("更新成功并提交：\(version, privacy: .public)")
+                await self.attachAfterManagedStart()
+            case .restored(let version):
+                self.environmentReport.managedRuntime = .ready
+                self.environmentReport.ownership = .managed
+                AppLogger.runtimeUpdate.info("候选失败，已恢复：\(version, privacy: .public)")
+                await self.attachAfterManagedStart()
+            case .failed(let failure):
+                self.environmentReport.managedRuntime = .ready
+                AppLogger.runtimeUpdate.info("更新失败：\(String(describing: failure), privacy: .public)")
+            }
+        }
+    }
+
+    /// Phase 12：回退到上一版本（文档 §22）。
+    func rollbackManagedHarness() {
+        guard !isUpdatingManaged,
+              let current = settings.managedVersion.flatMap(HarnessVersion.init),
+              let previous = settings.previousManagedVersion.flatMap(HarnessVersion.init) else { return }
+        isUpdatingManaged = true
+        Task {
+            defer { isUpdatingManaged = false }
+            let executor = LiveUpdateExecutor(coordinator: self)
+            let transaction = HarnessUpdateTransaction(executor: executor)
+            let result = await transaction.rollback(from: current.description, previous: previous.description)
+
+            switch result {
+            case .committed(let version):
+                // 交换：managedVersion ↔ previousManagedVersion（文档 §22）
+                self.settings.managedVersion = previous.description
+                self.settings.previousManagedVersion = current.description
+                self.environmentReport.managedVersion = HarnessVersion(version)
+                self.environmentReport.managedRuntime = .ready
+                self.environmentReport.ownership = .managed
+                self.environmentReport.refreshUpdateStatus()
+                AppLogger.runtimeRollback.info("回退成功：\(version, privacy: .public)")
+                await self.attachAfterManagedStart()
+            case .failed(let failure):
+                // 回退失败：当前记录保留，可「恢复到 X」（文档 §22）
+                AppLogger.runtimeRollback.info("回退失败：\(String(describing: failure), privacy: .public)")
+            case .restored:
+                break
+            }
+        }
+    }
+
     /// Phase 11：退出 App 时按设置停止 Managed Harness（文档 §19）。
     func stopManagedHarnessForQuit() {
         guard settings.stopManagedHarnessOnQuit, let identity = activeManagedIdentity else { return }
@@ -295,6 +378,66 @@ final class AppCoordinator {
     }
 
     // MARK: - Private
+
+    // MARK: - Phase 12：更新事务执行器
+
+    /// 更新事务执行器（真实实现，接入本协调器的 Runtime Manager / Discovery）。
+    @MainActor
+    private final class LiveUpdateExecutor: HarnessUpdateExecuting {
+        private weak var coordinator: AppCoordinator?
+
+        init(coordinator: AppCoordinator) {
+            self.coordinator = coordinator
+        }
+
+        func prepareCandidate(version: String) async throws {
+            guard let coordinator else { throw HarnessRuntimeFailure.helperUnavailable }
+            _ = try await coordinator.runtimeManager.prepareRuntime(version: version)
+        }
+
+        func stopCurrent() async throws {
+            guard let coordinator else { throw HarnessRuntimeFailure.helperUnavailable }
+            guard let identity = coordinator.activeManagedIdentity else { return }
+            try await coordinator.runtimeManager.stopHarness(identity: identity)
+            coordinator.activeManagedIdentity = nil
+            coordinator.environmentReport.ownership = nil
+        }
+
+        func launchCandidate(version: String) async throws -> ManagedHarnessIdentity {
+            guard let coordinator else { throw HarnessRuntimeFailure.helperUnavailable }
+            let identity = try await coordinator.runtimeManager.startHarness(
+                version: version,
+                port: coordinator.settings.port,
+                dataMode: .isolated
+            )
+            coordinator.activeManagedIdentity = identity
+            return identity
+        }
+
+        func verifyVersion(expected: String) async -> Bool {
+            guard let coordinator else { return false }
+            return await AppCoordinator.verifyHarnessVersion(expected: expected, discovery: coordinator.discovery)
+        }
+    }
+
+    /// 等待 loopback ready（默认最多 30s）并校验 `host.describe` 报告版本 == expected
+    /// （文档 §21 health check / §23 version mismatch protection）。
+    static func verifyHarnessVersion(expected: String,
+                                     discovery: any HarnessDiscovering,
+                                     maxAttempts: Int = 30,
+                                     pollInterval: Duration = .seconds(1)) async -> Bool {
+        var endpoint: HarnessEndpoint?
+        for _ in 0..<maxAttempts {
+            if let found = await discovery.discover() {
+                endpoint = found
+                break
+            }
+            try? await Task.sleep(for: pollInterval)
+        }
+        guard let endpoint else { return false }
+        guard let info = try? await HarnessHTTPTransport().describe(endpoint: endpoint) else { return false }
+        return HarnessVersion(info.version) == HarnessVersion(expected)
+    }
 
     /// Phase 8：Environment Doctor（规格 §9 检查顺序，只读）。
     ///
