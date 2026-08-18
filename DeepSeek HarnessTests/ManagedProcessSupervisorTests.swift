@@ -230,6 +230,27 @@ final class ManagedProcessSupervisorTests: XCTestCase {
         XCTAssertEqual(supervisor.status(identity: forged), .stopped, "身份不匹配 → 视为未运行")
     }
 
+    // MARK: - stopActive（崩溃恢复 / 连接失效清理，文档 §19 / §47）
+
+    func testStopActiveStopsRegisteredProcess() async throws {
+        let launcher = FakeProcessLauncher()
+        launcher.handle.exitOnInterrupt = true
+        let supervisor = makeSupervisor(launcher: launcher)
+        let identity = try await supervisor.start(version: "0.1.0-rc.7", port: 3080)
+
+        await supervisor.stopActive()
+
+        XCTAssertEqual(launcher.handle.interruptCount, 1)
+        XCTAssertNil(supervisor.registration, "stopActive 后应清空活跃注册")
+        XCTAssertEqual(supervisor.status(identity: identity), .stopped)
+    }
+
+    func testStopActiveNoopWhenNothingRunning() async {
+        let supervisor = makeSupervisor()
+        await supervisor.stopActive()  // 不应崩溃 / 不应报错
+        XCTAssertNil(supervisor.registration)
+    }
+
     // MARK: - 意外退出（文档 §18：unexpected exit handling）
 
     func testUnexpectedExitClearsRegistration() async throws {

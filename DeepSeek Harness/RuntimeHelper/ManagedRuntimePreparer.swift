@@ -1,4 +1,7 @@
 import Foundation
+import os
+
+private let preparerLog = Logger(subsystem: "dev.deepseekharness.DeepSeekHarness", category: "runtime.environment")
 
 /// 一键准备执行器（Helper 侧真实实现；文档 §14 / §15）。
 ///
@@ -15,6 +18,15 @@ struct ManagedRuntimePreparer: RuntimePreparationExecuting {
     func validateNode() async throws -> String {
         guard let node = nodeLocator() else {
             throw ManagedRuntimeError.runtimeMissing
+        }
+        // 完整性校验（文档 §47）：清单缺失（开发构建）跳过，哈希不匹配拒绝使用。
+        switch RuntimeIntegrityVerifier.verify(nodeBinary: node) {
+        case nil:
+            break
+        case .manifestMissing:
+            preparerLog.info("Node 完整性清单缺失（开发构建，跳过校验）")
+        case .unreadableBinary, .hashMismatch:
+            throw ManagedRuntimeError.runtimeIncompatible
         }
         let result = try await runner.run(
             executable: node,

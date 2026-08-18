@@ -444,7 +444,58 @@ Smoke E（Failed Update）：Managed vA → 候选 vB 失败 → 恢复 vA → A
 - Intel（x86_64）机器 smoke（本机为 arm64，机制已按架构分支处理）
 ```
 
-## 2.0 Phase 14 — Release Hardening ⬜ 未开始
+## 2.0 Phase 14 — Release Hardening ✅（可本地验证项完成，Build + 214 测试通过）
+
+文档：`2.0开发文档.md` §47。
+
+- [x] Helper signing 机制：App 与 RuntimeHelper.xpc 同 target 构建 + Copy Files
+  `CodeSignOnCopy`；`Scripts/sign-and-notarize.sh` 发布流水线（同 Developer ID 签名 +
+  notarytool 公证 + stapler，含凭据未提供时的本地开发回退）——需在持有证书的发布机执行
+- [x] Hardened Runtime：App 与 Helper 均 `ENABLE_HARDENED_RUNTIME = YES`（已启用）
+- [x] Notarization 流程：脚本化（需 Developer ID + App 专用密码）
+- [x] Runtime binary integrity verification：`RuntimeIntegrityVerifier`
+  - `Scripts/fetch-node-runtime.sh` 下载后写入 `sha256.txt`（bin/node 的 SHA-256）
+  - `ManagedRuntimePreparer.validateNode` 启动前校验（CryptoKit）：清单缺失（开发构建）
+    跳过并记录；哈希不匹配 → `runtimeIncompatible` 拒绝使用
+- [x] Update security review：更新走 `HarnessUpdateTransaction` 事务（health-check-before-
+  commit / 失败恢复 / 不删除旧版本），`previousManagedVersion` 只读自 Desktop 设置
+- [x] Zero Configuration Mutation audit：代码不含对 `~/.dsh`、Shell、PATH、全局 npm 的写入；
+  所有写入限制在 App-owned 根目录（`ManagedRuntimePaths` 根限制，单测覆盖）
+- [x] External Harness protection audit：Stop/Update/Rollback 均要求
+  `ownership == .managed` + generation 身份验证；External 永不被动（单测覆盖）
+- [x] Crash recovery：Helper 连接失效处理（`setStopOnDisconnect` + `supervisor.stopActive()`）
+  ——App 崩溃 / 退出后按策略清理遗留 Managed 进程（`stopActive` 单测覆盖）
+- [x] stale managed identity cleanup：`stopActive()` 幂等清理活跃 generation 注册
+- [x] full regression of Phase 0–7：214 个测试全部通过（含 Phase 0–7 全部既有测试）
+- [x] README / ARCHITECTURE / DEVELOPMENT / AGENTS 同步（本阶段起）
+- [x] Build 通过（0 Swift warning；仅环境噪音警告）
+- [x] Test 通过（214 个）
+
+发布前人工清单：
+
+```text
+[ ] 在发布机运行 ./Scripts/fetch-node-runtime.sh --all（打包 App-owned Node）
+[ ] ./Scripts/sign-and-notarize.sh（同 Developer ID 签名 + 公证；XPC 同 team 要求）
+[ ] Zero Mutation 手工验收（记录 ~/.dsh 前后 checksum）
+[ ] Smoke A–F 全量（External / Managed Start / Collision / Update / Failed Update / 零变更）
+[ ] Intel（x86_64）机器冒烟
+```
+
+---
+
+# 3. 2.0 阶段总结
+
+| Phase | 内容 | 状态 | 测试 |
+|-------|------|------|------|
+| 8 | Runtime Domain & Environment Doctor | ✅ | 146 |
+| 9 | Runtime Helper Skeleton（XPC） | ✅ | 168 |
+| 10 | App-owned Node Runtime | ✅ | 181 |
+| 11 | Managed Start / Stop | ✅ | 194 |
+| 12 | Update / Rollback | ✅ | 204 |
+| 13 | UX Polish | ✅ | 208 |
+| 14 | Release Hardening | ✅（可本地验证项） | 214 |
+
+遗留（需发布环境 / 实机）：Node 二进制打包、签名公证、Smoke A–F 实机、Intel 冒烟。
 
 ## Zero Mutation 手工验收
 

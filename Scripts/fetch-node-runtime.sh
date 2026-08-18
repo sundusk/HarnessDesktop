@@ -35,7 +35,9 @@ download_arch() {
   rm -rf "${tmp}"
   # 保留可执行位，移除符号链接中的绝对路径问题（bin 内是相对链接，无需处理）
   chmod +x "${dest}/bin/node" "${dest}/bin/npm" "${dest}/bin/npx" 2>/dev/null || true
-  echo "✔ ${arch}: 就绪 → ${dest}/bin/node"
+  # 完整性清单（文档 §47）：RuntimeIntegrityVerifier 启动前校验 bin/node 哈希
+  shasum -a 256 "${dest}/bin/node" | awk '{print $1}' > "${dest}/sha256.txt"
+  echo "✔ ${arch}: 就绪 → ${dest}/bin/node（sha256 已写入 sha256.txt）"
 }
 
 if [[ "${1:-}" == "--all" ]]; then

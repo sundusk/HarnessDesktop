@@ -91,6 +91,9 @@
 		B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */; };
 		B0000000000000000000005E /* DiagnosticsSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000061 /* DiagnosticsSnapshot.swift */; };
 		B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */; };
+		B00000000000000000000060 /* RuntimeIntegrityVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */; };
+		B00000000000000000000061 /* RuntimeIntegrityVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */; };
+		B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -192,6 +195,8 @@
 		A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateTransactionTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000061 /* DiagnosticsSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSnapshot.swift; sourceTree = "<group>"; };
 		A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSnapshotTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeIntegrityVerifier.swift; sourceTree = "<group>"; };
+		A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeIntegrityVerifierTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,6 +264,7 @@
 				A00000000000000000000054 /* RuntimePreparation.swift */,
 				A00000000000000000000055 /* ManagedProcessSupervisor.swift */,
 				A00000000000000000000056 /* ManagedRuntimePreparer.swift */,
+				A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */,
 			);
 			path = RuntimeHelper;
 			sourceTree = "<group>";
@@ -483,6 +489,7 @@
 				A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */,
 				A00000000000000000000060 /* HarnessUpdateTransactionTests.swift */,
 				A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */,
+				A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -685,6 +692,7 @@
 				B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */,
 				B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */,
 				B0000000000000000000005E /* DiagnosticsSnapshot.swift in Sources */,
+				B00000000000000000000060 /* RuntimeIntegrityVerifier.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -716,6 +724,7 @@
 				B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */,
 				B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */,
 				B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */,
+				B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -732,6 +741,7 @@
 				B00000000000000000000056 /* RuntimePreparation.swift in Sources */,
 				B00000000000000000000057 /* ManagedProcessSupervisor.swift in Sources */,
 				B00000000000000000000058 /* ManagedRuntimePreparer.swift in Sources */,
+				B00000000000000000000061 /* RuntimeIntegrityVerifier.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

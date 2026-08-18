@@ -84,7 +84,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 2.0-11 | Managed Start/Stop（posix_spawn 进程组 / generation 所有权 / endpoint 碰撞保护 / 优雅停止 SIGINT→SIGTERM→SIGKILL / 意外退出处理 / 自动启动与退出策略 / External 保护） | ✅ |
 | 2.0-12 | Update/Rollback（事务化更新 PrepareCandidate→Stop→Launch→版本校验→Commit / 失败自动恢复 / 一键回退 / 确认 UI） | ✅ |
 | 2.0-13 | UX Polish（运行环境设置页 / 诊断信息导出 / 无障碍标签 / 文案统一 / Offline UX） | ✅ |
-| 2.0-14 | Release Hardening | ⬜ 未开始 |
+| 2.0-14 | Release Hardening（Node 二进制完整性校验 / 崩溃恢复与陈旧身份清理 / 签名公证流水线脚本 / 审计） | ✅ |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
