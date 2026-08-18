@@ -1,0 +1,771 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* DeepSeekHarnessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000001 /* DeepSeekHarnessApp.swift */; };
+		B00000000000000000000002 /* AppCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000002 /* AppCoordinator.swift */; };
+		B00000000000000000000003 /* HarnessEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000003 /* HarnessEndpoint.swift */; };
+		B00000000000000000000004 /* HarnessConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000004 /* HarnessConnectionState.swift */; };
+		B00000000000000000000005 /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000005 /* MainWindowView.swift */; };
+		B00000000000000000000006 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000006 /* AppSettings.swift */; };
+		B00000000000000000000007 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* SettingsStore.swift */; };
+		B00000000000000000000008 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* AppLogger.swift */; };
+		B00000000000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
+		B0000000000000000000000A /* HarnessEndpointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* HarnessEndpointTests.swift */; };
+		B00000000000000000000012 /* HarnessDiscovering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* HarnessDiscovering.swift */; };
+		B00000000000000000000013 /* LocalHarnessDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* LocalHarnessDiscovery.swift */; };
+		B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* HarnessNavigationPolicy.swift */; };
+		B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* HarnessWebViewModel.swift */; };
+		B00000000000000000000016 /* HarnessWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* HarnessWebView.swift */; };
+		B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */; };
+		B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */; };
+		B00000000000000000000019 /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* AppCoordinatorTests.swift */; };
+		B0000000000000000000001A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* AppDelegate.swift */; };
+		B0000000000000000000001B /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001C /* MainWindowController.swift */; };
+		B0000000000000000000001C /* MenuBarCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003B /* MenuBarCoordinator.swift */; };
+		B0000000000000000000001D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001E /* SettingsView.swift */; };
+		B0000000000000000000001E /* HarnessHTTPTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001F /* HarnessHTTPTransport.swift */; };
+		B0000000000000000000001F /* HarnessProtocolAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000020 /* HarnessProtocolAdapter.swift */; };
+		B00000000000000000000020 /* HarnessCompatibilityResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* HarnessCompatibilityResolver.swift */; };
+		B00000000000000000000021 /* HarnessProtocolModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* HarnessProtocolModels.swift */; };
+		B00000000000000000000022 /* HarnessCompatibilityResolverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* HarnessCompatibilityResolverTests.swift */; };
+		B00000000000000000000023 /* HarnessProtocolModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* HarnessProtocolModelsTests.swift */; };
+		B00000000000000000000024 /* HarnessHTTPTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* HarnessHTTPTransportTests.swift */; };
+		B00000000000000000000025 /* HarnessEventFrames.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* HarnessEventFrames.swift */; };
+		B00000000000000000000029 /* HarnessWebSocketTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002A /* HarnessWebSocketTransport.swift */; };
+		B00000000000000000000027 /* HarnessEventMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* HarnessEventMappingTests.swift */; };
+		B0000000000000000000002A /* HarnessWebSocketTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */; };
+		B0000000000000000000002B /* HarnessActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002C /* HarnessActivityState.swift */; };
+		B0000000000000000000002C /* SessionRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002D /* SessionRuntimeState.swift */; };
+		B0000000000000000000002D /* ActivityReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002E /* ActivityReducer.swift */; };
+		B0000000000000000000002E /* ActivityReducerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002F /* ActivityReducerTests.swift */; };
+		B0000000000000000000002F /* NotificationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000030 /* NotificationCoordinator.swift */; };
+		B00000000000000000000030 /* NotificationDebouncePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000031 /* NotificationDebouncePolicy.swift */; };
+		B00000000000000000000031 /* NotificationDebouncePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */; };
+		B00000000000000000000033 /* MainWindowControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000033 /* MainWindowControllerTests.swift */; };
+		B00000000000000000000034 /* MoodBallSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000034 /* MoodBallSettings.swift */; };
+		B00000000000000000000035 /* MoodBallModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000035 /* MoodBallModel.swift */; };
+		B00000000000000000000036 /* MoodBallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000036 /* MoodBallView.swift */; };
+		B00000000000000000000037 /* MoodBallPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000037 /* MoodBallPanel.swift */; };
+		B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000038 /* MoodBallCoordinator.swift */; };
+		B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000039 /* MoodBallSettingsTests.swift */; };
+		B0000000000000000000003A /* MoodBallModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003A /* MoodBallModelTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F40000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00000000000000000000001;
+			remoteInfo = "DeepSeek Harness";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A00000000000000000000001 /* DeepSeekHarnessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekHarnessApp.swift; sourceTree = "<group>"; };
+		A00000000000000000000002 /* AppCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000003 /* HarnessEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEndpoint.swift; sourceTree = "<group>"; };
+		A00000000000000000000004 /* HarnessConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessConnectionState.swift; sourceTree = "<group>"; };
+		A00000000000000000000005 /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
+		A00000000000000000000006 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		A00000000000000000000007 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000008 /* AppLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogger.swift; sourceTree = "<group>"; };
+		A00000000000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A0000000000000000000000A /* DeepSeek Harness.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DeepSeek Harness.entitlements"; sourceTree = "<group>"; };
+		A0000000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A0000000000000000000000C /* HarnessEndpointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEndpointTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000000D /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		A0000000000000000000000E /* ARCHITECTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ARCHITECTURE.md; sourceTree = "<group>"; };
+		A0000000000000000000000F /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		A00000000000000000000010 /* DEVELOPMENT.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVELOPMENT.md; sourceTree = "<group>"; };
+		A00000000000000000000011 /* DeepSeek Harness.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DeepSeek Harness.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000012 /* DeepSeek HarnessTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "DeepSeek HarnessTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000013 /* HarnessDiscovering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessDiscovering.swift; sourceTree = "<group>"; };
+		A00000000000000000000014 /* LocalHarnessDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscovery.swift; sourceTree = "<group>"; };
+		A00000000000000000000015 /* HarnessNavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000016 /* HarnessWebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebViewModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000017 /* HarnessWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebView.swift; sourceTree = "<group>"; };
+		A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscoveryTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicyTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000001A /* AppCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinatorTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000001B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		A0000000000000000000001C /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		A0000000000000000000001E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A0000000000000000000003B /* MenuBarCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCoordinator.swift; sourceTree = "<group>"; };
+		A0000000000000000000001F /* HarnessHTTPTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessHTTPTransport.swift; sourceTree = "<group>"; };
+		A00000000000000000000020 /* HarnessProtocolAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessProtocolAdapter.swift; sourceTree = "<group>"; };
+		A00000000000000000000021 /* HarnessCompatibilityResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessCompatibilityResolver.swift; sourceTree = "<group>"; };
+		A00000000000000000000022 /* HarnessProtocolModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessProtocolModels.swift; sourceTree = "<group>"; };
+		A00000000000000000000023 /* HarnessCompatibilityResolverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessCompatibilityResolverTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000024 /* HarnessProtocolModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessProtocolModelsTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000025 /* HarnessHTTPTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessHTTPTransportTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000026 /* HarnessEventFrames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEventFrames.swift; sourceTree = "<group>"; };
+		A0000000000000000000002A /* HarnessWebSocketTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebSocketTransport.swift; sourceTree = "<group>"; };
+		A00000000000000000000028 /* HarnessEventMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEventMappingTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebSocketTransportTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000002C /* HarnessActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessActivityState.swift; sourceTree = "<group>"; };
+		A0000000000000000000002D /* SessionRuntimeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionRuntimeState.swift; sourceTree = "<group>"; };
+		A0000000000000000000002E /* ActivityReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducer.swift; sourceTree = "<group>"; };
+		A0000000000000000000002F /* ActivityReducerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityReducerTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000030 /* NotificationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000031 /* NotificationDebouncePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDebouncePolicy.swift; sourceTree = "<group>"; };
+		A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDebouncePolicyTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000033 /* MainWindowControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowControllerTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000034 /* MoodBallSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallSettings.swift; sourceTree = "<group>"; };
+		A00000000000000000000035 /* MoodBallModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallModel.swift; sourceTree = "<group>"; };
+		A00000000000000000000036 /* MoodBallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallView.swift; sourceTree = "<group>"; };
+		A00000000000000000000037 /* MoodBallPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallPanel.swift; sourceTree = "<group>"; };
+		A00000000000000000000038 /* MoodBallCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallCoordinator.swift; sourceTree = "<group>"; };
+		A00000000000000000000039 /* MoodBallSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallSettingsTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000003A /* MoodBallModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallModelTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		C00000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000002 /* DeepSeek Harness */,
+				C0000000000000000000000A /* DeepSeek HarnessTests */,
+				C0000000000000000000000B /* Products */,
+				A0000000000000000000000D /* README.md */,
+				A0000000000000000000000E /* ARCHITECTURE.md */,
+				A0000000000000000000000F /* AGENTS.md */,
+				A00000000000000000000010 /* DEVELOPMENT.md */,
+			);
+			sourceTree = "<group>";
+		};
+		C00000000000000000000002 /* DeepSeek Harness */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000003 /* App */,
+				C00000000000000000000004 /* Domain */,
+				C0000000000000000000000F /* Harness */,
+				C00000000000000000000005 /* Desktop */,
+				C00000000000000000000006 /* Infrastructure */,
+				C00000000000000000000009 /* Resources */,
+			);
+			path = "DeepSeek Harness";
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000F /* Harness */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000010 /* Discovery */,
+				C00000000000000000000011 /* Web */,
+				C00000000000000000000015 /* Transport */,
+				C00000000000000000000016 /* Compatibility */,
+			);
+			path = Harness;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000015 /* Transport */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001F /* HarnessHTTPTransport.swift */,
+				A0000000000000000000002A /* HarnessWebSocketTransport.swift */,
+			);
+			path = Transport;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000016 /* Compatibility */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000020 /* HarnessProtocolAdapter.swift */,
+				A00000000000000000000021 /* HarnessCompatibilityResolver.swift */,
+				A00000000000000000000022 /* HarnessProtocolModels.swift */,
+				A00000000000000000000026 /* HarnessEventFrames.swift */,
+			);
+			path = Compatibility;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000010 /* Discovery */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000013 /* HarnessDiscovering.swift */,
+				A00000000000000000000014 /* LocalHarnessDiscovery.swift */,
+			);
+			path = Discovery;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000011 /* Web */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000015 /* HarnessNavigationPolicy.swift */,
+				A00000000000000000000016 /* HarnessWebViewModel.swift */,
+				A00000000000000000000017 /* HarnessWebView.swift */,
+			);
+			path = Web;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000003 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000001 /* DeepSeekHarnessApp.swift */,
+				A00000000000000000000002 /* AppCoordinator.swift */,
+				A0000000000000000000001B /* AppDelegate.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000004 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000003 /* HarnessEndpoint.swift */,
+				A00000000000000000000004 /* HarnessConnectionState.swift */,
+				A0000000000000000000002C /* HarnessActivityState.swift */,
+				A0000000000000000000002D /* SessionRuntimeState.swift */,
+				A0000000000000000000002E /* ActivityReducer.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000005 /* Desktop */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000005 /* MainWindowView.swift */,
+				C00000000000000000000012 /* Window */,
+				C00000000000000000000013 /* MenuBar */,
+				C00000000000000000000014 /* Settings */,
+				C00000000000000000000017 /* Notifications */,
+				C00000000000000000000018 /* Pet */,
+			);
+			path = Desktop;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000018 /* Pet */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000034 /* MoodBallSettings.swift */,
+				A00000000000000000000035 /* MoodBallModel.swift */,
+				A00000000000000000000036 /* MoodBallView.swift */,
+				A00000000000000000000037 /* MoodBallPanel.swift */,
+				A00000000000000000000038 /* MoodBallCoordinator.swift */,
+			);
+			path = Pet;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000017 /* Notifications */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000030 /* NotificationCoordinator.swift */,
+				A00000000000000000000031 /* NotificationDebouncePolicy.swift */,
+			);
+			path = Notifications;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000012 /* Window */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001C /* MainWindowController.swift */,
+			);
+			path = Window;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000013 /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000003B /* MenuBarCoordinator.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000014 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000001E /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000006 /* Infrastructure */ = {
+			isa = PBXGroup;
+			children = (
+				C00000000000000000000007 /* Settings */,
+				C00000000000000000000008 /* Logging */,
+			);
+			path = Infrastructure;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000007 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000006 /* AppSettings.swift */,
+				A00000000000000000000007 /* SettingsStore.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000008 /* Logging */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000008 /* AppLogger.swift */,
+			);
+			path = Logging;
+			sourceTree = "<group>";
+		};
+		C00000000000000000000009 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000009 /* Info.plist */,
+				A0000000000000000000000A /* DeepSeek Harness.entitlements */,
+				A0000000000000000000000B /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000A /* DeepSeek HarnessTests */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000000C /* HarnessEndpointTests.swift */,
+				A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */,
+				A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */,
+				A0000000000000000000001A /* AppCoordinatorTests.swift */,
+				A00000000000000000000023 /* HarnessCompatibilityResolverTests.swift */,
+				A00000000000000000000024 /* HarnessProtocolModelsTests.swift */,
+				A00000000000000000000025 /* HarnessHTTPTransportTests.swift */,
+				A00000000000000000000028 /* HarnessEventMappingTests.swift */,
+				A0000000000000000000002B /* HarnessWebSocketTransportTests.swift */,
+				A0000000000000000000002F /* ActivityReducerTests.swift */,
+				A00000000000000000000032 /* NotificationDebouncePolicyTests.swift */,
+				A00000000000000000000033 /* MainWindowControllerTests.swift */,
+				A00000000000000000000039 /* MoodBallSettingsTests.swift */,
+				A0000000000000000000003A /* MoodBallModelTests.swift */,
+			);
+			path = "DeepSeek HarnessTests";
+			sourceTree = "<group>";
+		};
+		C0000000000000000000000B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000011 /* DeepSeek Harness.app */,
+				A00000000000000000000012 /* DeepSeek HarnessTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E00000000000000000000001 /* DeepSeek Harness */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F20000000000000000000002 /* Build configuration list for PBXNativeTarget "DeepSeek Harness" */;
+			buildPhases = (
+				D00000000000000000000001 /* Sources */,
+				D00000000000000000000002 /* Frameworks */,
+				D00000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "DeepSeek Harness";
+			productName = "DeepSeek Harness";
+			productReference = A00000000000000000000011 /* DeepSeek Harness.app */;
+			productType = "com.apple.product-type.application";
+		};
+		E00000000000000000000002 /* DeepSeek HarnessTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F20000000000000000000003 /* Build configuration list for PBXNativeTarget "DeepSeek HarnessTests" */;
+			buildPhases = (
+				D00000000000000000000004 /* Sources */,
+				D00000000000000000000005 /* Frameworks */,
+				D00000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F30000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = "DeepSeek HarnessTests";
+			productName = "DeepSeek HarnessTests";
+			productReference = A00000000000000000000012 /* DeepSeek HarnessTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2700;
+				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					E00000000000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					E00000000000000000000002 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = E00000000000000000000001;
+					};
+				};
+			};
+			buildConfigurationList = F20000000000000000000001 /* Build configuration list for PBXProject "DeepSeek Harness" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = C00000000000000000000001;
+			productRefGroup = C0000000000000000000000B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E00000000000000000000001 /* DeepSeek Harness */,
+				E00000000000000000000002 /* DeepSeek HarnessTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D00000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000009 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D00000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* DeepSeekHarnessApp.swift in Sources */,
+				B00000000000000000000002 /* AppCoordinator.swift in Sources */,
+				B00000000000000000000003 /* HarnessEndpoint.swift in Sources */,
+				B00000000000000000000004 /* HarnessConnectionState.swift in Sources */,
+				B0000000000000000000002B /* HarnessActivityState.swift in Sources */,
+				B0000000000000000000002C /* SessionRuntimeState.swift in Sources */,
+				B0000000000000000000002D /* ActivityReducer.swift in Sources */,
+				B00000000000000000000005 /* MainWindowView.swift in Sources */,
+				B00000000000000000000006 /* AppSettings.swift in Sources */,
+				B00000000000000000000007 /* SettingsStore.swift in Sources */,
+				B00000000000000000000008 /* AppLogger.swift in Sources */,
+				B00000000000000000000012 /* HarnessDiscovering.swift in Sources */,
+				B00000000000000000000013 /* LocalHarnessDiscovery.swift in Sources */,
+				B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */,
+				B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */,
+				B00000000000000000000016 /* HarnessWebView.swift in Sources */,
+				B0000000000000000000001A /* AppDelegate.swift in Sources */,
+				B0000000000000000000001B /* MainWindowController.swift in Sources */,
+				B0000000000000000000001C /* MenuBarCoordinator.swift in Sources */,
+				B0000000000000000000001D /* SettingsView.swift in Sources */,
+				B0000000000000000000002F /* NotificationCoordinator.swift in Sources */,
+				B00000000000000000000030 /* NotificationDebouncePolicy.swift in Sources */,
+				B0000000000000000000001E /* HarnessHTTPTransport.swift in Sources */,
+				B0000000000000000000001F /* HarnessProtocolAdapter.swift in Sources */,
+				B00000000000000000000020 /* HarnessCompatibilityResolver.swift in Sources */,
+				B00000000000000000000021 /* HarnessProtocolModels.swift in Sources */,
+				B00000000000000000000025 /* HarnessEventFrames.swift in Sources */,
+				B00000000000000000000029 /* HarnessWebSocketTransport.swift in Sources */,
+				B00000000000000000000034 /* MoodBallSettings.swift in Sources */,
+				B00000000000000000000035 /* MoodBallModel.swift in Sources */,
+				B00000000000000000000036 /* MoodBallView.swift in Sources */,
+				B00000000000000000000037 /* MoodBallPanel.swift in Sources */,
+				B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D00000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0000000000000000000000A /* HarnessEndpointTests.swift in Sources */,
+				B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */,
+				B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */,
+				B00000000000000000000019 /* AppCoordinatorTests.swift in Sources */,
+				B00000000000000000000022 /* HarnessCompatibilityResolverTests.swift in Sources */,
+				B00000000000000000000023 /* HarnessProtocolModelsTests.swift in Sources */,
+				B00000000000000000000024 /* HarnessHTTPTransportTests.swift in Sources */,
+				B00000000000000000000027 /* HarnessEventMappingTests.swift in Sources */,
+				B0000000000000000000002A /* HarnessWebSocketTransportTests.swift in Sources */,
+				B0000000000000000000002E /* ActivityReducerTests.swift in Sources */,
+				B00000000000000000000031 /* NotificationDebouncePolicyTests.swift in Sources */,
+				B00000000000000000000033 /* MainWindowControllerTests.swift in Sources */,
+				B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */,
+				B0000000000000000000003A /* MoodBallModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F30000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00000000000000000000001 /* DeepSeek Harness */;
+			targetProxy = F40000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		F10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F10000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "DeepSeek Harness/Resources/DeepSeek Harness.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DeepSeek Harness/Resources/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
+				PRODUCT_NAME = "DeepSeek Harness";
+				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F10000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "DeepSeek Harness/Resources/DeepSeek Harness.entitlements";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DeepSeek Harness/Resources/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
+				PRODUCT_NAME = "DeepSeek Harness";
+				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F10000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness";
+			};
+			name = Debug;
+		};
+		F10000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F20000000000000000000001 /* Build configuration list for PBXProject "DeepSeek Harness" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000001 /* Debug */,
+				F10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F20000000000000000000002 /* Build configuration list for PBXNativeTarget "DeepSeek Harness" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000003 /* Debug */,
+				F10000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F20000000000000000000003 /* Build configuration list for PBXNativeTarget "DeepSeek HarnessTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000005 /* Debug */,
+				F10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F00000000000000000000001 /* Project object */;
+}

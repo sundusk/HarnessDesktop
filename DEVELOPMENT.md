@@ -1,6 +1,14 @@
-# HarnessDesktop — DEVELOPMENT
+# DeepSeek Harness — DEVELOPMENT
 
 开发流程与阶段状态。
+
+> **应用名称**：产品对外名称与工程命名已统一为 **DeepSeek Harness**：
+> - 产物 `DeepSeek Harness.app`（可执行文件 `DeepSeek Harness`），
+>   `CFBundleDisplayName` / `CFBundleName` = DeepSeek Harness；
+> - Xcode 工程 / target / scheme：`DeepSeek Harness`，测试 target `DeepSeek HarnessTests`；
+> - Swift module：`DeepSeek_Harness`（测试用 `@testable import DeepSeek_Harness`）；
+> - bundle id：`dev.deepseekharness.DeepSeekHarness`（测试 `dev.deepseekharness.DeepSeekHarnessTests`）；
+> - 目录：`DeepSeek Harness/`、`DeepSeek HarnessTests/`、`DeepSeek Harness.xcodeproj`。
 
 ## 开发原则
 
@@ -12,11 +20,11 @@
 
 ```bash
 # 构建
-xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
+xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   -destination 'platform=macOS' build
 
 # 测试
-xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
+xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   -destination 'platform=macOS' test
 ```
 
@@ -130,11 +138,47 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 - [x] Test 通过（85 个，含 6 个防抖策略测试）
 - [x] 冒烟：应用运行正常（首次启动会弹通知授权提示）
 
-### Phase 7 — Floating Pet 🚫 不实现（用户决定）
+### Phase 7 — 心情球悬浮球（Floating MoodBall）✅（实现完成，冒烟待做）
 
-用户明确决定不做悬浮状态球，相关代码已删除（`Desktop/Pet/`、设置项、测试）。
-如未来需要，按规格 23 实现：NSPanel 非激活面板 / 拖拽 / 位置记忆 / 状态动画 /
-completed 闪动，状态只来自 `HarnessActivityState`。
+此前用户决定不做 Pet（Phase 7 曾标记 🚫）；本轮按新需求改为内置**属于 DeepSeek Harness 自己的心情球**
+（参考 [dsh-moodball](https://github.com/sundusk/dsh-moodball) 代码移植，状态源换成本 App 的 Native 活动状态）：
+
+- [x] 状态来源：**不依赖 dsh-moodball 插件 / `/api/moodball/status`** —— 直接消费
+  `AppCoordinator.activityState`（ActivityReducer 聚合 Native WebSocket 事件），
+  既遵守 Zero Mutation（不装插件、不改 `~/.dsh`），也满足规格 23
+  「Pet 不通过 WebView DOM 判断状态」；未连接时显示灰球
+- [x] `Desktop/Pet/MoodBallView.swift`：呼吸发光小球（12fps TimelineView + drawingGroup、
+  多 stop 渐变光晕代替 blur）+ 眨眼 + 双击兴奋晃动 + 漫画风状态气泡（移植自 moodball）
+- [x] `Desktop/Pet/MoodBallPanel.swift` + `MoodBallCoordinator.swift`：NSPanel 置顶悬浮窗
+  （非激活 / 点击穿透悬停恢复 / 拖拽 / 位置记忆 / 屏幕变化兜底回右下角 / 设置变化即时同步面板）
+- [x] `Desktop/Pet/MoodBallModel.swift`：`HarnessActivityState` → mood 映射
+  （idle→蓝 / running→绿「正在思考中」/ waitingForApproval→黄「等待你的授权」/
+  waitingForInput→粉「做出你的抉择」/ error→红「出错了」/ disconnected→灰「未连接」），
+  任务完成 transient「搞定啦」青色庆祝 2.5s 后回真实状态
+- [x] `Desktop/Pet/MoodBallSettings.swift`：UserDefaults 持久化（球大小 / 呼吸速度 /
+  眼睛与颜色 / 气泡文字 / 发光 / 点击穿透 / 记住位置 / 锁定位置 / 显隐开关 / 状态颜色契约）
+- [x] 菜单栏：仅新增「显示悬浮球」开关（其余悬浮球设置都在设置页）
+- [x] 设置页：新增「悬浮球」Section（即时生效；含 6 状态颜色自定义、未连接灰、
+  「恢复默认颜色」、「重置位置到右下角」）
+- [x] 修复（用户反馈）：**菜单栏菜单跑到屏幕右侧、与鲸鱼图标脱开** ——
+  根因是 macOS 26 下 SwiftUI `MenuBarExtra` 的菜单会错误右对齐到屏幕边缘而非状态项。
+  改用 AppKit `NSStatusItem + NSMenu`（`Desktop/MenuBar/MenuBarCoordinator.swift`，
+  dsh-moodball 同款方案）：菜单锚定在鲸鱼图标正下方、24×24 标准状态项；
+  菜单内容（状态 / 会话数 / 版本 / 悬浮球开关 / 动作）由 Observation 驱动即时刷新；
+  删除 `MenuBarView.swift`（MenuBarExtra 场景）
+- [x] 修复（用户反馈）：**设置面板改为左右标签页** —— 左侧标签栏（常规 / 悬浮球），
+  右侧内容区随标签切换；「常规」保留 Save 式表单，「悬浮球」即时生效
+- [x] 修复（用户反馈）：**菜单栏点击「设置…」无反应** ——
+  `NSApp.sendAction(showSettingsWindow:, to: nil)` 走响应链，SwiftUI Settings
+  命令处理器不在链上时静默失败。改为从系统主菜单递归查找 SwiftUI 自动生成的
+  「设置…」项，把它的 action 直接发给它的 target（`MenuBarCoordinator.openSettingsAction`），
+  主窗口关闭时也能打开设置
+- [x] 单元测试：`MoodBallSettingsTests`（默认值 / 持久化 / 越界钳制 / 颜色契约 / 位置）、
+  `MoodBallModelTests`（状态映射 / 气泡文字 / transient 庆祝 / 颜色跟随设置 / 晃动）
+- [x] Build 通过
+- [x] Test 通过（104 个）
+- [ ] 冒烟：真实 Harness 运行时球的颜色 / 气泡 / 拖拽 / 菜单栏开关 / 设置即时生效 /
+      沙盒下全局鼠标监视器（悬停恢复穿透）行为
 
 ### Phase 8 — 稳定性与发布准备 ⬜ 进行中
 
@@ -150,10 +194,10 @@ completed 闪动，状态只来自 `HarnessActivityState`。
 
 1. 记录 `~/.dsh` 当前状态（checksum / git-like diff）。
 2. 启动 Harness（`npx @deepseek-ai/dsh web`）。
-3. 启动 HarnessDesktop，使用主窗口。
-4. 退出 HarnessDesktop。
+3. 启动 DeepSeek Harness，使用主窗口。
+4. 退出 DeepSeek Harness。
 5. 再次用 Terminal 启动 Harness，验证所有插件和皮肤仍正常。
-6. 验证 HarnessDesktop 没有修改任何 Harness 文件。
+6. 验证 DeepSeek Harness 没有修改任何 Harness 文件。
 
 ## 安全验收清单
 

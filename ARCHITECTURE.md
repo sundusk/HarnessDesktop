@@ -1,6 +1,6 @@
-# HarnessDesktop — Architecture
+# DeepSeek Harness — Architecture
 
-> Harness is the server. HarnessDesktop is a native macOS client.
+> Harness is the server. DeepSeek Harness is a native macOS client.
 >
 > Attach First. Zero Mutation. Web Core, Native Enhancement.
 
@@ -8,7 +8,7 @@
 
 ```text
 ┌────────────────────────────────────────────┐
-│              HarnessDesktop                │
+│              DeepSeek Harness                │
 │                                            │
 │ ┌────────────────────────────────────────┐ │
 │ │ Presentation                           │ │
@@ -36,7 +36,7 @@
         └───────────────┬───────────────┘
                         │
                         ▼
-                     ~/.dsh   ← HarnessDesktop 不得写入此处
+                     ~/.dsh   ← DeepSeek Harness 不得写入此处
 ```
 
 ## 故障模型（Graceful Degradation）
@@ -99,16 +99,16 @@
 ## 目录
 
 ```text
-HarnessDesktop/
-├── HarnessDesktop.xcodeproj
-├── HarnessDesktop/
+DeepSeek Harness/
+├── DeepSeek Harness.xcodeproj
+├── DeepSeek Harness/
 │   ├── App/            # 入口 + AppCoordinator
 │   ├── Domain/         # 端点 / 连接状态（后续: 活动状态 / Reducer）
 │   ├── Harness/        # Discovery / Web / (后续: Transport / Compatibility)
 │   ├── Desktop/        # SwiftUI 视图
 │   ├── Infrastructure/ # Settings / Logging / (后续: Diagnostics)
 │   └── Resources/      # Assets / Info.plist / Entitlements
-├── HarnessDesktopTests/
+├── DeepSeek HarnessTests/
 ├── README.md
 ├── ARCHITECTURE.md
 ├── AGENTS.md

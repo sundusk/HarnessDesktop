@@ -1,6 +1,6 @@
-# Harness Desktop for macOS — 开发规格文档
+# DeepSeek Harness for macOS — 开发规格文档
 
-> 工作名称：`HarnessDesktop`
+> 工作名称：`DeepSeek Harness`
 >
 > 项目定位：DeepSeek Harness 的 **macOS 原生客户端 / 宿主**，不是 DeepSeek Harness 的二次发行版。
 >
@@ -40,7 +40,7 @@ Codex 不得为了“更方便”或“更完整”擅自加入以下内容：
 - 不得自动升级用户 Harness。
 - 不得安装、更新或卸载 Harness 插件。
 - 不得修改 Harness Profile。
-- 不得创建自己的 Harness Desktop 插件。
+- 不得创建自己的 DeepSeek Harness 插件。
 - 不得注入或 monkey patch 官方 Web UI 的 JavaScript Runtime。
 - 不得通过 DOM class、CSS selector 或 UI 文本判断 Harness 任务状态。
 - 不得使用 Electron。
@@ -68,7 +68,7 @@ DeepSeek Harness
 http://127.0.0.1:3080
     ↑
     │
-HarnessDesktop
+DeepSeek Harness
 ```
 
 应用启动后：
@@ -171,7 +171,7 @@ Third-party dependency count = 0
 
 ```text
 ┌────────────────────────────────────────────┐
-│              HarnessDesktop                │
+│              DeepSeek Harness                │
 │                                            │
 │ ┌────────────────────────────────────────┐ │
 │ │ Presentation                           │ │
@@ -219,7 +219,7 @@ Third-party dependency count = 0
                         ▼
                      ~/.dsh
 
-        HarnessDesktop 不得写入此处
+        DeepSeek Harness 不得写入此处
 ```
 
 ---
@@ -281,11 +281,11 @@ Native API 连接失败
 建议按以下结构创建工程：
 
 ```text
-HarnessDesktop/
-├── HarnessDesktop.xcodeproj
-├── HarnessDesktop/
+DeepSeek Harness/
+├── DeepSeek Harness.xcodeproj
+├── DeepSeek Harness/
 │   ├── App/
-│   │   ├── HarnessDesktopApp.swift
+│   │   ├── DeepSeek HarnessApp.swift
 │   │   ├── AppCoordinator.swift
 │   │   └── AppEnvironment.swift
 │   │
@@ -349,8 +349,8 @@ HarnessDesktop/
 │   │
 │   └── Resources/
 │
-├── HarnessDesktopTests/
-├── HarnessDesktopUITests/
+├── DeepSeek HarnessTests/
+├── DeepSeek HarnessUITests/
 ├── README.md
 ├── ARCHITECTURE.md
 ├── AGENTS.md
@@ -690,7 +690,7 @@ NSWorkspace.shared.open(...)
 - 文档站
 - 任意外部 HTTP/HTTPS 地址
 
-避免 HarnessDesktop 变成通用浏览器。
+避免 DeepSeek Harness 变成通用浏览器。
 
 ---
 
@@ -1354,13 +1354,13 @@ protocol failure
 
 1. 记录 `~/.dsh` 当前状态。
 2. 启动 Harness。
-3. 启动 HarnessDesktop。
+3. 启动 DeepSeek Harness。
 4. 使用主窗口。
 5. 使用 MenuBar / Pet / Native 状态。
-6. 退出 HarnessDesktop。
+6. 退出 DeepSeek Harness。
 7. 再用 Terminal 启动 Harness。
 8. 验证所有插件和皮肤仍正常。
-9. 验证 HarnessDesktop 没有修改任何 Harness 文件。
+9. 验证 DeepSeek Harness 没有修改任何 Harness 文件。
 
 理想情况下可使用目录 checksum / git-like diff 工具辅助验证。
 
@@ -1728,7 +1728,7 @@ Desktop 自带 Harness
 必须完整隔离：
 
 ```text
-~/Library/Application Support/HarnessDesktop/ManagedRuntime/
+~/Library/Application Support/DeepSeek Harness/ManagedRuntime/
 ├── node/
 ├── harness/
 ├── dsh-home/
@@ -1943,19 +1943,19 @@ Phase 1 只有满足以下所有条件才算完成：
 最终产品应该满足：
 
 ```text
-HarnessDesktop 安装前：
+DeepSeek Harness 安装前：
 Terminal Harness 正常
 
-HarnessDesktop 安装后：
+DeepSeek Harness 安装后：
 Terminal Harness 正常
 
-HarnessDesktop 使用中：
+DeepSeek Harness 使用中：
 Terminal Harness 正常
 
-HarnessDesktop 退出后：
+DeepSeek Harness 退出后：
 Terminal Harness 正常
 
-HarnessDesktop 删除后：
+DeepSeek Harness 删除后：
 Terminal Harness 正常
 ```
 
@@ -1967,7 +1967,7 @@ Terminal Harness 正常
 
 整个项目始终遵循：
 
-> **Harness is the server. HarnessDesktop is a native macOS client.**
+> **Harness is the server. DeepSeek Harness is a native macOS client.**
 
 以及：
 

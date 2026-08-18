@@ -1,8 +1,8 @@
-# HarnessDesktop
+# DeepSeek Harness
 
 > This is an **unofficial** macOS client for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-HarnessDesktop 是一个 macOS 原生客户端 / 宿主，为已经安装并运行 DeepSeek Harness 的用户提供桌面体验。
+DeepSeek Harness 是一个 macOS 原生客户端 / 宿主，为已经安装并运行 DeepSeek Harness 的用户提供桌面体验。
 
 ## 声明
 
@@ -31,11 +31,11 @@ HarnessDesktop 是一个 macOS 原生客户端 / 宿主，为已经安装并运�
 
 ```bash
 # 构建
-xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
+xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   -destination 'platform=macOS' build
 
 # 测试
-xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
+xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   -destination 'platform=macOS' test
 ```
 
@@ -47,10 +47,17 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
    npx @deepseek-ai/dsh web
    ```
 
-2. 启动 HarnessDesktop。
+2. 启动 DeepSeek Harness。
 3. 应用自动检测 `http://127.0.0.1:3080`：
    - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；
    - 未检测到 → 显示「DeepSeek Harness 未运行」页，可复制启动命令或重新检测（**不会自动运行命令**）。
+4. 桌面右下角出现**心情球**悬浮灯：随 Harness 状态实时呼吸变色
+   （蓝=空闲 / 绿=工作中 / 黄=等待批准 / 粉=等待输入 / 红=出错 / 灰=未连接），
+   任务完成时短暂「搞定啦」庆祝。按住可拖到任意位置（位置会记住），双击会兴奋晃动。
+   - 菜单栏（鲸鱼图标）只有「显示悬浮球」开关（显示/隐藏心情球）；
+   - 其余悬浮球设置都在「设置… → 悬浮球」标签里（球大小 / 呼吸速度 / 眼睛 / 气泡文字 /
+     发光 / 点击穿透 / 锁定位置 / 状态颜色，即时生效）；
+   - 设置窗口为左右标签页：**常规**（Harness 连接）与**悬浮球**。
 
 ## 开发状态
 
@@ -63,7 +70,7 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 | 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
 | 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
 | 6 | Notifications（approval/question 立即、完成/错误通知、debounce/dedupe） | ✅ |
-| 7 | Floating Pet | 🚫 用户决定不实现 |
+| 7 | 心情球悬浮球（内置 MoodBall，状态来自 Native 活动状态；菜单栏开关 + 设置页悬浮球设置） | ✅ |
 | 8 | 稳定性与发布准备 | ⬜ 未开始 |
 
 详情见 [DEVELOPMENT.md](DEVELOPMENT.md)。
@@ -74,8 +81,8 @@ xcodebuild -project HarnessDesktop.xcodeproj -scheme HarnessDesktop \
 
 ## 安全验收
 
-安装 / 使用 / 退出 / 删除 HarnessDesktop 前后，Terminal 中的 Harness 均不受影响。
+安装 / 使用 / 退出 / 删除 DeepSeek Harness 前后，Terminal 中的 Harness 均不受影响。
 
 ---
 
-*Harness is the server. HarnessDesktop is a native macOS client.*
+*Harness is the server. DeepSeek Harness is a native macOS client.*
