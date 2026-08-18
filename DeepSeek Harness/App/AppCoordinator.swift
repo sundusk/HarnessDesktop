@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import Observation
 
@@ -19,6 +20,12 @@ final class AppCoordinator {
     let settings: AppSettings
     /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
     let versionService: HarnessVersionService
+    /// 终端命令检测本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`）。
+    var installedVersionProvider: any HarnessInstalledVersionProviding
+    /// 终端命令查询 npm 最新版本（`npm view @deepseek-ai/dsh version`）。
+    var latestVersionProvider: any HarnessLatestVersionProviding
+    /// 手动检查版本是否进行中（防重复点击）。
+    private(set) var isCheckingVersion = false
     /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
     let runtimeManager: any HarnessRuntimeManaging
     /// Phase 10：一键准备是否进行中（防重复点击）。
@@ -68,7 +75,9 @@ final class AppCoordinator {
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
          petSettings: MoodBallSettings? = nil,
          versionService: HarnessVersionService? = nil,
-         runtimeManager: (any HarnessRuntimeManaging)? = nil) {
+         runtimeManager: (any HarnessRuntimeManaging)? = nil,
+         installedVersionProvider: (any HarnessInstalledVersionProviding)? = nil,
+         latestVersionProvider: (any HarnessLatestVersionProviding)? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
@@ -78,6 +87,9 @@ final class AppCoordinator {
         self.versionService = versionService ?? HarnessVersionService(cache: settings)
         // Phase 9：默认 XPC 客户端（惰性连接；测试注入 fake）。
         self.runtimeManager = runtimeManager ?? RuntimeManagerClient()
+        // 终端命令版本检测（测试注入 fake，规格 §34：测试不真正起 Node / npm）。
+        self.installedVersionProvider = installedVersionProvider ?? NpxInstalledVersionProvider()
+        self.latestVersionProvider = latestVersionProvider ?? NpmViewLatestVersionProvider()
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
         // 默认参数在 nonisolated 上下文求值；放在 init 体内（MainActor）创建。
         self.petSettings = petSettings ?? MoodBallSettings()
@@ -345,16 +357,44 @@ final class AppCoordinator {
         webModel?.openInBrowser()
     }
 
-    /// Phase 8：菜单栏「检查 Harness 更新…」（规格 §12.2）。
-    /// 手动检查忽略 6h 节流；失败只影响菜单栏状态，不打扰用户。
+    /// 菜单栏「检查 Harness 更新…」/ 设置页「检查更新」。
+    ///
+    /// 通过终端命令检测：
+    /// 1. 本地 Harness 版本：`npx -y @deepseek-ai/dsh --version`；
+    /// 2. npm 最新版本：`npm view @deepseek-ai/dsh version`；
+    /// 3. 比较后弹出结果面板（「您使用的就是最新版本」或「有最新版本需要更新」+ 终端更新命令）。
+    ///
+    /// 检测到的本地版本会持久化（`settings.lastDetectedHarnessVersion`，即"记住版本"），
+    /// 并作为当前版本参与更新状态比较（握手值可能为上游硬编码占位）。
     func checkForUpdates() {
+        guard !isCheckingVersion else { return }
+        isCheckingVersion = true
         Task {
-            environmentReport.updateStatus = .checking
-            let latest = await versionService.latestVersion(force: true)
-            environmentReport.latestVersion = latest
-            environmentReport.refreshUpdateStatus()
-            AppLogger.version.info("手动检查更新完成：\(latest?.description ?? "unknown", privacy: .public)")
+            defer { isCheckingVersion = false }
+            do {
+                let current = try await installedVersionProvider.fetchInstalledVersion()
+                let latest = try await latestVersionProvider.fetchLatestVersion()
+                settings.lastDetectedHarnessVersion = current.description
+                environmentReport.detectedVersion = current
+                environmentReport.latestVersion = latest
+                environmentReport.refreshUpdateStatus()
+                AppLogger.version.info("终端版本检测完成：current \(current.description, privacy: .public) / latest \(latest.description, privacy: .public)")
+                showVersionCheckPopup(current: current, latest: latest)
+            } catch {
+                AppLogger.version.error("终端版本检测失败：\(String(describing: error), privacy: .public)")
+                showVersionCheckPopup(current: nil, latest: nil)
+            }
         }
+    }
+
+    /// 弹出版本检查结果面板（单个「好」按钮，点击关闭）。
+    private func showVersionCheckPopup(current: HarnessVersion?, latest: HarnessVersion?) {
+        let content = HarnessVersionCheckPresenter.popupContent(current: current, latest: latest)
+        let alert = NSAlert()
+        alert.messageText = content.title
+        alert.informativeText = content.detail
+        alert.addButton(withTitle: "好")
+        alert.runModal()
     }
 
     /// 设置变更后调用：用新 host/port 重建 Discovery 并重新探测。
@@ -465,6 +505,12 @@ final class AppCoordinator {
         updateState(.discovering)
         let report = await environmentDoctor.inspect()
         environmentReport = report
+        // 终端检测到的版本持久化在 settings（"记住版本"）：恢复进报告，
+        // 使更新状态比较跨 rediscover 保持一致（握手值可能为上游硬编码占位）。
+        if environmentReport.detectedVersion == nil,
+           let persisted = settings.lastDetectedHarnessVersion.flatMap(HarnessVersion.init) {
+            environmentReport.detectedVersion = persisted
+        }
         guard let endpoint = report.discoveredEndpoint else {
             updateState(.unavailable)
             maybeAutoStartManaged()

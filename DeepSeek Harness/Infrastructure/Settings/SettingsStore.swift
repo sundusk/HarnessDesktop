@@ -12,6 +12,8 @@ struct SettingsStore {
         // Phase 8：版本检查缓存（规格 §12.1）。
         static let lastUpdateCheckDate = "runtime.version.lastUpdateCheckDate"
         static let latestKnownHarnessVersion = "runtime.version.latestKnown"
+        // 终端命令检测到的本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`）。
+        static let lastDetectedHarnessVersion = "runtime.version.lastDetected"
         // Phase 11：Managed Harness 设置（文档 §19 / §26 / §27）。
         static let launchManagedHarnessAtAppStart = "runtime.launchManagedHarnessAtAppStart"
         static let stopManagedHarnessOnQuit = "runtime.stopManagedHarnessOnQuit"
@@ -70,6 +72,18 @@ struct SettingsStore {
                 defaults.set(newValue, forKey: Key.latestKnownHarnessVersion)
             } else {
                 defaults.removeObject(forKey: Key.latestKnownHarnessVersion)
+            }
+        }
+    }
+
+    /// 终端命令检测到的本地 Harness 版本（nil = 尚未成功检测过）。
+    var lastDetectedHarnessVersion: String? {
+        get { defaults.string(forKey: Key.lastDetectedHarnessVersion) }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.lastDetectedHarnessVersion)
+            } else {
+                defaults.removeObject(forKey: Key.lastDetectedHarnessVersion)
             }
         }
     }

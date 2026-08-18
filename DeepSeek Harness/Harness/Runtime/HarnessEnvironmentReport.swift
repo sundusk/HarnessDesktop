@@ -11,6 +11,11 @@ struct HarnessEnvironmentReport: Equatable, Sendable {
     var ownership: HarnessOwnership?
     /// 运行中 Harness 的版本（来自 `host.describe.version`，统一 Version Model）。
     var runningVersion: HarnessVersion?
+    /// 终端命令检测到的本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`）。
+    ///
+    /// 说明：`host.describe.version` 可能为上游硬编码占位值（如恒为 0.0.1），
+    /// 因此比较时优先使用本字段（用户侧事实），握手值仅作回退。
+    var detectedVersion: HarnessVersion?
     /// Managed Runtime 状态（未准备 / 已就绪）。
     var managedRuntime: ManagedRuntimeStatus = .unknown
     /// Managed 模式固定的 exact Harness 版本。
@@ -22,9 +27,9 @@ struct HarnessEnvironmentReport: Equatable, Sendable {
 }
 
 extension HarnessEnvironmentReport {
-    /// 当前应参与版本比较的版本（运行中取 running，否则取 managed）。
+    /// 当前应参与版本比较的版本（终端检测优先，其次运行中，其次 managed）。
     var currentVersion: HarnessVersion? {
-        runningVersion ?? managedVersion
+        detectedVersion ?? runningVersion ?? managedVersion
     }
 
     /// 刷新 updateStatus（以 current / latest 为准）。

@@ -258,7 +258,8 @@ struct SettingsView: View {
     @ViewBuilder
     private var runtimeVersionSection: some View {
         LabeledContent("当前版本") {
-            Text(settings.managedVersion ?? "未配置")
+            // 终端检测到的真实版本优先（握手值可能为上游硬编码占位）。
+            Text(settings.lastDetectedHarnessVersion ?? settings.managedVersion ?? "未配置")
         }
         LabeledContent("上一版本") {
             Text(settings.previousManagedVersion ?? "无")

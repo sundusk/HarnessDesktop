@@ -58,6 +58,12 @@ final class AppSettings {
         set { store.latestKnownHarnessVersion = newValue }
     }
 
+    /// 终端命令检测到的本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`，nil = 尚未检测）。
+    var lastDetectedHarnessVersion: String? {
+        get { store.lastDetectedHarnessVersion }
+        set { store.lastDetectedHarnessVersion = newValue }
+    }
+
     // MARK: - Phase 11：Managed Harness 设置（文档 §19 / §27）
 
     /// 打开 App 时自动启动 Managed Harness（默认 false）。
