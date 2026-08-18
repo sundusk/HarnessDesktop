@@ -57,6 +57,26 @@ final class AppSettings {
         get { store.latestKnownHarnessVersion }
         set { store.latestKnownHarnessVersion = newValue }
     }
+
+    // MARK: - Phase 11：Managed Harness 设置（文档 §19 / §27）
+
+    /// 打开 App 时自动启动 Managed Harness（默认 false）。
+    var launchManagedHarnessAtAppStart: Bool {
+        get { store.launchManagedHarnessAtAppStart }
+        set { store.launchManagedHarnessAtAppStart = newValue }
+    }
+
+    /// 退出 App 时停止 Managed Harness（默认 true）。
+    var stopManagedHarnessOnQuit: Bool {
+        get { store.stopManagedHarnessOnQuit }
+        set { store.stopManagedHarnessOnQuit = newValue }
+    }
+
+    /// 固定的 exact Harness 版本（文档 §13）。
+    var managedVersion: String? {
+        get { store.managedVersion }
+        set { store.managedVersion = newValue }
+    }
 }
 
 // MARK: - Phase 8：版本服务缓存适配

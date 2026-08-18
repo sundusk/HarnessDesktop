@@ -20,6 +20,7 @@ final class MenuBarCoordinator {
     private var statusTextItem: NSMenuItem?
     private var detailsItem: NSMenuItem?
     private var toggleItem: NSMenuItem?
+    private var stopManagedItem: NSMenuItem?
     private var observationTask: Task<Void, Never>?
     private var changeContinuation: CheckedContinuation<Void, Never>?
 
@@ -87,6 +88,10 @@ final class MenuBarCoordinator {
         menu.addItem(makeActionItem("重新检测", #selector(rediscoverAction)))
         // Phase 8：手动检查更新（忽略节流；失败只影响菜单栏状态）
         menu.addItem(makeActionItem("检查 Harness 更新…", #selector(checkForUpdatesAction)))
+        // Phase 11：停止 Managed Harness（只对 App 自己启动的进程显示；External 永不停止）
+        stopManagedItem = makeActionItem("停止 Harness", #selector(stopManagedAction))
+        stopManagedItem?.isHidden = true
+        menu.addItem(stopManagedItem!)
 
         menu.addItem(.separator())
 
@@ -135,6 +140,8 @@ final class MenuBarCoordinator {
                 _ = coordinator.environmentReport.updateStatus
                 _ = coordinator.environmentReport.runningVersion
                 _ = coordinator.environmentReport.latestVersion
+                // Phase 11：Managed 运行状态（停止项显隐）
+                _ = coordinator.activeManagedIdentity
             } onChange: { [weak self] in
                 Task { @MainActor in
                     self?.resumeChangeWait()
@@ -178,6 +185,9 @@ final class MenuBarCoordinator {
 
         toggleItem?.title = coordinator.petSettings.isBallVisible ? "隐藏悬浮球" : "显示悬浮球"
         toggleItem?.state = coordinator.petSettings.isBallVisible ? .on : .off
+
+        // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」
+        stopManagedItem?.isHidden = coordinator.activeManagedIdentity == nil
     }
 
     // MARK: - 文案
@@ -240,6 +250,10 @@ final class MenuBarCoordinator {
 
     @objc private func checkForUpdatesAction() {
         coordinator.checkForUpdates()
+    }
+
+    @objc private func stopManagedAction() {
+        coordinator.stopManagedHarness()
     }
 
     @objc private func openSettingsAction() {

@@ -12,6 +12,7 @@ final class FakeRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked Se
     private(set) var stoppedIdentities: [ManagedHarnessIdentity] = []
     private(set) var statusedIdentities: [ManagedHarnessIdentity] = []
     private(set) var preparedVersions: [String] = []
+    private(set) var stopOnDisconnect: Bool?
 
     func inspectRuntime() async throws -> RuntimeInspection {
         if let inspectionError { throw inspectionError }
@@ -35,6 +36,10 @@ final class FakeRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked Se
     func status(identity: ManagedHarnessIdentity) async throws -> ManagedHarnessProcessStatus {
         statusedIdentities.append(identity)
         return try statusResult.get()
+    }
+
+    func setStopOnDisconnect(_ stop: Bool) async throws {
+        stopOnDisconnect = stop
     }
 
     func healthCheck() async -> Bool {
@@ -145,6 +150,27 @@ final class RuntimeManagerClientTests: XCTestCase {
         let client = makeClient(transport)
         let healthy = await client.healthCheck()
         XCTAssertFalse(healthy)
+    }
+
+    // MARK: - Phase 11：start / setStopOnDisconnect
+
+    func testStartHarnessPassesVersionAndMapsIdentity() async throws {
+        let transport = FakeRuntimeHelperTransport()
+        let identity = ManagedHarnessIdentity.fixture
+        transport.startResult = .success(identity)
+        let client = makeClient(transport)
+
+        let result = try await client.startHarness(version: "0.1.0-rc.7", port: 3080, dataMode: .isolated)
+        XCTAssertEqual(result, identity, "身份必须原样返回（供 App 记录 generation）")
+    }
+
+    func testSetStopOnDisconnectPassesThrough() async throws {
+        let transport = FakeRuntimeHelperTransport()
+        let client = makeClient(transport)
+        try await client.setStopOnDisconnect(true)
+        XCTAssertEqual(transport.stopOnDisconnect, true)
+        try await client.setStopOnDisconnect(false)
+        XCTAssertEqual(transport.stopOnDisconnect, false)
     }
 
     // MARK: - Phase 10：prepareRuntime

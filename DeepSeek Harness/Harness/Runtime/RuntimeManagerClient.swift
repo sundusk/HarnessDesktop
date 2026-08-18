@@ -9,6 +9,7 @@ protocol RuntimeHelperTransporting: Sendable {
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity
     func stopHarness(identity: ManagedHarnessIdentity) async throws
     func status(identity: ManagedHarnessIdentity) async throws -> ManagedHarnessProcessStatus
+    func setStopOnDisconnect(_ stop: Bool) async throws
     func healthCheck() async -> Bool
 }
 
@@ -154,6 +155,21 @@ final class NSXPCRuntimeHelperTransport: RuntimeHelperTransporting, @unchecked S
         }
     }
 
+    func setStopOnDisconnect(_ stop: Bool) async throws {
+        try await call { (continuation: CheckedContinuation<Void, Error>) in
+            let proxy = self.proxyWithHandler { error in
+                continuation.resume(throwing: Self.mapError(error))
+            }
+            proxy.setStopOnDisconnect(stop) { error in
+                if let error {
+                    continuation.resume(throwing: Self.mapError(error))
+                    return
+                }
+                continuation.resume(returning: ())
+            }
+        }
+    }
+
     func healthCheck() async -> Bool {
         (try? await inspectRuntime()) != nil
     }
@@ -230,8 +246,7 @@ final class RuntimeManagerClient: HarnessRuntimeManaging, @unchecked Sendable {
     }
 
     func startHarness(version: String, port: Int, dataMode: ManagedDataMode) async throws -> ManagedHarnessIdentity {
-        // Phase 9 骨架：启动流程由 Phase 11（Managed Start / Stop）实现。
-        throw HarnessRuntimeFailure.startFailed
+        try await transport.startHarness(version: version, port: port, dataMode: dataMode)
     }
 
     func stopHarness(identity: ManagedHarnessIdentity) async throws {
@@ -240,6 +255,10 @@ final class RuntimeManagerClient: HarnessRuntimeManaging, @unchecked Sendable {
 
     func status(identity: ManagedHarnessIdentity) async throws -> ManagedHarnessProcessStatus {
         try await transport.status(identity: identity)
+    }
+
+    func setStopOnDisconnect(_ stop: Bool) async throws {
+        try await transport.setStopOnDisconnect(stop)
     }
 
     func healthCheck() async -> Bool {

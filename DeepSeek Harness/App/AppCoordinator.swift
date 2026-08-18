@@ -23,6 +23,10 @@ final class AppCoordinator {
     let runtimeManager: any HarnessRuntimeManaging
     /// Phase 10：一键准备是否进行中（防重复点击）。
     private(set) var isPreparingRuntime = false
+    /// Phase 11：Managed Harness 是否正在启动（防重复启动）。
+    private(set) var isStartingManaged = false
+    /// Phase 11：活跃 Managed Harness 身份（App 记录，供停止 / 状态查询）。
+    private(set) var activeManagedIdentity: ManagedHarnessIdentity?
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -92,6 +96,99 @@ final class AppCoordinator {
         // Phase 9：启动时查询 Helper 状态（只读；Helper 不可用 → managedRuntime = missing，
         // 优雅降级，不影响 Web Core / Attach）。
         Task { await refreshManagedRuntimeStatus() }
+        // Phase 11：退出策略（文档 §19）——App 断开时 Helper 是否停止 Managed Harness。
+        Task {
+            try? await runtimeManager.setStopOnDisconnect(settings.stopManagedHarnessOnQuit)
+        }
+    }
+
+    /// Phase 11：一键启动 Managed Harness（文档 §16 启动流程）。
+    ///
+    /// - Start 前重新 Probe endpoint：已有 Harness → Abort Start → Attach Existing；
+    /// - exact version：优先已准备/已持久化的 managedVersion，否则解析 latest 并持久化；
+    /// - 只调用 Helper 强类型 `startHarness(version:port:dataMode:)`；
+    /// - 成功后等待 loopback ready → Attach。
+    func startManagedHarness() {
+        guard !isStartingManaged, activeManagedIdentity == nil else { return }
+        isStartingManaged = true
+        Task {
+            defer { isStartingManaged = false }
+            // Start 前重新 Probe（文档 §16 / §32）
+            if await self.discovery.discover() != nil {
+                AppLogger.runtimeProcess.info("检测到已有 Harness，放弃启动 Managed，改为 Attach")
+                await self.performDiscovery()
+                return
+            }
+            // exact version（文档 §13：禁止 @latest）
+            let version: HarnessVersion
+            if let persisted = settings.managedVersion.flatMap(HarnessVersion.init) {
+                version = persisted
+            } else if let latest = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) {
+                version = latest
+            } else {
+                environmentReport.managedRuntime = .missing
+                AppLogger.runtimeProcess.info("Managed 启动失败：无法解析 exact 版本")
+                return
+            }
+            do {
+                let identity = try await self.runtimeManager.startHarness(
+                    version: version.description,
+                    port: self.settings.port,
+                    dataMode: .isolated
+                )
+                self.activeManagedIdentity = identity
+                self.settings.managedVersion = version.description
+                self.environmentReport.managedVersion = version
+                self.environmentReport.managedRuntime = .ready
+                self.environmentReport.ownership = .managed
+                self.environmentReport.refreshUpdateStatus()
+                AppLogger.runtimeProcess.info(
+                    "Managed Harness 已启动：pid \(identity.pid, privacy: .public) / \(version.description, privacy: .public) / port \(self.settings.port, privacy: .public)"
+                )
+                await attachAfterManagedStart()
+            } catch {
+                AppLogger.runtimeProcess.info("Managed 启动失败：\(String(describing: error), privacy: .public)")
+                environmentReport.managedRuntime = .ready  // runtime 仍在，只是本次启动失败
+            }
+        }
+    }
+
+    /// Phase 11：停止 Managed Harness（只对 App 自己启动的进程；External 不受影响）。
+    func stopManagedHarness() {
+        guard let identity = activeManagedIdentity else { return }
+        Task {
+            do {
+                try await runtimeManager.stopHarness(identity: identity)
+                activeManagedIdentity = nil
+                environmentReport.ownership = nil
+                webModel = nil
+                updateState(.unavailable)
+                AppLogger.runtimeProcess.info("Managed Harness 已停止（pid \(identity.pid, privacy: .public)）")
+            } catch {
+                AppLogger.runtimeProcess.info("Managed 停止失败：\(String(describing: error), privacy: .public)")
+            }
+        }
+    }
+
+    /// Phase 11：退出 App 时按设置停止 Managed Harness（文档 §19）。
+    func stopManagedHarnessForQuit() {
+        guard settings.stopManagedHarnessOnQuit, let identity = activeManagedIdentity else { return }
+        // 显式通知 Helper 停止（连接失效时 Helper 也会按 stopOnDisconnect 兜底）
+        Task {
+            try? await runtimeManager.stopHarness(identity: identity)
+        }
+    }
+
+    /// 等待 Managed 启动后 loopback ready 再 Attach（最多 30s）。
+    private func attachAfterManagedStart() async {
+        for _ in 0..<30 {
+            if await discovery.discover() != nil {
+                await performDiscovery()
+                return
+            }
+            try? await Task.sleep(for: .seconds(1))
+        }
+        updateState(.unavailable)
     }
 
     /// Phase 9：查询 Runtime Helper 状态并写入环境报告（规格 §42 验收：主 App 能查询 Helper 状态）。
@@ -225,9 +322,24 @@ final class AppCoordinator {
         environmentReport = report
         guard let endpoint = report.discoveredEndpoint else {
             updateState(.unavailable)
+            maybeAutoStartManaged()
             return
         }
         connect(to: endpoint)
+    }
+
+    /// Phase 11：自动启动（文档 §27）——用户开启 + 未发现 External + Managed Runtime ready
+    /// + managedVersion 有效，才自动启动 Managed Harness。
+    private func maybeAutoStartManaged() {
+        guard settings.launchManagedHarnessAtAppStart,
+              activeManagedIdentity == nil,
+              !isStartingManaged,
+              environmentReport.managedRuntime == .ready,
+              environmentReport.managedVersion != nil else {
+            return
+        }
+        AppLogger.runtimeProcess.info("自动启动 Managed Harness（设置已开启）")
+        startManagedHarness()
     }
 
     private func connect(to endpoint: HarnessEndpoint) {

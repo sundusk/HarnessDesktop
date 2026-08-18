@@ -12,6 +12,10 @@ struct SettingsStore {
         // Phase 8：版本检查缓存（规格 §12.1）。
         static let lastUpdateCheckDate = "runtime.version.lastUpdateCheckDate"
         static let latestKnownHarnessVersion = "runtime.version.latestKnown"
+        // Phase 11：Managed Harness 设置（文档 §19 / §26 / §27）。
+        static let launchManagedHarnessAtAppStart = "runtime.launchManagedHarnessAtAppStart"
+        static let stopManagedHarnessOnQuit = "runtime.stopManagedHarnessOnQuit"
+        static let managedVersion = "runtime.managedVersion"
     }
 
     init(defaults: UserDefaults = .standard) {
@@ -73,3 +77,31 @@ struct SettingsStore {
 // MARK: - Phase 8：版本服务缓存适配
 
 extension SettingsStore: HarnessVersionCacheStoring {}
+
+// MARK: - Phase 11：Managed Harness 设置（文档 §13 / §19 / §27）
+
+extension SettingsStore {
+    /// 打开 App 时自动启动 Managed Harness（默认 false，文档 §27）。
+    var launchManagedHarnessAtAppStart: Bool {
+        get { defaults.object(forKey: Key.launchManagedHarnessAtAppStart) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Key.launchManagedHarnessAtAppStart) }
+    }
+
+    /// 退出 App 时停止 Managed Harness（默认 true，文档 §19 V1 推荐）。
+    var stopManagedHarnessOnQuit: Bool {
+        get { defaults.object(forKey: Key.stopManagedHarnessOnQuit) as? Bool ?? true }
+        set { defaults.set(newValue, forKey: Key.stopManagedHarnessOnQuit) }
+    }
+
+    /// 固定的 exact Harness 版本（文档 §13：保存于 Desktop 自己的设置，禁止写 Harness Profile）。
+    var managedVersion: String? {
+        get { defaults.string(forKey: Key.managedVersion) }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.managedVersion)
+            } else {
+                defaults.removeObject(forKey: Key.managedVersion)
+            }
+        }
+    }
+}

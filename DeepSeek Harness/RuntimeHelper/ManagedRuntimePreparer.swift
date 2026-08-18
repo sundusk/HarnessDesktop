@@ -1,12 +1,5 @@
 import Foundation
 
-/// Helper 侧准备错误（服务层映射为 XPC 错误码；不携带敏感信息）。
-enum ManagedRuntimeError: Error, Equatable, Sendable {
-    case runtimeMissing
-    case runtimeIncompatible
-    case packagePreparationFailed
-}
-
 /// 一键准备执行器（Helper 侧真实实现；文档 §14 / §15）。
 ///
 /// - 使用 App-owned Node / npm + App-owned npm cache + exact version；

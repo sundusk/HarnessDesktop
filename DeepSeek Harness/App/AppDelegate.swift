@@ -38,6 +38,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Phase 11：退出策略（文档 §19）——按设置停止 App 自己启动的 Managed Harness。
+        // External Harness 永不被动（Never kill what you do not own）。
+        coordinator.stopManagedHarnessForQuit()
         menuBarCoordinator?.stop()
         menuBarCoordinator = nil
         petCoordinator?.stop()

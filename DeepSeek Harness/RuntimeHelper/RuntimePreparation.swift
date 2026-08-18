@@ -59,3 +59,47 @@ struct RuntimePreparation: Sendable {
         return RuntimePreparationResult(nodeVersion: nodeVersion, managedVersion: version)
     }
 }
+
+/// Helper 侧运行时错误（服务层映射为 XPC 错误码；不携带敏感信息）。
+enum ManagedRuntimeError: Error, Equatable, Sendable {
+    case runtimeMissing
+    case runtimeIncompatible
+    case packagePreparationFailed
+    case endpointOccupied
+    case startFailed
+    case stopFailed
+}
+
+/// Managed Harness 身份（文档 §17：generationID + pid，不存单一 PID）。
+struct ManagedHarnessIdentity: Codable, Equatable, Sendable {
+    let generationID: UUID
+    let pid: Int32
+    let startedAt: Date
+    let version: String
+    let port: Int
+}
+
+/// Managed Harness 进程状态。
+enum ManagedHarnessProcessStatus: Equatable, Sendable {
+    case running(pid: Int32)
+    case stopped
+    case exited(code: Int32)
+
+    /// XPC 传输用的字符串码。
+    var wireCode: String {
+        switch self {
+        case .running: return "running"
+        case .stopped: return "stopped"
+        case .exited: return "exited"
+        }
+    }
+
+    static func fromWireCode(_ code: String, pid: Int32) -> ManagedHarnessProcessStatus? {
+        switch code {
+        case "running": return .running(pid: pid)
+        case "stopped": return .stopped
+        case "exited": return .exited(code: pid)
+        default: return nil
+        }
+    }
+}

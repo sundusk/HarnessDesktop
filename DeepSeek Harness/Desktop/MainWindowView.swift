@@ -21,8 +21,12 @@ struct MainWindowView: View {
                     versionHint: coordinator.environmentReport.updateStatus.summary,
                     runtimeStatus: coordinator.environmentReport.managedRuntime,
                     isPreparingRuntime: coordinator.isPreparingRuntime,
+                    isStartingManaged: coordinator.isStartingManaged,
+                    isManagedRunning: coordinator.activeManagedIdentity != nil,
                     onRediscover: { coordinator.rediscover() },
-                    onPrepareRuntime: { coordinator.prepareManagedRuntime() }
+                    onPrepareRuntime: { coordinator.prepareManagedRuntime() },
+                    onStartManaged: { coordinator.startManagedHarness() },
+                    onStopManaged: { coordinator.stopManagedHarness() }
                 )
             }
         }
@@ -68,9 +72,16 @@ private struct NotRunningView: View {
     let runtimeStatus: ManagedRuntimeStatus
     /// Phase 10：一键准备是否进行中。
     let isPreparingRuntime: Bool
+    /// Phase 11：Managed 是否正在启动（防重复点击）。
+    let isStartingManaged: Bool
+    /// Phase 11：Managed Harness 是否在运行（显示停止按钮）。
+    let isManagedRunning: Bool
     let onRediscover: () -> Void
     /// Phase 10：一键准备（只调用 Helper 强类型 API，不执行任意命令）。
     let onPrepareRuntime: () -> Void
+    /// Phase 11：启动 / 停止 Managed Harness。
+    let onStartManaged: () -> Void
+    let onStopManaged: () -> Void
 
     @State private var copied = false
 
@@ -91,12 +102,17 @@ private struct NotRunningView: View {
                     Text("正在准备运行环境…")
                         .foregroundStyle(.secondary)
                 }
+            } else if isStartingManaged {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("正在启动 Harness…")
+                        .foregroundStyle(.secondary)
+                }
             } else if runtimeStatus == .missing {
                 prepareSection
             } else if runtimeStatus == .ready {
-                Text("运行环境已就绪（一键启动即将提供）")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                managedReadySection
             }
 
             Text("请先在终端运行：")
@@ -140,6 +156,26 @@ private struct NotRunningView: View {
                 onPrepareRuntime()
             }
             .controlSize(.large)
+        }
+    }
+
+    /// Managed Runtime 就绪（文档 §25）：启动 / 停止。
+    @ViewBuilder
+    private var managedReadySection: some View {
+        VStack(spacing: 8) {
+            Text("运行环境已就绪")
+                .font(.callout)
+            HStack(spacing: 12) {
+                Button("启动 Harness") {
+                    onStartManaged()
+                }
+                .controlSize(.large)
+                if isManagedRunning {
+                    Button("停止 Harness") {
+                        onStopManaged()
+                    }
+                }
+            }
         }
     }
 

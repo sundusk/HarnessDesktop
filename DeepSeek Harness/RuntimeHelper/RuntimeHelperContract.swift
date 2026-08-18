@@ -153,6 +153,10 @@ public protocol RuntimeHelperProtocol {
     /// 查询 Managed Harness 进程状态。
     func status(identity: ManagedHarnessIdentityDTO,
                 withReply reply: @escaping (String?, Error?) -> Void)
+
+    /// 设置「App 断开时是否停止 Managed Harness」（文档 §19 退出策略）。
+    /// App 启动时按设置调用；连接失效时 Helper 据此决定是否停止活跃 Managed 进程。
+    func setStopOnDisconnect(_ stop: Bool, withReply reply: @escaping (Error?) -> Void)
 }
 
 /// 由错误码构造 XPC 错误（不携带任何敏感信息）。

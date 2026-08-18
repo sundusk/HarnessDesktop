@@ -328,7 +328,52 @@ latest 查询成功 → 正确显示更新状态 ✅（updateAvailable / upToDat
 → 系统 PATH 不变 ✅（机制保证，需实机验证）
 ```
 
-## 2.0 Phase 11 — Managed Start / Stop ⬜ 未开始
+## 2.0 Phase 11 — Managed Start / Stop ✅（核心实现完成，Build + 194 测试通过）
+
+文档：`2.0开发文档.md` §44。
+
+- [x] `ManagedProcessSupervisor`（长生命周期单例，跨 XPC RPC 共享活跃 generation）
+  - `posix_spawn` + `POSIX_SPAWN_SETPGROUP`：子进程**自成进程组**，向组发信号可清理
+    整棵进程树（避免「npx 退出、node 子进程仍存活」）
+  - stdout / stderr 管道**有界读取**（64KB，文档 §32）
+- [x] generation ownership：`ManagedHarnessIdentity`（generationID + pid + startedAt +
+  version + port）；Stop / Kill 前必须验证 generationID **且** pid 与活跃注册一致
+  （PID reuse 不误杀；测试覆盖「PID 相同 generation 不匹配 → 拒绝停止」）
+- [x] exact Harness version：启动 `node <package>/lib/bin.js web --port <port>`（README 核对
+  CLI），包路径含 exact version，禁止 @latest
+- [x] endpoint collision protection：**Start 前重新检查 endpoint**（Helper TCP 探测
+  `127.0.0.1:port`）+ App 侧 Start 前重新 Probe（已有 Harness → Abort Start → Attach）
+- [x] one-click Start：未运行页「启动 Harness」按钮；`AppCoordinator.startManagedHarness()`
+  （防重复启动门控；成功后等待 loopback ready → 自动 Attach）
+- [x] graceful Stop：SIGINT → 等待 3s → SIGTERM → 等待 3s →（仍 owned 才）SIGKILL 兜底
+  （文档 §18；不默认 kill -9）
+- [x] process tree cleanup：进程组信号（`kill(-pid, ...)`）
+- [x] unexpected exit handling：启动后异步监视，意外退出清理注册 + 补 SIGKILL
+- [x] auto-start setting：`launchManagedHarnessAtAppStart`（默认 false；文档 §27——
+  用户开启 + 无 External + Runtime ready + managedVersion 有效才自动启动）
+- [x] App exit policy：`stopManagedHarnessOnQuit`（默认 true；文档 §19 V1 推荐）
+  - App 退出时显式停止；Helper 侧连接失效兜底（`setStopOnDisconnect` 契约，
+    断开时按策略 `stopActive()`）；External Harness 永不被动
+- [x] External Harness protection：所有权验证贯穿（`HarnessOwnership.canStop` /
+  `ManagedProcessOwnership` / supervisor 身份校验）；菜单栏「停止 Harness」仅
+  Managed 运行中显示
+- [x] managedVersion 持久化（Desktop 自己的设置，禁止写 Harness Profile；文档 §13）
+- [x] Unit Tests（新增 13 个，累计 194 全通过）：
+  - supervisor：启动 env/参数（DSH_HOME / npm_config_cache / --port / exact bin）、
+    端口占用拒绝、非法版本/端口、重复启动、无 Node、错误身份停止拒绝（PID reuse）、
+    SIGINT 优雅停止、SIGTERM/SIGKILL 升级、status、意外退出清注册
+  - client：startHarness 身份透传、setStopOnDisconnect 透传
+- [x] Build 通过（0 Swift warning）
+- [x] Test 通过（194 个）
+
+待人工/实机验收：
+
+```text
+Smoke B（Managed Start）：Prepare → Start → 3080 ready → host.describe → ownership=managed
+  → Stop → Harness 正常退出（需 Release 签名构建 + 真实 Node）
+Smoke C（Collision）：Start 前另一进程占用 port → 不启动第二份 → Attach Existing
+Smoke A（External）：Terminal Harness 运行 → App Attach → Stop 不可用 → 退出 App 不影响
+```
 
 ## 2.0 Phase 12 — Update / Rollback ⬜ 未开始
 

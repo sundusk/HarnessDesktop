@@ -82,9 +82,11 @@
 		B00000000000000000000054 /* ManagedRuntimePaths.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000052 /* ManagedRuntimePaths.swift */; };
 		B00000000000000000000055 /* ManagedPackageCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000053 /* ManagedPackageCache.swift */; };
 		B00000000000000000000056 /* RuntimePreparation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000054 /* RuntimePreparation.swift */; };
-		B00000000000000000000057 /* ManagedProcessRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* ManagedProcessRunner.swift */; };
+		B00000000000000000000057 /* ManagedProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* ManagedProcessSupervisor.swift */; };
 		B00000000000000000000058 /* ManagedRuntimePreparer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000056 /* ManagedRuntimePreparer.swift */; };
 		B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000057 /* RuntimePreparationTests.swift */; };
+		B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000055 /* ManagedProcessSupervisor.swift */; };
+		B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -178,9 +180,10 @@
 		A00000000000000000000052 /* ManagedRuntimePaths.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedRuntimePaths.swift; sourceTree = "<group>"; };
 		A00000000000000000000053 /* ManagedPackageCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedPackageCache.swift; sourceTree = "<group>"; };
 		A00000000000000000000054 /* RuntimePreparation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimePreparation.swift; sourceTree = "<group>"; };
-		A00000000000000000000055 /* ManagedProcessRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedProcessRunner.swift; sourceTree = "<group>"; };
+		A00000000000000000000055 /* ManagedProcessSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedProcessSupervisor.swift; sourceTree = "<group>"; };
 		A00000000000000000000056 /* ManagedRuntimePreparer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedRuntimePreparer.swift; sourceTree = "<group>"; };
 		A00000000000000000000057 /* RuntimePreparationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimePreparationTests.swift; sourceTree = "<group>"; };
+		A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagedProcessSupervisorTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -246,7 +249,7 @@
 				A00000000000000000000052 /* ManagedRuntimePaths.swift */,
 				A00000000000000000000053 /* ManagedPackageCache.swift */,
 				A00000000000000000000054 /* RuntimePreparation.swift */,
-				A00000000000000000000055 /* ManagedProcessRunner.swift */,
+				A00000000000000000000055 /* ManagedProcessSupervisor.swift */,
 				A00000000000000000000056 /* ManagedRuntimePreparer.swift */,
 			);
 			path = RuntimeHelper;
@@ -459,6 +462,7 @@
 				A0000000000000000000004F /* RuntimeManagerClientTests.swift */,
 				A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */,
 				A00000000000000000000057 /* RuntimePreparationTests.swift */,
+				A00000000000000000000058 /* ManagedProcessSupervisorTests.swift */,
 			);
 			path = "DeepSeek HarnessTests";
 			sourceTree = "<group>";
@@ -658,6 +662,7 @@
 				B00000000000000000000051 /* ManagedRuntimePaths.swift in Sources */,
 				B00000000000000000000052 /* ManagedPackageCache.swift in Sources */,
 				B00000000000000000000053 /* RuntimePreparation.swift in Sources */,
+				B0000000000000000000005A /* ManagedProcessSupervisor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -686,6 +691,7 @@
 				B0000000000000000000004E /* RuntimeManagerClientTests.swift in Sources */,
 				B0000000000000000000004F /* RuntimeHelperIdentityTests.swift in Sources */,
 				B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */,
+				B0000000000000000000005B /* ManagedProcessSupervisorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -700,7 +706,7 @@
 				B00000000000000000000054 /* ManagedRuntimePaths.swift in Sources */,
 				B00000000000000000000055 /* ManagedPackageCache.swift in Sources */,
 				B00000000000000000000056 /* RuntimePreparation.swift in Sources */,
-				B00000000000000000000057 /* ManagedProcessRunner.swift in Sources */,
+				B00000000000000000000057 /* ManagedProcessSupervisor.swift in Sources */,
 				B00000000000000000000058 /* ManagedRuntimePreparer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
