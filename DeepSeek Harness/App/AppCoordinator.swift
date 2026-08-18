@@ -20,10 +20,6 @@ final class AppCoordinator {
     let settings: AppSettings
     /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
     let versionService: HarnessVersionService
-    /// 终端命令检测本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`）。
-    var installedVersionProvider: any HarnessInstalledVersionProviding
-    /// 终端命令查询 npm 最新版本（`npm view @deepseek-ai/dsh version`）。
-    var latestVersionProvider: any HarnessLatestVersionProviding
     /// 手动检查版本是否进行中（防重复点击）。
     private(set) var isCheckingVersion = false
     /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
@@ -75,9 +71,7 @@ final class AppCoordinator {
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
          petSettings: MoodBallSettings? = nil,
          versionService: HarnessVersionService? = nil,
-         runtimeManager: (any HarnessRuntimeManaging)? = nil,
-         installedVersionProvider: (any HarnessInstalledVersionProviding)? = nil,
-         latestVersionProvider: (any HarnessLatestVersionProviding)? = nil) {
+         runtimeManager: (any HarnessRuntimeManaging)? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
@@ -87,9 +81,6 @@ final class AppCoordinator {
         self.versionService = versionService ?? HarnessVersionService(cache: settings)
         // Phase 9：默认 XPC 客户端（惰性连接；测试注入 fake）。
         self.runtimeManager = runtimeManager ?? RuntimeManagerClient()
-        // 终端命令版本检测（测试注入 fake，规格 §34：测试不真正起 Node / npm）。
-        self.installedVersionProvider = installedVersionProvider ?? NpxInstalledVersionProvider()
-        self.latestVersionProvider = latestVersionProvider ?? NpmViewLatestVersionProvider()
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
         // 默认参数在 nonisolated 上下文求值；放在 init 体内（MainActor）创建。
         self.petSettings = petSettings ?? MoodBallSettings()
@@ -359,31 +350,39 @@ final class AppCoordinator {
 
     /// 菜单栏「检查 Harness 更新…」/ 设置页「检查更新」。
     ///
-    /// 通过终端命令检测：
-    /// 1. 本地 Harness 版本：`npx -y @deepseek-ai/dsh --version`；
-    /// 2. npm 最新版本：`npm view @deepseek-ai/dsh version`；
+    /// 沙箱安全的实现（不执行 shell / 不依赖 npx / npm）：
+    /// 1. 当前版本：运行中 Harness 的 `host.describe` 版本（`harnessInfo.version`），
+    ///    未连接时回退到持久化的最近检测版本（`settings.lastDetectedHarnessVersion`）；
+    /// 2. 最新版本：`versionService` 直查 npm registry（URLSession，忽略节流）；
     /// 3. 比较后弹出结果面板（「您使用的就是最新版本」或「有最新版本需要更新」+ 终端更新命令）。
     ///
-    /// 检测到的本地版本会持久化（`settings.lastDetectedHarnessVersion`，即"记住版本"），
-    /// 并作为当前版本参与更新状态比较（握手值可能为上游硬编码占位）。
+    /// 检测到的当前版本会持久化（"记住版本"），参与更新状态比较（握手值可能为上游硬编码占位）。
     func checkForUpdates() {
         guard !isCheckingVersion else { return }
         isCheckingVersion = true
         Task {
             defer { isCheckingVersion = false }
-            do {
-                let current = try await installedVersionProvider.fetchInstalledVersion()
-                let latest = try await latestVersionProvider.fetchLatestVersion()
-                settings.lastDetectedHarnessVersion = current.description
-                environmentReport.detectedVersion = current
-                environmentReport.latestVersion = latest
-                environmentReport.refreshUpdateStatus()
-                AppLogger.version.info("终端版本检测完成：current \(current.description, privacy: .public) / latest \(latest.description, privacy: .public)")
-                showVersionCheckPopup(current: current, latest: latest)
-            } catch {
-                AppLogger.version.error("终端版本检测失败：\(String(describing: error), privacy: .public)")
-                showVersionCheckPopup(current: nil, latest: nil)
+            // 1. 当前版本（无需 shell：host.describe 已通过 Native 握手拿到）。
+            let current: HarnessVersion?
+            if let harnessVersion = harnessInfo.flatMap({ HarnessVersion($0.version) }) {
+                current = harnessVersion
+            } else if let persisted = settings.lastDetectedHarnessVersion.flatMap(HarnessVersion.init) {
+                current = persisted
+            } else {
+                current = nil
             }
+            // 2. 最新版本（npm registry 直查；失败返回 nil，不打扰）。
+            let latest = await versionService.latestVersion(force: true)
+            if let current {
+                settings.lastDetectedHarnessVersion = current.description
+            }
+            environmentReport.runningVersion = current
+            environmentReport.latestVersion = latest
+            environmentReport.refreshUpdateStatus()
+            AppLogger.version.info(
+                "版本检查完成：current \(current?.description ?? "?", privacy: .public) / latest \(latest?.description ?? "?", privacy: .public)"
+            )
+            showVersionCheckPopup(current: current, latest: latest)
         }
     }
 

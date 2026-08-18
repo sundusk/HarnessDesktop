@@ -176,7 +176,8 @@ enum HarnessVersionCheckPresenter {
     /// - Returns: (标题, 详情)。
     static func popupContent(current: HarnessVersion?, latest: HarnessVersion?) -> (title: String, detail: String) {
         guard let current, let latest else {
-            return ("版本检测失败", "无法获取版本信息。\n请确认已安装 Node.js（npm / npx 可用）。")
+            return ("版本检测失败",
+                    "无法获取版本信息。\n最新版本查询失败：请检查网络连接。\n若 Harness 未运行，则无法确认当前版本。")
         }
         if current >= latest {
             return ("您使用的就是最新版本",
