@@ -61,9 +61,8 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         XCTAssertEqual(report.updateStatus, .unknown)
     }
 
-    /// describe 返回上游硬编码占位版本（0.0.1）→ currentVersion 以 latest 兜底
-    /// （用户经 `npx @deepseek-ai/dsh` 运行时即跟踪 latest），不显示占位值。
-    func testDescribePlaceholderVersionFallsBackToLatest() async {
+    /// describe 返回的版本就是运行实例的唯一版本来源，不能改用 npm 版本。
+    func testDescribeVersionNeverFallsBackToInstallableVersion() async {
         let doctor = makeDoctor(
             discovery: MockDiscovery(endpoint: endpoint),
             describe: { _ in HarnessVersion("0.0.1") },
@@ -71,9 +70,7 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         )
         let report = await doctor.inspect()
 
-        // runningVersion 保留原始 describe 值（占位），但比较用 currentVersion（= latest）。
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.0.1"))
-        XCTAssertEqual(report.currentVersion, HarnessVersion("0.1.0-rc.8"))
         XCTAssertEqual(report.updateStatus, .unknown)
     }
 
@@ -144,5 +141,19 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         // Doctor 不查询 GitHub，因此只报告本地事实与 npm installable。
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.2.0"))
         XCTAssertEqual(report.updateStatus, .unknown)
+    }
+
+    func testClearingRunningHarnessRemovesItsVersionAndOwnership() {
+        var report = HarnessEnvironmentReport(
+            discoveredEndpoint: endpoint,
+            ownership: .external,
+            runningVersion: HarnessVersion("0.1.0-rc.8")
+        )
+
+        report.clearRunningHarness()
+
+        XCTAssertNil(report.discoveredEndpoint)
+        XCTAssertNil(report.ownership)
+        XCTAssertNil(report.runningVersion)
     }
 }

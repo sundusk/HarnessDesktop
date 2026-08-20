@@ -27,3 +27,11 @@ mdfind "kMDItemCFBundleIdentifier == 'dev.harnessdesktop.HarnessDesktop'"
 ```
 
 应只剩用户保留的正式安装（或没有任何结果）。
+
+### Harness 运行版本永久约束
+
+- 当前连接的 Harness 运行版本只能来自该实例的 `host.describe.version`。
+- npm Registry 版本只表示可安装版本；GitHub Release 版本只表示官方发布版本。
+- `npx @deepseek-ai/dsh --version` 仅用于诊断，绝不能作为运行版本或其回退。
+- 无法读取运行版本时必须降级为未知，禁止以 npm、npx、Managed Runtime 或路径推断替代。
+- npm/npx 与源码启动的 External Harness 适用同一所有权保护：只允许 Attach 与只读访问。

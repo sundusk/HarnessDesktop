@@ -9,7 +9,7 @@ DeepSeek Harness 是一个 macOS 原生客户端 / 宿主，为已经安装并�
 - **非官方**：本应用与 DeepSeek 官方无关。
 - **不包含 DeepSeek Harness**：应用不内置、不捆绑、不 fork Harness Runtime。
 - **不管理 Harness**：不安装 / 更新 / 卸载 Harness，不管理插件与 Profile。
-- **需要用户自己运行 Harness**：请在终端运行 `npx @deepseek-ai/dsh web`。
+- **连接已运行的 Harness**：可通过 npm/npx 或官方源码启动；只要监听 loopback 端点，应用即可 Attach。
 - **默认连接 `127.0.0.1:3080`**（仅 loopback）。
 - **不修改 `~/.dsh`**：应用从权限模型上（App Sandbox）就没有理由写入 Harness 数据。
 - **自动检查版本，但不自动更新**，不执行任何 npm / pnpm / dsh plugin 命令；
@@ -42,19 +42,29 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 
 ## 使用
 
-1. 在终端启动 Harness：
+1. 在终端启动 Harness（任选一种）：
 
    ```bash
+   # npm / npx
    npx @deepseek-ai/dsh web
+   ```
+
+   ```bash
+   # 官方源码
+   git clone https://github.com/deepseek-ai/deepseek-harness.git
+   cd deepseek-harness
+   pnpm install
+   pnpm run build
+   pnpm dsh web
    ```
 
 2. 启动 DeepSeek Harness。
 3. 应用自动检测 `http://127.0.0.1:3080`：
-   - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；菜单栏显示当前版本；
+   - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；菜单栏显示运行版本；
    - 未检测到 → 显示「DeepSeek Harness 未运行」页，可复制启动命令或重新检测（**不会自动运行命令**）。
 4. **版本检查（2.0 Phase 8）**：
    - 启动时静默检查 npm registry 上 `@deepseek-ai/dsh` 的最新版本（6 小时内不重复检查）；
-   - 菜单栏显示「当前 / 最新 / ⬆ 有更新可用」；
+   - 菜单栏与设置页独立显示「运行版本 / 官方最新版本 / npm 可安装版本」；
    - 菜单栏「检查 Harness 更新…」手动强制检查；
    - 仅提示，**不自动更新**；网络不可用不影响任何功能。
 5. 桌面右下角出现**心情球**悬浮灯：随 Harness 状态实时呼吸变色

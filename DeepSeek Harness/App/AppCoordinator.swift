@@ -367,13 +367,11 @@ final class AppCoordinator {
     /// 菜单栏「检查 Harness 更新…」/ 设置页「检查更新」。
     ///
     /// 沙箱安全的实现（不执行 shell / 不依赖 npx / npm）：
-    /// 1. 当前版本：运行中 Harness 的 `host.describe` 版本（`harnessInfo.version`），
-    ///    未连接时回退到持久化的最近检测版本（`settings.lastDetectedHarnessVersion`）；
+    /// 1. 运行版本：运行中 Harness 的 `host.describe` 版本（`harnessInfo.version`）；
+    ///    未连接或握手失败时保持未知，绝不回退到 npm / npx / Managed 版本；
     /// 2. 官方最新版本：GitHub Releases；可安装版本：npm Registry；
     /// 3. 统一交给 `HarnessUpdateStatus` 判断并生成弹窗内容。
     ///
-    /// `host.describe` 的占位版本（如 0.0.1）不持久化、不参与比较——由报告层
-    /// `currentVersion` 仅以 npm installable 兜底，避免一直显示占位版本。
     func checkForUpdates() {
         guard !isCheckingVersion else { return }
         isCheckingVersion = true
@@ -385,18 +383,13 @@ final class AppCoordinator {
             async let release = versionService.latestReleaseVersion(force: true)
             async let installable = versionService.latestInstallableVersion(force: true)
             let (latestRelease, latestInstallable) = await (release, installable)
-            // 只持久化真实版本（describe 占位值 0.0.1 不代表安装版本，不记）。
-            if let described, !described.isDescribePlaceholder {
-                settings.lastDetectedHarnessVersion = described.description
-            }
             environmentReport.runningVersion = described
             environmentReport.latestReleaseVersion = latestRelease
             environmentReport.latestInstallableVersion = latestInstallable
             environmentReport.refreshUpdateStatus()
             // 弹窗只消费统一状态机，不自行比较版本。
-            let current = environmentReport.currentVersion
             AppLogger.version.info(
-                "版本检查完成：current \(current?.description ?? "?", privacy: .public) / release \(latestRelease?.description ?? "?", privacy: .public) / installable \(latestInstallable?.description ?? "?", privacy: .public)"
+                "版本检查完成：running \(described?.description ?? "?", privacy: .public) / release \(latestRelease?.description ?? "?", privacy: .public) / installable \(latestInstallable?.description ?? "?", privacy: .public)"
             )
             showVersionCheckPopup(status: environmentReport.updateStatus)
         }
@@ -581,12 +574,6 @@ final class AppCoordinator {
             self.environmentReport.latestReleaseVersion = release
             self.environmentReport.refreshUpdateStatus()
         }
-        // 终端检测到的版本持久化在 settings（"记住版本"）：恢复进报告，
-        // 使更新状态比较跨 rediscover 保持一致（握手值可能为上游硬编码占位）。
-        if environmentReport.detectedVersion == nil,
-           let persisted = settings.lastDetectedHarnessVersion.flatMap(HarnessVersion.init) {
-            environmentReport.detectedVersion = persisted
-        }
         guard let endpoint = report.discoveredEndpoint else {
             updateState(.unavailable)
             maybeAutoStartManaged()
@@ -639,6 +626,7 @@ final class AppCoordinator {
                 guard !Task.isCancelled, let self else { return }
                 let endpoint = await self.discovery.discover()
                 guard endpoint == nil else { continue }
+                self.environmentReport.clearRunningHarness()
                 self.updateState(.unavailable)
                 self.webModel = nil
                 return

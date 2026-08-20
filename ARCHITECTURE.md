@@ -152,11 +152,13 @@
 
 **背景**：DeepSeek Harness 的 GitHub prerelease 可能早于 npm `dist-tags.latest` 发布。把 npm 同时当成“官方最新”和“可安装最新”会漏报 Release；反过来直接安装 GitHub 版本会在 npm 尚未同步时失败。
 
-**决策**：版本系统固定为三个概念：`currentVersion` 来自本地探测或运行实例；`latestReleaseVersion` 来自 GitHub `releases?per_page=20`，决定是否存在官方新版本；`latestInstallableVersion` 来自 npm Registry，决定 Managed Runtime 能否准备、启动或更新到该 exact 版本。两个网络源拥有独立的 6 小时缓存、节流和 single-flight。`host.describe` 的 `0.0.1` 占位值只能用 npm installable 兜底，不能用 GitHub release 推断当前版本。
+**决策**：版本系统固定为三个概念：`runningVersion` 只来自当前连接实例的 Compatibility Handshake（`host.describe.version`）；`latestReleaseVersion` 来自 GitHub `releases?per_page=20`，决定是否存在官方新版本；`latestInstallableVersion` 来自 npm Registry，决定 Managed Runtime 能否准备、启动或更新到该 exact 版本。两个网络源拥有独立的 6 小时缓存、节流和 single-flight。无法获取 `runningVersion` 时必须显示未知，绝不以 npm、npx、本地安装目录或 Managed Runtime 版本替代。
 
 **安全边界**：所有 Managed Runtime 候选版本只允许经过 `latestManagedCandidateVersion()`，该入口仅消费 npm installable。GitHub-only Release 可以展示，但更新按钮必须禁用。App 自身的 `AppUpdateChecker` / `GitHubLatestReleaseProvider` 是另一套更新体系，不参与 Harness 版本判断。
 
 **降级规则**：任一网络源失败只回退自己的缓存；GitHub 不可用时不能声称“已是最新”，npm 不可用时不能声称“可以更新”。版本查询失败不得影响 Attach、WebView、Native Adapter、Session、Pet 或已运行的 Managed Harness。
+
+**npx 约束**：`npx @deepseek-ai/dsh --version` 仅表达 npx 当前可解析的包版本，可用于诊断，绝不代表当前连接的 Harness。External Harness 无论由 npm/npx 还是源码启动，均只允许 Discover、Attach 和只读协议访问。
 
 ## 模块职责
 

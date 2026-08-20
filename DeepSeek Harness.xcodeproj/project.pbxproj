@@ -16,6 +16,7 @@
 		B00000000000000000000007 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000007 /* SettingsStore.swift */; };
 		B00000000000000000000008 /* AppLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000008 /* AppLogger.swift */; };
 		B00000000000000000000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000B /* Assets.xcassets */; };
+		B00000000000000000000067 /* Runtime in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000069 /* Runtime */; };
 		B0000000000000000000000A /* HarnessEndpointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000C /* HarnessEndpointTests.swift */; };
 		B00000000000000000000012 /* HarnessDiscovering.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* HarnessDiscovering.swift */; };
 		B00000000000000000000013 /* LocalHarnessDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* LocalHarnessDiscovery.swift */; };
@@ -124,6 +125,7 @@
 		A00000000000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A0000000000000000000000A /* DeepSeek Harness.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "DeepSeek Harness.entitlements"; sourceTree = "<group>"; };
 		A0000000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A00000000000000000000069 /* Runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Runtime; sourceTree = "<group>"; };
 		A0000000000000000000000C /* HarnessEndpointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEndpointTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000000D /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		A0000000000000000000000E /* ARCHITECTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ARCHITECTURE.md; sourceTree = "<group>"; };
@@ -473,6 +475,7 @@
 				A0000000000000000000000A /* DeepSeek Harness.entitlements */,
 				A0000000000000000000004C /* RuntimeHelper.entitlements */,
 				A0000000000000000000000B /* Assets.xcassets */,
+				A00000000000000000000069 /* Runtime */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -623,6 +626,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000009 /* Assets.xcassets in Resources */,
+				B00000000000000000000067 /* Runtime in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -913,7 +917,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -941,7 +945,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -958,7 +962,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -974,7 +978,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -999,7 +1003,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1024,7 +1028,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.4;
+				MARKETING_VERSION = 0.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

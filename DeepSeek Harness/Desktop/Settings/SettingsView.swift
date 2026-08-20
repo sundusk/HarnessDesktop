@@ -270,10 +270,8 @@ struct SettingsView: View {
     /// Managed Harness 版本 + 更新 / 回退动作（文档 §26）。
     @ViewBuilder
     private var runtimeVersionSection: some View {
-        LabeledContent("当前版本") {
-            // 报告层 currentVersion：占位值（0.0.1）仅以 npm installable 兜底，
-            // 避免一直显示上游硬编码占位版本。
-            Text(coordinator.environmentReport.currentVersion?.description ?? "未配置")
+        LabeledContent("运行版本") {
+            Text(coordinator.environmentReport.runningVersion?.description ?? "未知")
         }
         LabeledContent("上一版本") {
             Text(settings.previousManagedVersion ?? "无")

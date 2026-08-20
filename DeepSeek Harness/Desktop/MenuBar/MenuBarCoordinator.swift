@@ -181,13 +181,15 @@ final class MenuBarCoordinator {
         if coordinator.sessionCount > 0 {
             details.append("会话数：\(coordinator.sessionCount)")
         }
-        // 版本优先取 currentVersion（占位值 0.0.1 由报告层以 latest 兜底）。
-        if let version = coordinator.environmentReport.currentVersion {
-            details.append("版本：\(version)")
+        if let version = coordinator.environmentReport.runningVersion {
+            details.append("运行版本：\(version)")
         }
         // Phase 8：当前 / 最新版本 + 更新状态（规格 §20 / §24）
         if let latest = coordinator.environmentReport.latestReleaseVersion {
             details.append("官方最新：\(latest)")
+        }
+        if let installable = coordinator.environmentReport.latestInstallableVersion {
+            details.append("npm 可安装：\(installable)")
         }
         switch coordinator.environmentReport.updateStatus {
         case .checking:

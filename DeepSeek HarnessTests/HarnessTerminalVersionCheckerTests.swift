@@ -26,22 +26,22 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
     // MARK: - parseVersionOutput
 
     func testParseVersionOutputSimple() throws {
-        let version = try NpxInstalledVersionProvider.parseVersionOutput("0.1.0-rc.7\n")
+        let version = try NpxResolvedVersionProvider.parseVersionOutput("0.1.0-rc.7\n")
         XCTAssertEqual(version, HarnessVersion("0.1.0-rc.7"))
     }
 
     func testParseVersionOutputTakesLastNonEmptyLine() throws {
         let output = "npm warn deprecated node-domexception@1.0.0\n0.1.0-rc.7\n"
-        let version = try NpxInstalledVersionProvider.parseVersionOutput(output)
+        let version = try NpxResolvedVersionProvider.parseVersionOutput(output)
         XCTAssertEqual(version, HarnessVersion("0.1.0-rc.7"))
     }
 
     func testParseVersionOutputInvalid() {
-        XCTAssertThrowsError(try NpxInstalledVersionProvider.parseVersionOutput("not a version")) { error in
+        XCTAssertThrowsError(try NpxResolvedVersionProvider.parseVersionOutput("not a version")) { error in
             XCTAssertEqual(error as? HarnessTerminalVersionError,
                            .invalidVersionOutput("not a version"))
         }
-        XCTAssertThrowsError(try NpxInstalledVersionProvider.parseVersionOutput(""))
+        XCTAssertThrowsError(try NpxResolvedVersionProvider.parseVersionOutput(""))
     }
 
     // MARK: - popupContent（弹窗文案）
@@ -68,7 +68,7 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
             status: .updateAvailable(current: current, latestRelease: latest, latestInstallable: latest)
         )
         XCTAssertEqual(content.title, "发现 DeepSeek Harness 新版本")
-        XCTAssertTrue(content.detail.contains("新版本已经可以安装"))
+        XCTAssertTrue(content.detail.contains("新版本已经可以通过 npm 安装"))
     }
 
     func testPopupReleasePendingNPMDoesNotOfferInstallCommand() {
@@ -82,8 +82,25 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
             )
         )
         XCTAssertEqual(content.title, "发现 DeepSeek Harness 新版本")
-        XCTAssertTrue(content.detail.contains("npm 尚未同步"))
+        XCTAssertTrue(content.detail.contains("npm 尚未同步；通过 npm 更新暂不可用"))
         XCTAssertFalse(content.detail.contains("npx -y"))
+    }
+
+    func testPopupRunningLatestButNpmBehindExplainsTheIndependentSources() {
+        let running = HarnessVersion("0.1.0-rc.8")!
+        let installable = HarnessVersion("0.1.0-rc.7")!
+        let content = HarnessVersionCheckPresenter.popupContent(
+            status: .runningLatestButNpmBehind(
+                running: running,
+                latestRelease: running,
+                latestInstallable: installable
+            )
+        )
+
+        XCTAssertEqual(content.title, "当前运行的已经是最新版本")
+        XCTAssertTrue(content.detail.contains("运行版本：0.1.0-rc.8"))
+        XCTAssertTrue(content.detail.contains("npm 可安装版本：0.1.0-rc.7"))
+        XCTAssertTrue(content.detail.contains("npm 尚未同步"))
     }
 
     func testPopupFailureWhenVersionUnknown() {
@@ -91,26 +108,26 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
         XCTAssertEqual(content.title, "版本检测失败")
     }
 
-    // MARK: - NpxInstalledVersionProvider（fake executor）
+    // MARK: - NpxResolvedVersionProvider（fake executor）
 
     func testNpxProviderPassesExpectedArguments() async throws {
         let executor = MockShellCommandExecutor(result: .success("0.1.0-rc.7\n"))
-        var provider = NpxInstalledVersionProvider(executor: executor)
+        var provider = NpxResolvedVersionProvider(executor: executor)
         provider.resolveExecutable = { name in
             XCTAssertEqual(name, "npx")
             return "/opt/homebrew/bin/npx"
         }
-        let version = try await provider.fetchInstalledVersion()
+        let version = try await provider.fetchResolvedVersion()
         XCTAssertEqual(version, HarnessVersion("0.1.0-rc.7"))
         XCTAssertEqual(executor.receivedArguments, [["-y", "@deepseek-ai/dsh", "--version"]])
     }
 
     func testNpxProviderThrowsWhenExecutableMissing() async {
         let executor = MockShellCommandExecutor(result: .success("0.1.0-rc.7\n"))
-        var provider = NpxInstalledVersionProvider(executor: executor)
+        var provider = NpxResolvedVersionProvider(executor: executor)
         provider.resolveExecutable = { _ in nil }
         do {
-            _ = try await provider.fetchInstalledVersion()
+            _ = try await provider.fetchResolvedVersion()
             XCTFail("应抛出 executableNotFound")
         } catch {
             XCTAssertEqual(error as? HarnessTerminalVersionError, .executableNotFound("npx"))
@@ -119,10 +136,10 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
 
     func testNpxProviderPropagatesExecutorError() async {
         let executor = MockShellCommandExecutor(result: .failure(HarnessTerminalVersionError.commandFailed("/bin/npx", 1)))
-        var provider = NpxInstalledVersionProvider(executor: executor)
+        var provider = NpxResolvedVersionProvider(executor: executor)
         provider.resolveExecutable = { _ in "/bin/npx" }
         do {
-            _ = try await provider.fetchInstalledVersion()
+            _ = try await provider.fetchResolvedVersion()
             XCTFail("应抛出 commandFailed")
         } catch {
             XCTAssertEqual(error as? HarnessTerminalVersionError, .commandFailed("/bin/npx", 1))

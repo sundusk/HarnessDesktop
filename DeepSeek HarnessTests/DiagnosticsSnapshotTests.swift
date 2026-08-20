@@ -28,7 +28,7 @@ final class DiagnosticsSnapshotTests: XCTestCase {
         XCTAssertTrue(text.contains("App 版本"))
         XCTAssertTrue(text.contains("macOS"))
         XCTAssertTrue(text.contains("Harness 端点：127.0.0.1:3080"))
-        XCTAssertTrue(text.contains("Harness 版本：0.1.0-rc.7"))
+        XCTAssertTrue(text.contains("运行版本：0.1.0-rc.7"))
         XCTAssertTrue(text.contains("连接状态：已连接"))
         XCTAssertTrue(text.contains("Managed Runtime：已就绪"))
         XCTAssertTrue(text.contains("Managed 版本：0.1.0-rc.7"))
@@ -42,7 +42,7 @@ final class DiagnosticsSnapshotTests: XCTestCase {
         provider.latestReleaseVersion = nil
         provider.latestInstallableVersion = nil
         let text = DiagnosticsFactory.make(coordinator: provider).text
-        XCTAssertTrue(text.contains("Harness 版本：unknown"))
+        XCTAssertTrue(text.contains("运行版本：unknown"))
         XCTAssertTrue(text.contains("官方最新版本：unknown"))
         XCTAssertTrue(text.contains("npm 可安装版本：unknown"))
     }

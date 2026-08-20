@@ -26,7 +26,7 @@ struct DiagnosticsSnapshot: Equatable, Sendable {
         lines.append("macOS：\(macOSVersion)")
         lines.append("Harness 端点：\(endpointDescription)")
         lines.append("Harness 可达：\(harnessReachable ? "是" : "否")")
-        lines.append("Harness 版本：\(harnessVersion ?? "unknown")")
+        lines.append("运行版本：\(harnessVersion ?? "unknown")")
         lines.append("连接状态：\(connectionState)")
         lines.append("Native 集成：\(nativeIntegrationState)")
         lines.append("Managed Runtime：\(managedRuntime)")

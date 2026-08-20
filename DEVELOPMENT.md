@@ -195,6 +195,13 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 
 > 依据 `2.0开发文档.md` 增量开发，不重写 Phase 0–7。每个 Phase：实现 → 单测 → build → test → 修 warning → 更新本文档。
 
+## 运行版本识别升级
+
+- `runningVersion` 只来自已连接实例的 `host.describe.version`；断开或握手失败时为未知。
+- GitHub Release 与 npm Registry 分别表达官方发布版本与可安装版本，保留独立缓存。
+- `npx` 可解析版本仅供诊断，禁止作为运行版本的回退。
+- 外部 Harness（npm/npx 或源码启动）继续遵守 Attach First 与所有权保护，应用不停止、不更新、不管理它们。
+
 ## 2.0 Phase 8 — Runtime Domain & Environment Doctor ✅（实现完成，Build + 146 测试通过）
 
 只读，不启动任何进程。文档：`2.0开发文档.md` §41。

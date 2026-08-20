@@ -100,9 +100,9 @@ enum HarnessTerminalVersionError: Error, Equatable, Sendable {
 
 // MARK: - 版本查询协议
 
-/// 本地已安装（npx 解析的）Harness 版本查询。
-protocol HarnessInstalledVersionProviding: Sendable {
-    func fetchInstalledVersion() async throws -> HarnessVersion
+/// npx 当前可解析的 Harness 版本查询，仅用于诊断，绝不代表运行实例版本。
+protocol HarnessNpxResolvedVersionProviding: Sendable {
+    func fetchResolvedVersion() async throws -> HarnessVersion
 }
 
 /// npm 最新版本查询。
@@ -112,11 +112,11 @@ protocol HarnessLatestInstallableVersionProviding: Sendable {
 
 // MARK: - 终端命令实现
 
-/// 通过 `npx -y @deepseek-ai/dsh --version` 检测本地 Harness 版本。
+/// 通过 `npx -y @deepseek-ai/dsh --version` 查询 npx 当前可解析的版本。
 ///
 /// 说明：`-y` 避免 npx 首次安装时的交互确认；输出取最后一个非空行
 /// （npm 可能把警告打到 stdout）。
-struct NpxInstalledVersionProvider: HarnessInstalledVersionProviding {
+struct NpxResolvedVersionProvider: HarnessNpxResolvedVersionProviding {
     var executor: any ShellCommandExecuting
     var resolveExecutable: @Sendable (String) -> String? = HarnessTerminalLocator.resolveExecutable
 
@@ -124,7 +124,7 @@ struct NpxInstalledVersionProvider: HarnessInstalledVersionProviding {
         self.executor = executor
     }
 
-    func fetchInstalledVersion() async throws -> HarnessVersion {
+    func fetchResolvedVersion() async throws -> HarnessVersion {
         guard let npx = resolveExecutable("npx") else {
             throw HarnessTerminalVersionError.executableNotFound("npx")
         }
@@ -165,7 +165,7 @@ struct NpmViewLatestVersionProvider: HarnessLatestInstallableVersionProviding {
             arguments: ["view", "@deepseek-ai/dsh", "version"],
             timeout: 60
         )
-        return try NpxInstalledVersionProvider.parseVersionOutput(output)
+        return try NpxResolvedVersionProvider.parseVersionOutput(output)
     }
 }
 
@@ -177,17 +177,22 @@ enum HarnessVersionCheckPresenter {
     static func popupContent(status: HarnessUpdateStatus) -> (title: String, detail: String) {
         switch status {
         case .upToDate(let current):
-            return ("您使用的就是最新版本", "当前版本：\(current)")
+            return ("您使用的就是最新版本", "运行版本：\(current)")
+        case .runningLatestButNpmBehind(let running, let latestRelease, let latestInstallable):
+            return (
+                "当前运行的已经是最新版本",
+                "运行版本：\(running)\n官方最新版本：\(latestRelease)\nnpm 可安装版本：\(latestInstallable)\n\n你当前运行的 Harness 已经是官方最新版本。\nnpm 尚未同步到该版本。"
+            )
         case .updateAvailable(let current, let latestRelease, _):
             return (
                 "发现 DeepSeek Harness 新版本",
-                "当前版本：\(current)\n最新版本：\(latestRelease)\n\n新版本已经可以安装。"
+                "运行版本：\(current)\n官方最新版本：\(latestRelease)\n\n新版本已经可以通过 npm 安装。"
             )
         case .releaseAvailableButNotInstallable(let current, let latestRelease, let latestInstallable):
             let installable = latestInstallable?.description ?? "无法确认"
             return (
                 "发现 DeepSeek Harness 新版本",
-                "当前版本：\(current)\n最新版本：\(latestRelease)\nnpm 可安装版本：\(installable)\n\n官方已经发布新版本，但 npm 尚未同步。\n请等待 npm 发布后再更新。"
+                "运行版本：\(current)\n官方最新版本：\(latestRelease)\nnpm 可安装版本：\(installable)\n\n官方已经发布新版本，但 npm 尚未同步；通过 npm 更新暂不可用。"
             )
         case .aheadOfLatest(let current, let latestRelease):
             return (

@@ -6,6 +6,11 @@ enum HarnessUpdateStatus: Equatable, Sendable {
     case unknown
     case checking
     case upToDate(current: HarnessVersion)
+    case runningLatestButNpmBehind(
+        running: HarnessVersion,
+        latestRelease: HarnessVersion,
+        latestInstallable: HarnessVersion
+    )
     case updateAvailable(
         current: HarnessVersion,
         latestRelease: HarnessVersion,
@@ -20,24 +25,33 @@ enum HarnessUpdateStatus: Equatable, Sendable {
     case failed
 
     static func status(
-        current: HarnessVersion?,
+        runningVersion: HarnessVersion?,
         latestRelease: HarnessVersion?,
         latestInstallable: HarnessVersion?
     ) -> HarnessUpdateStatus {
-        guard let current, let latestRelease else { return .unknown }
-        if current == latestRelease { return .upToDate(current: current) }
-        if current > latestRelease {
-            return .aheadOfLatest(current: current, latestRelease: latestRelease)
+        guard let runningVersion, let latestRelease else { return .unknown }
+        if runningVersion == latestRelease {
+            if let latestInstallable, latestInstallable < latestRelease {
+                return .runningLatestButNpmBehind(
+                    running: runningVersion,
+                    latestRelease: latestRelease,
+                    latestInstallable: latestInstallable
+                )
+            }
+            return .upToDate(current: runningVersion)
+        }
+        if runningVersion > latestRelease {
+            return .aheadOfLatest(current: runningVersion, latestRelease: latestRelease)
         }
         guard let latestInstallable, latestInstallable >= latestRelease else {
             return .releaseAvailableButNotInstallable(
-                current: current,
+                current: runningVersion,
                 latestRelease: latestRelease,
                 latestInstallable: latestInstallable
             )
         }
         return .updateAvailable(
-            current: current,
+            current: runningVersion,
             latestRelease: latestRelease,
             latestInstallable: latestInstallable
         )
@@ -57,6 +71,8 @@ extension HarnessUpdateStatus {
             return nil
         case .upToDate(let current):
             return "已是最新：\(current)"
+        case .runningLatestButNpmBehind(let running, _, let latestInstallable):
+            return "当前运行已是最新：\(running)（npm 可安装：\(latestInstallable)）"
         case .updateAvailable(let current, let latestRelease, _):
             return "有更新可用：\(current) → \(latestRelease)"
         case .releaseAvailableButNotInstallable(_, let latestRelease, _):
