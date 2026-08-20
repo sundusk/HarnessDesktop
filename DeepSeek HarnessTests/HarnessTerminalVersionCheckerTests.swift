@@ -48,8 +48,7 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
 
     func testPopupUpToDateWhenEqual() {
         let current = HarnessVersion("0.1.0-rc.7")!
-        let latest = HarnessVersion("0.1.0-rc.7")!
-        let content = HarnessVersionCheckPresenter.popupContent(current: current, latest: latest)
+        let content = HarnessVersionCheckPresenter.popupContent(status: .upToDate(current: current))
         XCTAssertEqual(content.title, "您使用的就是最新版本")
         XCTAssertTrue(content.detail.contains("0.1.0-rc.7"))
         XCTAssertFalse(content.detail.contains("npx -y"))
@@ -58,25 +57,38 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
     func testPopupUpToDateWhenLocalNewer() {
         let current = HarnessVersion("0.2.0")!
         let latest = HarnessVersion("0.1.0-rc.7")!
-        let content = HarnessVersionCheckPresenter.popupContent(current: current, latest: latest)
-        XCTAssertEqual(content.title, "您使用的就是最新版本")
+        let content = HarnessVersionCheckPresenter.popupContent(status: .aheadOfLatest(current: current, latestRelease: latest))
+        XCTAssertEqual(content.title, "当前版本高于官方最新版本")
     }
 
-    func testPopupUpdateAvailableShowsCommand() {
-        let current = HarnessVersion("0.0.1")!
-        let latest = HarnessVersion("0.1.0-rc.7")!
-        let content = HarnessVersionCheckPresenter.popupContent(current: current, latest: latest)
-        XCTAssertEqual(content.title, "有最新版本需要更新")
-        XCTAssertTrue(content.detail.contains("当前版本：0.0.1"))
-        XCTAssertTrue(content.detail.contains("最新版本：0.1.0-rc.7"))
-        XCTAssertTrue(content.detail.contains("npx -y @deepseek-ai/dsh@0.1.0-rc.7"))
+    func testPopupUpdateAvailableSaysVersionCanBeInstalled() {
+        let current = HarnessVersion("0.1.0-rc.7")!
+        let latest = HarnessVersion("0.1.0-rc.8")!
+        let content = HarnessVersionCheckPresenter.popupContent(
+            status: .updateAvailable(current: current, latestRelease: latest, latestInstallable: latest)
+        )
+        XCTAssertEqual(content.title, "发现 DeepSeek Harness 新版本")
+        XCTAssertTrue(content.detail.contains("新版本已经可以安装"))
+    }
+
+    func testPopupReleasePendingNPMDoesNotOfferInstallCommand() {
+        let current = HarnessVersion("0.1.0-rc.7")!
+        let release = HarnessVersion("0.1.0-rc.8")!
+        let content = HarnessVersionCheckPresenter.popupContent(
+            status: .releaseAvailableButNotInstallable(
+                current: current,
+                latestRelease: release,
+                latestInstallable: current
+            )
+        )
+        XCTAssertEqual(content.title, "发现 DeepSeek Harness 新版本")
+        XCTAssertTrue(content.detail.contains("npm 尚未同步"))
+        XCTAssertFalse(content.detail.contains("npx -y"))
     }
 
     func testPopupFailureWhenVersionUnknown() {
-        let content = HarnessVersionCheckPresenter.popupContent(current: nil, latest: nil)
+        let content = HarnessVersionCheckPresenter.popupContent(status: .unknown)
         XCTAssertEqual(content.title, "版本检测失败")
-        let partial = HarnessVersionCheckPresenter.popupContent(current: nil, latest: HarnessVersion("0.1.0-rc.7")!)
-        XCTAssertEqual(partial.title, "版本检测失败")
     }
 
     // MARK: - NpxInstalledVersionProvider（fake executor）
@@ -126,7 +138,7 @@ final class HarnessTerminalVersionCheckerTests: XCTestCase {
             XCTAssertEqual(name, "npm")
             return "/opt/homebrew/bin/npm"
         }
-        let version = try await provider.fetchLatestVersion()
+        let version = try await provider.fetchLatestInstallableVersion()
         XCTAssertEqual(version, HarnessVersion("0.1.0-rc.7"))
         XCTAssertEqual(executor.receivedArguments, [["view", "@deepseek-ai/dsh", "version"]])
     }

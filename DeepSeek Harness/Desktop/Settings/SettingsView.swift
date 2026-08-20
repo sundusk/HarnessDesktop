@@ -271,15 +271,18 @@ struct SettingsView: View {
     @ViewBuilder
     private var runtimeVersionSection: some View {
         LabeledContent("当前版本") {
-            // 报告层 currentVersion：占位值（0.0.1）自动以 latest 兜底，
+            // 报告层 currentVersion：占位值（0.0.1）仅以 npm installable 兜底，
             // 避免一直显示上游硬编码占位版本。
             Text(coordinator.environmentReport.currentVersion?.description ?? "未配置")
         }
         LabeledContent("上一版本") {
             Text(settings.previousManagedVersion ?? "无")
         }
-        LabeledContent("最新版本") {
-            Text(coordinator.environmentReport.latestVersion?.description ?? "unknown")
+        LabeledContent("官方最新版本") {
+            Text(coordinator.environmentReport.latestReleaseVersion?.description ?? "unknown")
+        }
+        LabeledContent("npm 可安装版本") {
+            Text(coordinator.environmentReport.latestInstallableVersion?.description ?? "unknown")
         }
         if let summary = coordinator.environmentReport.updateStatus.summary {
             Text(summary)

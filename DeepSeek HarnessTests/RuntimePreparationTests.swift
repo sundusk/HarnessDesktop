@@ -1,6 +1,14 @@
 import XCTest
 @testable import DeepSeek_Harness
 
+private final class RuntimePhaseRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [RuntimePreparePhase] = []
+
+    func append(_ phase: RuntimePreparePhase) { lock.withLock { storage.append(phase) } }
+    var values: [RuntimePreparePhase] { lock.withLock { storage } }
+}
+
 // MARK: - fake 执行器（单测不启动真实 Node / npm）
 
 final class FakePreparationExecutor: RuntimePreparationExecuting, @unchecked Sendable {
@@ -106,7 +114,7 @@ final class RuntimePreparationTests: XCTestCase {
 
     func testPrepareSuccessOrderAndResult() async throws {
         let executor = FakePreparationExecutor()
-        var phases: [RuntimePreparePhase] = []
+        let phases = RuntimePhaseRecorder()
         let preparation = RuntimePreparation(executor: executor, onPhase: { phases.append($0) })
 
         let result = try await preparation.prepare(version: "0.1.0-rc.7")
@@ -115,7 +123,7 @@ final class RuntimePreparationTests: XCTestCase {
         XCTAssertEqual(result.managedVersion, "0.1.0-rc.7")
         XCTAssertEqual(executor.fetchedVersions, ["0.1.0-rc.7"])
         XCTAssertEqual(executor.verifiedVersions, ["0.1.0-rc.7"])
-        XCTAssertEqual(phases, [.validatingNode, .validatingVersion, .preparingCache, .fetchingPackage, .verifying])
+        XCTAssertEqual(phases.values, [.validatingNode, .validatingVersion, .preparingCache, .fetchingPackage, .verifying])
     }
 
     func testPrepareFailsAtNodeValidation() async {

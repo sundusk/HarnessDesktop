@@ -64,4 +64,23 @@ final class AppCoordinatorTests: XCTestCase {
         let reloaded = AppSettings(store: SettingsStore(defaults: UserDefaults(suiteName: suiteName)!))
         XCTAssertEqual(reloaded.launchMainWindowAtStart, false)
     }
+
+    func testManagedCandidateUsesNPMInstallableAndNeverGitHubOnlyRelease() async {
+        let provider = MockDualVersionProvider(
+            release: .success(HarnessVersion("0.1.0-rc.8")!),
+            installable: .success(HarnessVersion("0.1.0-rc.7")!)
+        )
+        let service = HarnessVersionService(
+            releaseProvider: provider,
+            installableProvider: provider,
+            cache: MockVersionCache()
+        )
+        let coordinator = AppCoordinator(settings: makeSettings(), versionService: service)
+
+        let candidate = await coordinator.latestManagedCandidateVersion(force: true)
+
+        XCTAssertEqual(candidate, HarnessVersion("0.1.0-rc.7"))
+        XCTAssertEqual(provider.installableRequestCount, 1)
+        XCTAssertEqual(provider.releaseRequestCount, 0)
+    }
 }

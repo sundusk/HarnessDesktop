@@ -148,6 +148,16 @@
 
 **理由**：不允许「先覆盖再下载、失败后无版本可用」的破坏性更新。
 
+### ADR-011 — DeepSeek Harness version sources are independent
+
+**背景**：DeepSeek Harness 的 GitHub prerelease 可能早于 npm `dist-tags.latest` 发布。把 npm 同时当成“官方最新”和“可安装最新”会漏报 Release；反过来直接安装 GitHub 版本会在 npm 尚未同步时失败。
+
+**决策**：版本系统固定为三个概念：`currentVersion` 来自本地探测或运行实例；`latestReleaseVersion` 来自 GitHub `releases?per_page=20`，决定是否存在官方新版本；`latestInstallableVersion` 来自 npm Registry，决定 Managed Runtime 能否准备、启动或更新到该 exact 版本。两个网络源拥有独立的 6 小时缓存、节流和 single-flight。`host.describe` 的 `0.0.1` 占位值只能用 npm installable 兜底，不能用 GitHub release 推断当前版本。
+
+**安全边界**：所有 Managed Runtime 候选版本只允许经过 `latestManagedCandidateVersion()`，该入口仅消费 npm installable。GitHub-only Release 可以展示，但更新按钮必须禁用。App 自身的 `AppUpdateChecker` / `GitHubLatestReleaseProvider` 是另一套更新体系，不参与 Harness 版本判断。
+
+**降级规则**：任一网络源失败只回退自己的缓存；GitHub 不可用时不能声称“已是最新”，npm 不可用时不能声称“可以更新”。版本查询失败不得影响 Attach、WebView、Native Adapter、Session、Pet 或已运行的 Managed Harness。
+
 ## 模块职责
 
 | 模块 | 职责 | 禁止 |
@@ -155,7 +165,7 @@
 | `Harness/Discovery` | 探测 loopback 端点（短超时 HTTP，2xx/3xx 即存在） | 扫进程、读 shell、读 `~/.dsh`、执行命令 |
 | `Harness/Web` | 承载官方 Web UI；导航策略；Reload；Open in Browser | 注入 JS、改 DOM/CSS、hook fetch/WebSocket、按 DOM 推断状态 |
 | `Harness/Compatibility` | `host.describe` 握手 / 事件帧解析 / `HarnessVersion`（统一 Version Model） | 把上游 wire model 泄漏到上层 |
-| `Harness/Runtime`（2.0） | Environment Doctor / Version Service / Runtime State / Update Status / RuntimeManagerClient | 启动进程（Phase 11 前）；写非 App-owned 路径 |
+| `Harness/Runtime`（2.0） | Environment Doctor / 双源 Version Service / Runtime State / Update Status / RuntimeManagerClient | 混淆 GitHub release 与 npm installable；写非 App-owned 路径 |
 | `RuntimeHelper`（2.0） | XPC Service target：强类型能力接口 / 调用方身份校验 / 所有权验证 | 任意命令 / 任意 shell / 访问用户数据 |
 | `Domain` | 连接状态 / 端点 / 活动 / 所有权模型 | 不包含 Presentation 逻辑 |
 | `Desktop` | SwiftUI / AppKit 视图、菜单栏、Pet | 自行推断网络 / 版本状态 |

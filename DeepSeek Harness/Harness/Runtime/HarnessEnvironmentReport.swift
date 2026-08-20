@@ -20,9 +20,11 @@ struct HarnessEnvironmentReport: Equatable, Sendable {
     var managedRuntime: ManagedRuntimeStatus = .unknown
     /// Managed 模式固定的 exact Harness 版本。
     var managedVersion: HarnessVersion?
-    /// npm registry 最新版本（查询失败为 nil）。
-    var latestVersion: HarnessVersion?
-    /// 更新状态（由 current / latest 计算）。
+    /// GitHub Releases 中的官方最新版本（查询失败为 nil）。
+    var latestReleaseVersion: HarnessVersion?
+    /// npm Registry 当前可安装的最新版本（查询失败为 nil）。
+    var latestInstallableVersion: HarnessVersion?
+    /// 更新状态（由 current / release / installable 计算）。
     var updateStatus: HarnessUpdateStatus = .unknown
 }
 
@@ -38,18 +40,22 @@ extension HarnessEnvironmentReport {
     /// 当前应参与版本比较的版本（终端检测优先，其次运行中，其次 managed）。
     ///
     /// `host.describe` 的占位版本（如 `0.0.1`）视为“当前版本未知”，
-    /// 以 latest 兜底——用户经 `npx @deepseek-ai/dsh` 运行时即跟踪 latest，
+    /// 以 npm installable 兜底——用户经 `npx @deepseek-ai/dsh` 运行时跟踪 npm，
     /// 避免一直显示上游占位版本（0.0.1）而看不到真实版本。
     var currentVersion: HarnessVersion? {
         let raw = detectedVersion ?? runningVersion ?? managedVersion
         if let raw, raw.isDescribePlaceholder {
-            return latestVersion
+            return latestInstallableVersion
         }
         return raw
     }
 
-    /// 刷新 updateStatus（以 current / latest 为准）。
+    /// 刷新 updateStatus（GitHub 判断是否最新，npm 判断是否可安装）。
     mutating func refreshUpdateStatus() {
-        updateStatus = HarnessUpdateStatus.status(current: currentVersion, latest: latestVersion)
+        updateStatus = HarnessUpdateStatus.status(
+            current: currentVersion,
+            latestRelease: latestReleaseVersion,
+            latestInstallable: latestInstallableVersion
+        )
     }
 }

@@ -18,7 +18,7 @@ final class AppCoordinator {
     private(set) var environmentReport = HarnessEnvironmentReport()
 
     let settings: AppSettings
-    /// Phase 8：版本服务（npm registry latest 查询 + 缓存 + 节流 + single-flight）。
+    /// Harness 双版本源服务（GitHub release + npm installable）。
     let versionService: HarnessVersionService
     /// App 自身（macOS 应用）最新版本查询（GitHub releases/latest，沙箱安全）。
     let appUpdateProvider: any GitHubLatestReleaseProviding
@@ -50,6 +50,7 @@ final class AppCoordinator {
     private var healthCheckTask: Task<Void, Never>?
     private var handshakeTask: Task<Void, Never>?
     private var eventTask: Task<Void, Never>?
+    private var versionRefreshTask: Task<Void, Never>?
     private var nativeAdapter: HarnessGenericAdapter?
     private var reducer = ActivityReducer()
     private let notificationCoordinator: NotificationCoordinator
@@ -137,7 +138,7 @@ final class AppCoordinator {
             let version: HarnessVersion
             if let persisted = settings.managedVersion.flatMap(HarnessVersion.init) {
                 version = persisted
-            } else if let latest = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) {
+            } else if let latest = await latestManagedCandidateVersion(force: true) {
                 version = latest
             } else {
                 environmentReport.managedRuntime = .missing
@@ -196,7 +197,7 @@ final class AppCoordinator {
         Task {
             defer { isUpdatingManaged = false }
             // 1. latest 重新从 registry 验证（手动检查忽略节流）
-            guard let latest = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) else {
+            guard let latest = await latestManagedCandidateVersion(force: true) else {
                 AppLogger.runtimeUpdate.info("更新失败：无法解析最新版本")
                 return
             }
@@ -312,7 +313,7 @@ final class AppCoordinator {
         Task {
             defer { isPreparingRuntime = false }
             // 解析 exact version（文档 §13：禁止 @latest；由 registry latest 固定）
-            guard let version = await (versionService.latestVersion(force: true) ?? versionService.cachedLatest) else {
+            guard let version = await latestManagedCandidateVersion(force: true) else {
                 environmentReport.managedRuntime = .missing
                 AppLogger.runtimeEnvironment.info("一键准备失败：无法解析 exact 版本")
                 return
@@ -332,11 +333,19 @@ final class AppCoordinator {
         }
     }
 
+    /// Sole version gateway for Managed prepare/start/update operations.
+    /// A GitHub-only release can be announced but never installed from npm.
+    func latestManagedCandidateVersion(force: Bool) async -> HarnessVersion? {
+        await versionService.latestInstallableVersion(force: force)
+            ?? versionService.cachedLatestInstallable
+    }
+
     /// 用户点击「重新检测」时调用。
     func rediscover() {
         healthCheckTask?.cancel()
         handshakeTask?.cancel()
         eventTask?.cancel()
+        versionRefreshTask?.cancel()
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
@@ -360,11 +369,11 @@ final class AppCoordinator {
     /// 沙箱安全的实现（不执行 shell / 不依赖 npx / npm）：
     /// 1. 当前版本：运行中 Harness 的 `host.describe` 版本（`harnessInfo.version`），
     ///    未连接时回退到持久化的最近检测版本（`settings.lastDetectedHarnessVersion`）；
-    /// 2. 最新版本：`versionService` 直查 npm registry（URLSession，忽略节流）；
-    /// 3. 比较后弹出结果面板（「您使用的就是最新版本」或「有最新版本需要更新」+ 终端更新命令）。
+    /// 2. 官方最新版本：GitHub Releases；可安装版本：npm Registry；
+    /// 3. 统一交给 `HarnessUpdateStatus` 判断并生成弹窗内容。
     ///
     /// `host.describe` 的占位版本（如 0.0.1）不持久化、不参与比较——由报告层
-    /// `currentVersion` 以 latest 兜底，避免一直显示占位版本。
+    /// `currentVersion` 仅以 npm installable 兜底，避免一直显示占位版本。
     func checkForUpdates() {
         guard !isCheckingVersion else { return }
         isCheckingVersion = true
@@ -372,27 +381,30 @@ final class AppCoordinator {
             defer { isCheckingVersion = false }
             // 1. 当前版本（无需 shell：host.describe 已通过 Native 握手拿到）。
             let described = harnessInfo.flatMap { HarnessVersion($0.version) }
-            // 2. 最新版本（npm registry 直查；失败返回 nil，不打扰）。
-            let latest = await versionService.latestVersion(force: true)
+            // 2. 两个源互相独立，并发强制刷新。
+            async let release = versionService.latestReleaseVersion(force: true)
+            async let installable = versionService.latestInstallableVersion(force: true)
+            let (latestRelease, latestInstallable) = await (release, installable)
             // 只持久化真实版本（describe 占位值 0.0.1 不代表安装版本，不记）。
             if let described, !described.isDescribePlaceholder {
                 settings.lastDetectedHarnessVersion = described.description
             }
             environmentReport.runningVersion = described
-            environmentReport.latestVersion = latest
+            environmentReport.latestReleaseVersion = latestRelease
+            environmentReport.latestInstallableVersion = latestInstallable
             environmentReport.refreshUpdateStatus()
-            // 弹窗以报告层 currentVersion 为准（占位值自动以 latest 兜底）。
+            // 弹窗只消费统一状态机，不自行比较版本。
             let current = environmentReport.currentVersion
             AppLogger.version.info(
-                "版本检查完成：current \(current?.description ?? "?", privacy: .public) / latest \(latest?.description ?? "?", privacy: .public)"
+                "版本检查完成：current \(current?.description ?? "?", privacy: .public) / release \(latestRelease?.description ?? "?", privacy: .public) / installable \(latestInstallable?.description ?? "?", privacy: .public)"
             )
-            showVersionCheckPopup(current: current, latest: latest)
+            showVersionCheckPopup(status: environmentReport.updateStatus)
         }
     }
 
     /// 弹出版本检查结果面板（单个「好」按钮，点击关闭）。
-    private func showVersionCheckPopup(current: HarnessVersion?, latest: HarnessVersion?) {
-        let content = HarnessVersionCheckPresenter.popupContent(current: current, latest: latest)
+    private func showVersionCheckPopup(status: HarnessUpdateStatus) {
+        let content = HarnessVersionCheckPresenter.popupContent(status: status)
         let alert = NSAlert()
         alert.messageText = content.title
         alert.informativeText = content.detail
@@ -457,6 +469,7 @@ final class AppCoordinator {
         healthCheckTask?.cancel()
         handshakeTask?.cancel()
         eventTask?.cancel()
+        versionRefreshTask?.cancel()
         tearDownNativeAdapter()
         webModel = nil
         harnessInfo = nil
@@ -549,8 +562,8 @@ final class AppCoordinator {
             },
             managedRuntimeStatus: { .unknown },
             managedVersion: { nil },
-            latestVersionProvider: { [versionService] in
-                await versionService.latestVersion(force: false)
+            latestInstallableVersionProvider: { [versionService] in
+                await versionService.latestInstallableVersion(force: false)
             }
         )
     }
@@ -559,6 +572,15 @@ final class AppCoordinator {
         updateState(.discovering)
         let report = await environmentDoctor.inspect()
         environmentReport = report
+        // GitHub 仅补充官方 Release 信息，不阻塞 Doctor 的本地探测和 Attach。
+        versionRefreshTask?.cancel()
+        versionRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            let release = await self.versionService.latestReleaseVersion(force: false)
+            guard !Task.isCancelled else { return }
+            self.environmentReport.latestReleaseVersion = release
+            self.environmentReport.refreshUpdateStatus()
+        }
         // 终端检测到的版本持久化在 settings（"记住版本"）：恢复进报告，
         // 使更新状态比较跨 rediscover 保持一致（握手值可能为上游硬编码占位）。
         if environmentReport.detectedVersion == nil,
@@ -701,7 +723,8 @@ extension AppCoordinator: DiagnosticsProviding {
     var settingsPort: Int { settings.port }
     var harnessVersion: String? { harnessInfo?.version }
     var managedVersion: HarnessVersion? { environmentReport.managedVersion }
-    var latestVersion: HarnessVersion? { environmentReport.latestVersion }
+    var latestReleaseVersion: HarnessVersion? { environmentReport.latestReleaseVersion }
+    var latestInstallableVersion: HarnessVersion? { environmentReport.latestInstallableVersion }
 
     var connectionStateDescription: String {
         switch connectionState {

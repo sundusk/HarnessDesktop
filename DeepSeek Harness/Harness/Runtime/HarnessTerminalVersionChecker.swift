@@ -106,8 +106,8 @@ protocol HarnessInstalledVersionProviding: Sendable {
 }
 
 /// npm 最新版本查询。
-protocol HarnessLatestVersionProviding: Sendable {
-    func fetchLatestVersion() async throws -> HarnessVersion
+protocol HarnessLatestInstallableVersionProviding: Sendable {
+    func fetchLatestInstallableVersion() async throws -> HarnessVersion
 }
 
 // MARK: - 终端命令实现
@@ -148,7 +148,7 @@ struct NpxInstalledVersionProvider: HarnessInstalledVersionProviding {
 }
 
 /// 通过 `npm view @deepseek-ai/dsh version` 查询 npm 最新版本。
-struct NpmViewLatestVersionProvider: HarnessLatestVersionProviding {
+struct NpmViewLatestVersionProvider: HarnessLatestInstallableVersionProviding {
     var executor: any ShellCommandExecuting
     var resolveExecutable: @Sendable (String) -> String? = HarnessTerminalLocator.resolveExecutable
 
@@ -156,7 +156,7 @@ struct NpmViewLatestVersionProvider: HarnessLatestVersionProviding {
         self.executor = executor
     }
 
-    func fetchLatestVersion() async throws -> HarnessVersion {
+    func fetchLatestInstallableVersion() async throws -> HarnessVersion {
         guard let npm = resolveExecutable("npm") else {
             throw HarnessTerminalVersionError.executableNotFound("npm")
         }
@@ -174,16 +174,31 @@ struct NpmViewLatestVersionProvider: HarnessLatestVersionProviding {
 /// 版本检查结果弹窗内容生成。
 enum HarnessVersionCheckPresenter {
     /// - Returns: (标题, 详情)。
-    static func popupContent(current: HarnessVersion?, latest: HarnessVersion?) -> (title: String, detail: String) {
-        guard let current, let latest else {
-            return ("版本检测失败",
-                    "无法获取版本信息。\n最新版本查询失败：请检查网络连接。\n若 Harness 未运行，则无法确认当前版本。")
+    static func popupContent(status: HarnessUpdateStatus) -> (title: String, detail: String) {
+        switch status {
+        case .upToDate(let current):
+            return ("您使用的就是最新版本", "当前版本：\(current)")
+        case .updateAvailable(let current, let latestRelease, _):
+            return (
+                "发现 DeepSeek Harness 新版本",
+                "当前版本：\(current)\n最新版本：\(latestRelease)\n\n新版本已经可以安装。"
+            )
+        case .releaseAvailableButNotInstallable(let current, let latestRelease, let latestInstallable):
+            let installable = latestInstallable?.description ?? "无法确认"
+            return (
+                "发现 DeepSeek Harness 新版本",
+                "当前版本：\(current)\n最新版本：\(latestRelease)\nnpm 可安装版本：\(installable)\n\n官方已经发布新版本，但 npm 尚未同步。\n请等待 npm 发布后再更新。"
+            )
+        case .aheadOfLatest(let current, let latestRelease):
+            return (
+                "当前版本高于官方最新版本",
+                "当前版本：\(current)\n官方最新版本：\(latestRelease)"
+            )
+        case .unknown, .checking, .failed:
+            return (
+                "版本检测失败",
+                "无法确认官方最新版本或当前版本，请检查网络连接后重试。"
+            )
         }
-        if current >= latest {
-            return ("您使用的就是最新版本",
-                    "当前版本：\(current)\n最新版本：\(latest)")
-        }
-        return ("有最新版本需要更新",
-                "当前版本：\(current)\n最新版本：\(latest)\n\n请在终端执行以下命令更新：\nnpx -y @deepseek-ai/dsh@\(latest)")
     }
 }

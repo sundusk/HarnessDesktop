@@ -29,8 +29,9 @@ struct HarnessEnvironmentDoctor: HarnessEnvironmentInspecting {
     var managedRuntimeStatus: @Sendable () -> ManagedRuntimeStatus
     /// 当前 Managed 固定的 exact 版本。
     var managedVersion: @Sendable () -> HarnessVersion?
-    /// 最新版本查询（带缓存 / 节流；nil = 不可用）。
-    var latestVersionProvider: @Sendable () async -> HarnessVersion?
+    /// npm 可安装版本查询（带缓存 / 节流；nil = 不可用）。
+    /// GitHub Release 查询由上层协调器补充，不能阻塞本地环境检查。
+    var latestInstallableVersionProvider: @Sendable () async -> HarnessVersion?
 
     func inspect() async -> HarnessEnvironmentReport {
         var report = HarnessEnvironmentReport()
@@ -41,9 +42,8 @@ struct HarnessEnvironmentDoctor: HarnessEnvironmentInspecting {
         guard let endpoint = await discovery.discover() else {
             // 4. Harness 未运行：Managed Runtime 信息已在报告中，UI 决定 Start / Prepare。
             //    更新状态以 managed 版本为基准（有 managedVersion 时）。
-            let latest = await latestVersionProvider()
-            report.latestVersion = latest
-            report.updateStatus = HarnessUpdateStatus.status(current: report.currentVersion, latest: latest)
+            report.latestInstallableVersion = await latestInstallableVersionProvider()
+            report.refreshUpdateStatus()
             return report
         }
 
@@ -56,9 +56,8 @@ struct HarnessEnvironmentDoctor: HarnessEnvironmentInspecting {
         report.ownership = .external
 
         // 3. 后台查询 latest（失败不影响 Attach / Web UI）
-        let latest = await latestVersionProvider()
-        report.latestVersion = latest
-        report.updateStatus = HarnessUpdateStatus.status(current: report.currentVersion, latest: latest)
+        report.latestInstallableVersion = await latestInstallableVersionProvider()
+        report.refreshUpdateStatus()
         return report
     }
 }

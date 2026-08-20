@@ -1,48 +1,68 @@
 import Foundation
 
-/// Harness 更新状态（2.0 规格 §11）。
-///
-/// 状态由纯函数 `status(current:latest:)` 计算，UI 不自行判断版本大小。
+/// Release freshness is decided by GitHub; executable Managed updates are
+/// gated by the independently reported npm installable version.
 enum HarnessUpdateStatus: Equatable, Sendable {
     case unknown
     case checking
     case upToDate(current: HarnessVersion)
-    case updateAvailable(current: HarnessVersion, latest: HarnessVersion)
-    case aheadOfLatest(current: HarnessVersion, latest: HarnessVersion)
+    case updateAvailable(
+        current: HarnessVersion,
+        latestRelease: HarnessVersion,
+        latestInstallable: HarnessVersion
+    )
+    case releaseAvailableButNotInstallable(
+        current: HarnessVersion,
+        latestRelease: HarnessVersion,
+        latestInstallable: HarnessVersion?
+    )
+    case aheadOfLatest(current: HarnessVersion, latestRelease: HarnessVersion)
     case failed
 
-    /// 依据 current / latest 计算更新状态（SemVer 优先级比较，规格 §11）。
-    ///
-    /// - current 或 latest 缺失 → `.unknown`；
-    /// - current < latest → `.updateAvailable`；
-    /// - current == latest → `.upToDate`；
-    /// - current > latest → `.aheadOfLatest`（例如本地用了 rc 而 registry latest 更旧）。
-    static func status(current: HarnessVersion?, latest: HarnessVersion?) -> HarnessUpdateStatus {
-        guard let current, let latest else { return .unknown }
-        if current == latest { return .upToDate(current: current) }
-        if current < latest { return .updateAvailable(current: current, latest: latest) }
-        return .aheadOfLatest(current: current, latest: latest)
+    static func status(
+        current: HarnessVersion?,
+        latestRelease: HarnessVersion?,
+        latestInstallable: HarnessVersion?
+    ) -> HarnessUpdateStatus {
+        guard let current, let latestRelease else { return .unknown }
+        if current == latestRelease { return .upToDate(current: current) }
+        if current > latestRelease {
+            return .aheadOfLatest(current: current, latestRelease: latestRelease)
+        }
+        guard let latestInstallable, latestInstallable >= latestRelease else {
+            return .releaseAvailableButNotInstallable(
+                current: current,
+                latestRelease: latestRelease,
+                latestInstallable: latestInstallable
+            )
+        }
+        return .updateAvailable(
+            current: current,
+            latestRelease: latestRelease,
+            latestInstallable: latestInstallable
+        )
     }
 }
 
 extension HarnessUpdateStatus {
-    /// 是否有新版本可更新（菜单栏 / 设置页高亮用）。
+    /// True only when npm can actually supply a Managed Runtime candidate.
     var hasUpdate: Bool {
         if case .updateAvailable = self { return true }
         return false
     }
 
-    /// 面向用户的中文一行摘要（不包含任何敏感信息）。
     var summary: String? {
         switch self {
         case .unknown, .checking, .failed:
             return nil
         case .upToDate(let current):
             return "已是最新：\(current)"
-        case .updateAvailable(let current, let latest):
-            return "有更新可用：\(current) → \(latest)"
-        case .aheadOfLatest(let current, let latest):
-            return "当前版本高于最新：\(current)（最新 \(latest)）"
+        case .updateAvailable(let current, let latestRelease, _):
+            return "有更新可用：\(current) → \(latestRelease)"
+        case .releaseAvailableButNotInstallable(_, let latestRelease, _):
+            return "新版本 \(latestRelease) 已发布，npm 尚未同步"
+        case .aheadOfLatest(let current, let latestRelease):
+            return "当前版本高于官方最新：\(current)（最新 \(latestRelease)）"
         }
     }
 }

@@ -1,95 +1,85 @@
 import XCTest
 @testable import DeepSeek_Harness
 
-/// Phase 8：更新状态计算（规格 §11 / §35 Version）。
 final class HarnessUpdateStatusTests: XCTestCase {
+    private let rc7 = HarnessVersion("0.1.0-rc.7")!
+    private let rc8 = HarnessVersion("0.1.0-rc.8")!
+    private let rc9 = HarnessVersion("0.1.0-rc.9")!
 
-    // MARK: - 基本状态
-
-    func testUnknownWhenVersionMissing() {
-        XCTAssertEqual(HarnessUpdateStatus.status(current: nil, latest: nil), .unknown)
-        XCTAssertEqual(HarnessUpdateStatus.status(current: nil, latest: HarnessVersion("0.1.0")!), .unknown)
-        XCTAssertEqual(HarnessUpdateStatus.status(current: HarnessVersion("0.1.0")!, latest: nil), .unknown)
-    }
-
-    func testUpToDateWhenEqual() {
-        let current = HarnessVersion("0.1.0-rc.7")!
+    func testStatusMatrixUsesGitHubForFreshnessAndNPMForInstallability() {
         XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: HarnessVersion("0.1.0-rc.7")!),
-            .upToDate(current: current)
+            HarnessUpdateStatus.status(current: rc7, latestRelease: rc7, latestInstallable: rc7),
+            .upToDate(current: rc7)
+        )
+        XCTAssertEqual(
+            HarnessUpdateStatus.status(current: rc7, latestRelease: rc8, latestInstallable: rc8),
+            .updateAvailable(current: rc7, latestRelease: rc8, latestInstallable: rc8)
+        )
+        XCTAssertEqual(
+            HarnessUpdateStatus.status(current: rc7, latestRelease: rc8, latestInstallable: rc7),
+            .releaseAvailableButNotInstallable(current: rc7, latestRelease: rc8, latestInstallable: rc7)
+        )
+        XCTAssertEqual(
+            HarnessUpdateStatus.status(current: rc8, latestRelease: rc8, latestInstallable: rc7),
+            .upToDate(current: rc8)
+        )
+        XCTAssertEqual(
+            HarnessUpdateStatus.status(current: rc9, latestRelease: rc8, latestInstallable: rc8),
+            .aheadOfLatest(current: rc9, latestRelease: rc8)
+        )
+        XCTAssertEqual(
+            HarnessUpdateStatus.status(current: nil, latestRelease: rc8, latestInstallable: rc8),
+            .unknown
         )
     }
 
-    func testUpdateAvailableWhenCurrentBelowLatest() {
-        let current = HarnessVersion("0.1.0-rc.7")!
-        let latest = HarnessVersion("0.1.0-rc.8")!
+    func testMissingGitHubCannotClaimUpToDateEvenWhenNPMIsKnown() {
         XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: latest),
-            .updateAvailable(current: current, latest: latest)
+            HarnessUpdateStatus.status(current: rc7, latestRelease: nil, latestInstallable: rc7),
+            .unknown
         )
     }
 
-    func testAheadOfLatestWhenCurrentAboveLatest() {
-        let current = HarnessVersion("0.1.0-rc.9")!
-        let latest = HarnessVersion("0.1.0-rc.8")!
+    func testKnownReleaseWithUnknownNPMCannotClaimInstallable() {
         XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: latest),
-            .aheadOfLatest(current: current, latest: latest)
+            HarnessUpdateStatus.status(current: rc7, latestRelease: rc8, latestInstallable: nil),
+            .releaseAvailableButNotInstallable(current: rc7, latestRelease: rc8, latestInstallable: nil)
         )
     }
 
-    // MARK: - prerelease 正确参与比较（0.1.0-rc.7 < 0.1.0-rc.8）
-
-    func testPrereleaseUpdateDetection() {
-        let current = HarnessVersion("0.1.0-rc.7")!
-        let latest = HarnessVersion("0.1.0-rc.8")!
-        XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: latest),
-            .updateAvailable(current: current, latest: latest)
-        )
-    }
-
-    func testSameCoreDifferentPrerelease() {
-        // 1.0.0-rc.1 < 1.0.0 → updateAvailable
-        let current = HarnessVersion("1.0.0-rc.1")!
-        let latest = HarnessVersion("1.0.0")!
-        XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: latest),
-            .updateAvailable(current: current, latest: latest)
-        )
-    }
-
-    func testBuildMetadataIgnoredForStatus() {
+    func testBuildMetadataIsIgnoredForReleaseFreshness() {
         let current = HarnessVersion("1.0.0")!
-        let latest = HarnessVersion("1.0.0+build5")!
+        let release = HarnessVersion("1.0.0+build5")!
         XCTAssertEqual(
-            HarnessUpdateStatus.status(current: current, latest: latest),
+            HarnessUpdateStatus.status(current: current, latestRelease: release, latestInstallable: nil),
             .upToDate(current: current)
         )
     }
 
-    // MARK: - 辅助
-
-    func testHasUpdateOnlyWhenUpdateAvailable() {
-        XCTAssertTrue(HarnessUpdateStatus.updateAvailable(current: HarnessVersion("0.1.0")!, latest: HarnessVersion("0.2.0")!).hasUpdate)
-        XCTAssertFalse(HarnessUpdateStatus.upToDate(current: HarnessVersion("0.1.0")!).hasUpdate)
-        XCTAssertFalse(HarnessUpdateStatus.aheadOfLatest(current: HarnessVersion("0.2.0")!, latest: HarnessVersion("0.1.0")!).hasUpdate)
-        XCTAssertFalse(HarnessUpdateStatus.unknown.hasUpdate)
-        XCTAssertFalse(HarnessUpdateStatus.checking.hasUpdate)
-        XCTAssertFalse(HarnessUpdateStatus.failed.hasUpdate)
+    func testHasUpdateMeansManagedUpdateIsActuallyInstallable() {
+        XCTAssertTrue(HarnessUpdateStatus.updateAvailable(current: rc7, latestRelease: rc8, latestInstallable: rc8).hasUpdate)
+        XCTAssertFalse(HarnessUpdateStatus.releaseAvailableButNotInstallable(current: rc7, latestRelease: rc8, latestInstallable: rc7).hasUpdate)
+        XCTAssertFalse(HarnessUpdateStatus.upToDate(current: rc8).hasUpdate)
+        XCTAssertFalse(HarnessUpdateStatus.aheadOfLatest(current: rc9, latestRelease: rc8).hasUpdate)
     }
 
-    func testSummaryText() {
-        XCTAssertNil(HarnessUpdateStatus.unknown.summary)
-        XCTAssertNil(HarnessUpdateStatus.checking.summary)
-        XCTAssertNil(HarnessUpdateStatus.failed.summary)
+    func testSummaryDistinguishesInstallableAndPendingNPMRelease() {
         XCTAssertEqual(
-            HarnessUpdateStatus.updateAvailable(current: HarnessVersion("0.1.0-rc.7")!, latest: HarnessVersion("0.1.0-rc.8")!).summary,
+            HarnessUpdateStatus.updateAvailable(current: rc7, latestRelease: rc8, latestInstallable: rc8).summary,
             "有更新可用：0.1.0-rc.7 → 0.1.0-rc.8"
         )
         XCTAssertEqual(
-            HarnessUpdateStatus.upToDate(current: HarnessVersion("0.1.0-rc.8")!).summary,
-            "已是最新：0.1.0-rc.8"
+            HarnessUpdateStatus.releaseAvailableButNotInstallable(current: rc7, latestRelease: rc8, latestInstallable: rc7).summary,
+            "新版本 0.1.0-rc.8 已发布，npm 尚未同步"
         )
+    }
+
+    func testDescribePlaceholderFallsBackOnlyToInstallableVersion() {
+        var report = HarnessEnvironmentReport()
+        report.runningVersion = HarnessVersion("0.0.1")
+        report.latestReleaseVersion = rc9
+        report.latestInstallableVersion = rc7
+
+        XCTAssertEqual(report.currentVersion, rc7)
     }
 }

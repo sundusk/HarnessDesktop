@@ -98,6 +98,8 @@
 		B00000000000000000000060 /* RuntimeIntegrityVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */; };
 		B00000000000000000000061 /* RuntimeIntegrityVerifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */; };
 		B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */; };
+		B10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift */; };
+		B10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -205,6 +207,8 @@
 		A00000000000000000000062 /* DiagnosticsSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsSnapshotTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000063 /* RuntimeIntegrityVerifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeIntegrityVerifier.swift; sourceTree = "<group>"; };
 		A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeIntegrityVerifierTests.swift; sourceTree = "<group>"; };
+		A10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubHarnessReleaseVersionProvider.swift; sourceTree = "<group>"; };
+		A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubHarnessReleaseVersionProviderTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -292,6 +296,7 @@
 		C00000000000000000000019 /* Runtime */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift */,
 				A0000000000000000000003D /* HarnessUpdateStatus.swift */,
 				A0000000000000000000003E /* HarnessVersionService.swift */,
 				A00000000000000000000067 /* AppUpdateChecker.swift */,
@@ -475,6 +480,7 @@
 		C0000000000000000000000A /* DeepSeek HarnessTests */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */,
 				A0000000000000000000000C /* HarnessEndpointTests.swift */,
 				A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */,
 				A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */,
@@ -707,6 +713,7 @@
 				B0000000000000000000005C /* HarnessUpdateTransaction.swift in Sources */,
 				B0000000000000000000005E /* DiagnosticsSnapshot.swift in Sources */,
 				B00000000000000000000060 /* RuntimeIntegrityVerifier.swift in Sources */,
+				B10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -741,6 +748,7 @@
 				B0000000000000000000005D /* HarnessUpdateTransactionTests.swift in Sources */,
 				B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */,
 				B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */,
+				B10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

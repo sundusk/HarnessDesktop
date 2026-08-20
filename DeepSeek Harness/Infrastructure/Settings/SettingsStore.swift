@@ -9,9 +9,13 @@ struct SettingsStore {
         static let port = "settings.port"
         static let launchMainWindowAtStart = "settings.launchMainWindowAtStart"
         static let notificationsEnabled = "settings.notificationsEnabled"
-        // Phase 8：版本检查缓存（规格 §12.1）。
+        // 旧 npm 缓存键仅用于向 installable 缓存迁移。
         static let lastUpdateCheckDate = "runtime.version.lastUpdateCheckDate"
         static let latestKnownHarnessVersion = "runtime.version.latestKnown"
+        static let lastReleaseCheckDate = "runtime.version.release.lastCheckDate"
+        static let latestKnownHarnessReleaseVersion = "runtime.version.release.latestKnown"
+        static let lastInstallableCheckDate = "runtime.version.installable.lastCheckDate"
+        static let latestKnownHarnessInstallableVersion = "runtime.version.installable.latestKnown"
         // 终端命令检测到的本地 Harness 版本（`npx -y @deepseek-ai/dsh --version`）。
         static let lastDetectedHarnessVersion = "runtime.version.lastDetected"
         // Phase 11：Managed Harness 设置（文档 §19 / §26 / §27）。
@@ -52,26 +56,58 @@ struct SettingsStore {
         set { defaults.set(newValue, forKey: Key.notificationsEnabled) }
     }
 
-    // MARK: - Phase 8：版本检查缓存（规格 §12.1）
+    // MARK: - 双版本源缓存
 
-    var lastUpdateCheckDate: Date? {
-        get { defaults.object(forKey: Key.lastUpdateCheckDate) as? Date }
+    var lastReleaseCheckDate: Date? {
+        get { defaults.object(forKey: Key.lastReleaseCheckDate) as? Date }
         set {
             if let newValue {
-                defaults.set(newValue, forKey: Key.lastUpdateCheckDate)
+                defaults.set(newValue, forKey: Key.lastReleaseCheckDate)
             } else {
-                defaults.removeObject(forKey: Key.lastUpdateCheckDate)
+                defaults.removeObject(forKey: Key.lastReleaseCheckDate)
             }
         }
     }
 
-    var latestKnownHarnessVersion: String? {
-        get { defaults.string(forKey: Key.latestKnownHarnessVersion) }
+    var latestKnownHarnessReleaseVersion: String? {
+        get { defaults.string(forKey: Key.latestKnownHarnessReleaseVersion) }
         set {
             if let newValue {
-                defaults.set(newValue, forKey: Key.latestKnownHarnessVersion)
+                defaults.set(newValue, forKey: Key.latestKnownHarnessReleaseVersion)
             } else {
-                defaults.removeObject(forKey: Key.latestKnownHarnessVersion)
+                defaults.removeObject(forKey: Key.latestKnownHarnessReleaseVersion)
+            }
+        }
+    }
+
+    var lastInstallableCheckDate: Date? {
+        get {
+            if let value = defaults.object(forKey: Key.lastInstallableCheckDate) as? Date { return value }
+            guard let legacy = defaults.object(forKey: Key.lastUpdateCheckDate) as? Date else { return nil }
+            defaults.set(legacy, forKey: Key.lastInstallableCheckDate)
+            return legacy
+        }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.lastInstallableCheckDate)
+            } else {
+                defaults.removeObject(forKey: Key.lastInstallableCheckDate)
+            }
+        }
+    }
+
+    var latestKnownHarnessInstallableVersion: String? {
+        get {
+            if let value = defaults.string(forKey: Key.latestKnownHarnessInstallableVersion) { return value }
+            guard let legacy = defaults.string(forKey: Key.latestKnownHarnessVersion) else { return nil }
+            defaults.set(legacy, forKey: Key.latestKnownHarnessInstallableVersion)
+            return legacy
+        }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.latestKnownHarnessInstallableVersion)
+            } else {
+                defaults.removeObject(forKey: Key.latestKnownHarnessInstallableVersion)
             }
         }
     }

@@ -150,7 +150,8 @@ final class MenuBarCoordinator {
                 // Phase 8：版本 / 更新状态（检查更新后菜单栏即时刷新）
                 _ = coordinator.environmentReport.updateStatus
                 _ = coordinator.environmentReport.runningVersion
-                _ = coordinator.environmentReport.latestVersion
+                _ = coordinator.environmentReport.latestReleaseVersion
+                _ = coordinator.environmentReport.latestInstallableVersion
                 // Phase 11：Managed 运行状态（停止项显隐）
                 _ = coordinator.activeManagedIdentity
                 // Phase 12：更新 / 回退状态
@@ -185,14 +186,16 @@ final class MenuBarCoordinator {
             details.append("版本：\(version)")
         }
         // Phase 8：当前 / 最新版本 + 更新状态（规格 §20 / §24）
-        if let latest = coordinator.environmentReport.latestVersion {
-            details.append("最新：\(latest)")
+        if let latest = coordinator.environmentReport.latestReleaseVersion {
+            details.append("官方最新：\(latest)")
         }
         switch coordinator.environmentReport.updateStatus {
         case .checking:
             details.append("正在检查更新…")
         case .updateAvailable:
             details.append("⬆ 有更新可用")
+        case .releaseAvailableButNotInstallable:
+            details.append("● 新版已发布，等待 npm")
         default:
             break
         }
@@ -293,10 +296,10 @@ final class MenuBarCoordinator {
 
     @objc private func updateManagedAction() {
         guard let current = coordinator.environmentReport.managedVersion,
-              case .updateAvailable(_, let latest) = coordinator.environmentReport.updateStatus else { return }
+              case .updateAvailable(_, _, let latestInstallable) = coordinator.environmentReport.updateStatus else { return }
         let alert = NSAlert()
         alert.messageText = "DeepSeek Harness 有新版本"
-        alert.informativeText = "当前：\(current)\n最新：\(latest)\n\nDeepSeek Harness 仍处于快速迭代阶段，新版本可能影响第三方插件或 Native API 兼容。"
+        alert.informativeText = "当前：\(current)\n可安装：\(latestInstallable)\n\nDeepSeek Harness 仍处于快速迭代阶段，新版本可能影响第三方插件或 Native API 兼容。"
         alert.addButton(withTitle: "更新并重新启动")
         alert.addButton(withTitle: "取消")
         guard alert.runModal() == .alertFirstButtonReturn else { return }

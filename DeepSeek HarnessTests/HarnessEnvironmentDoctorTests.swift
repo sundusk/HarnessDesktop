@@ -18,13 +18,13 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
                             describe: @escaping @Sendable (HarnessEndpoint) async -> HarnessVersion?,
                             managedRuntime: ManagedRuntimeStatus = .unknown,
                             managedVersion: HarnessVersion? = nil,
-                            latest: HarnessVersion? = nil) -> HarnessEnvironmentDoctor {
+                            latestInstallable: HarnessVersion? = nil) -> HarnessEnvironmentDoctor {
         HarnessEnvironmentDoctor(
             discovery: discovery,
             describe: describe,
             managedRuntimeStatus: { managedRuntime },
             managedVersion: { managedVersion },
-            latestVersionProvider: { latest }
+            latestInstallableVersionProvider: { latestInstallable }
         )
     }
 
@@ -35,18 +35,15 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         let doctor = makeDoctor(
             discovery: MockDiscovery(endpoint: endpoint),
             describe: { _ in HarnessVersion("0.1.0-rc.7") },
-            latest: HarnessVersion("0.1.0-rc.8")
+            latestInstallable: HarnessVersion("0.1.0-rc.8")
         )
         let report = await doctor.inspect()
 
         XCTAssertEqual(report.discoveredEndpoint, endpoint)
         XCTAssertEqual(report.ownership, .external)
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.1.0-rc.7"))
-        XCTAssertEqual(report.latestVersion, HarnessVersion("0.1.0-rc.8"))
-        XCTAssertEqual(report.updateStatus, .updateAvailable(
-            current: HarnessVersion("0.1.0-rc.7")!,
-            latest: HarnessVersion("0.1.0-rc.8")!
-        ))
+        XCTAssertEqual(report.latestInstallableVersion, HarnessVersion("0.1.0-rc.8"))
+        XCTAssertEqual(report.updateStatus, .unknown)
     }
 
     /// describe 失败（host.describe 不可用）→ runningVersion unknown，但 ownership 仍为 external、不 crash。
@@ -54,7 +51,7 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         let doctor = makeDoctor(
             discovery: MockDiscovery(endpoint: endpoint),
             describe: { _ in nil },
-            latest: HarnessVersion("0.1.0-rc.8")
+            latestInstallable: HarnessVersion("0.1.0-rc.8")
         )
         let report = await doctor.inspect()
 
@@ -70,14 +67,14 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         let doctor = makeDoctor(
             discovery: MockDiscovery(endpoint: endpoint),
             describe: { _ in HarnessVersion("0.0.1") },
-            latest: HarnessVersion("0.1.0-rc.8")
+            latestInstallable: HarnessVersion("0.1.0-rc.8")
         )
         let report = await doctor.inspect()
 
         // runningVersion 保留原始 describe 值（占位），但比较用 currentVersion（= latest）。
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.0.1"))
         XCTAssertEqual(report.currentVersion, HarnessVersion("0.1.0-rc.8"))
-        XCTAssertEqual(report.updateStatus, .upToDate(current: HarnessVersion("0.1.0-rc.8")!))
+        XCTAssertEqual(report.updateStatus, .unknown)
     }
 
     /// latest 查询失败（网络不可用）→ 不影响 Attach / 报告其余部分。
@@ -85,14 +82,14 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         let doctor = makeDoctor(
             discovery: MockDiscovery(endpoint: endpoint),
             describe: { _ in HarnessVersion("0.1.0-rc.7") },
-            latest: nil
+            latestInstallable: nil
         )
         let report = await doctor.inspect()
 
         XCTAssertEqual(report.discoveredEndpoint, endpoint)
         XCTAssertEqual(report.ownership, .external)
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.1.0-rc.7"))
-        XCTAssertNil(report.latestVersion)
+        XCTAssertNil(report.latestInstallableVersion)
         XCTAssertEqual(report.updateStatus, .unknown)
     }
 
@@ -104,7 +101,7 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
             describe: { _ in nil },
             managedRuntime: .ready,
             managedVersion: HarnessVersion("0.1.0-rc.7"),
-            latest: HarnessVersion("0.1.0-rc.8")
+            latestInstallable: HarnessVersion("0.1.0-rc.8")
         )
         let report = await doctor.inspect()
 
@@ -113,10 +110,7 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
         XCTAssertEqual(report.managedRuntime, .ready)
         XCTAssertEqual(report.managedVersion, HarnessVersion("0.1.0-rc.7"))
         // 未运行：更新状态以 managed 版本为基准
-        XCTAssertEqual(report.updateStatus, .updateAvailable(
-            current: HarnessVersion("0.1.0-rc.7")!,
-            latest: HarnessVersion("0.1.0-rc.8")!
-        ))
+        XCTAssertEqual(report.updateStatus, .unknown)
     }
 
     func testNoHarnessAndNoRuntime() async {
@@ -125,7 +119,7 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
             describe: { _ in nil },
             managedRuntime: .missing,
             managedVersion: nil,
-            latest: nil
+            latestInstallable: nil
         )
         let report = await doctor.inspect()
 
@@ -143,15 +137,12 @@ final class HarnessEnvironmentDoctorTests: XCTestCase {
             describe: { _ in HarnessVersion("0.2.0") },
             managedRuntime: .ready,
             managedVersion: HarnessVersion("0.1.0-rc.7"),
-            latest: HarnessVersion("0.1.0-rc.8")
+            latestInstallable: HarnessVersion("0.1.0-rc.8")
         )
         let report = await doctor.inspect()
 
-        // current = runningVersion（0.2.0）> latest（0.1.0-rc.8）→ aheadOfLatest
+        // Doctor 不查询 GitHub，因此只报告本地事实与 npm installable。
         XCTAssertEqual(report.runningVersion, HarnessVersion("0.2.0"))
-        XCTAssertEqual(report.updateStatus, .aheadOfLatest(
-            current: HarnessVersion("0.2.0")!,
-            latest: HarnessVersion("0.1.0-rc.8")!
-        ))
+        XCTAssertEqual(report.updateStatus, .unknown)
     }
 }

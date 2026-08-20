@@ -1,6 +1,14 @@
 import XCTest
 @testable import DeepSeek_Harness
 
+private final class UpdatePhaseRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [HarnessUpdatePhase] = []
+
+    func append(_ phase: HarnessUpdatePhase) { lock.withLock { storage.append(phase) } }
+    var values: [HarnessUpdatePhase] { lock.withLock { storage } }
+}
+
 // MARK: - fake 执行器（单测不启动真实进程）
 
 final class FakeUpdateExecutor: HarnessUpdateExecuting, @unchecked Sendable {
@@ -47,7 +55,7 @@ final class HarnessUpdateTransactionTests: XCTestCase {
 
     func testUpdateSuccessCommitsCandidate() async {
         let executor = FakeUpdateExecutor()
-        var phases: [HarnessUpdatePhase] = []
+        let phases = UpdatePhaseRecorder()
         let transaction = HarnessUpdateTransaction(executor: executor, onPhase: { phases.append($0) })
 
         let result = await transaction.update(from: "0.1.0-rc.7", candidate: "0.1.0-rc.8")
@@ -57,7 +65,7 @@ final class HarnessUpdateTransactionTests: XCTestCase {
         XCTAssertTrue(executor.stopped)
         XCTAssertEqual(executor.launched, ["0.1.0-rc.8"])
         XCTAssertEqual(executor.verified, ["0.1.0-rc.8"])
-        XCTAssertEqual(phases, [.preparingCandidate, .stoppingCurrent, .launchingCandidate, .verifying, .committing])
+        XCTAssertEqual(phases.values, [.preparingCandidate, .stoppingCurrent, .launchingCandidate, .verifying, .committing])
     }
 
     // MARK: - 候选准备失败（当前版本不受影响，文档 §23）

@@ -205,27 +205,27 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 - [x] 新增 `HarnessRuntimeState`（`Harness/Runtime/HarnessRuntimeState.swift`）
   - `HarnessRuntimeState` / `ManagedRuntimeStatus` / `HarnessRuntimeFailure`（错误码模型 §30）
 - [x] 新增 `HarnessEnvironmentReport`（`Harness/Runtime/HarnessEnvironmentReport.swift`）
-- [x] 新增 `HarnessVersionService`（`Harness/Runtime/HarnessVersionService.swift`）
-  - npm registry `dist-tags.latest` 查询（`NPMRegistryVersionProvider`，URLSession 直连，不执行 npm/shell）
-  - 缓存 + 6h 节流（`lastUpdateCheckDate` / `latestKnownHarnessVersion` 存 UserDefaults）
-  - 手动检查 `force = true` 忽略节流；single-flight 并发去重
-  - 网络失败回退旧缓存 / 返回 nil，不打扰（启动静默检查原则）
+- [x] `HarnessVersionService` 双版本源（`Harness/Runtime`）
+  - GitHub `releases?per_page=20`：解析 `dsh-v*` / `v*`，包含 prerelease、排除 draft，并按 SemVer 取最大值；决定是否存在官方新版本
+  - npm registry `dist-tags.latest`：`NPMRegistryVersionProvider` 通过 URLSession 直连，不执行 npm/shell；决定 Managed Runtime 可安装的 exact 版本
+  - GitHub release 与 npm installable 分别使用 6h 缓存、节流和 single-flight；手动检查 `force = true` 时并发强制刷新
+  - 旧 `runtime.version.latestKnown` / `lastUpdateCheckDate` 懒迁移到 installable 缓存，Release 缓存首次保持为空
+  - 任一源失败只回退自己的缓存，不影响 Attach / Web Core / Native / Pet / 已运行 Managed Harness
 - [x] semver / prerelease compare：`HarnessVersion` 升级为完整 SemVer 2.0
   - 预发布参与优先级（`0.1.0-rc.7 < 0.1.0-rc.8`，`1.0.0-alpha < 1.0.0`）；build metadata 忽略
   - 非法版本（`1.2.3-`、`1.2.3-beta..1`）拒绝解析
 - [x] 启动静默 update check：`AppCoordinator` 经 `HarnessEnvironmentDoctor.inspect()`
   按规格 §9 固定顺序检查（probe → describe → ownership → latest），节流命中不发网络
 - [x] 菜单栏「检查 Harness 更新…」（忽略节流；失败只影响菜单栏状态）
-- [x] 当前 / 最新版本 UI：菜单栏版本行（当前 / 最新 / ⬆ 有更新可用）+ 未运行页版本提示
+- [x] 三版本 UI：当前版本 / 官方最新版本 / npm 可安装版本；GitHub 已发布但 npm 未同步时提示等待并禁用更新
 - [x] `host.describe.version` 接入统一 Version Model（握手成功 → `environmentReport.runningVersion`）
 - [x] `SettingsStore` / `AppSettings` 增加版本缓存键并适配 `HarnessVersionCacheStoring`
 - [x] `AppLogger` 新增 runtime 分类（runtime.environment / runtime.helper / runtime.process /
   runtime.version / runtime.update / runtime.rollback，规格 §31）
 - [x] Unit Tests（新增 42 个，累计 146 个全通过）：
   - semver：stable / prerelease / rc.7<rc.8 / 相等 / 超前 / 非法 / build metadata
-  - update status：upToDate / updateAvailable / aheadOfLatest / unknown
-  - version service：registry 解析 / malformed / 非 2xx / 非法 latest / 网络失败 /
-    缓存节流 / 手动绕过 / single-flight / shouldUseCache 纯逻辑
+  - update status：upToDate / updateAvailable / releaseAvailableButNotInstallable / aheadOfLatest / unknown
+  - version service：GitHub tag/draft/prerelease/最高 SemVer 解析；npm registry 解析；双缓存节流、迁移、强制刷新隔离、网络降级与独立 single-flight
   - ownership：external 禁止操作 / managed 允许 / resolve / generation 不匹配
   - doctor：运行中报告 external+版本 / describe 失败不 crash / latest 失败不影响 /
     未运行保留 managed 信息 / 运行中优先 runningVersion

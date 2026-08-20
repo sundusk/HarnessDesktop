@@ -12,7 +12,8 @@ struct FakeDiagnosticsProvider: DiagnosticsProviding {
     var nativeIntegrationDescription = "正常（handshake + 事件流）"
     var managedRuntimeDescription = "已就绪"
     var managedVersion: HarnessVersion? = HarnessVersion("0.1.0-rc.7")
-    var latestVersion: HarnessVersion? = HarnessVersion("0.1.0-rc.8")
+    var latestReleaseVersion: HarnessVersion? = HarnessVersion("0.1.0-rc.8")
+    var latestInstallableVersion: HarnessVersion? = HarnessVersion("0.1.0-rc.7")
     var lastConnectionError: String? = nil
 }
 
@@ -31,16 +32,19 @@ final class DiagnosticsSnapshotTests: XCTestCase {
         XCTAssertTrue(text.contains("连接状态：已连接"))
         XCTAssertTrue(text.contains("Managed Runtime：已就绪"))
         XCTAssertTrue(text.contains("Managed 版本：0.1.0-rc.7"))
-        XCTAssertTrue(text.contains("最新版本：0.1.0-rc.8"))
+        XCTAssertTrue(text.contains("官方最新版本：0.1.0-rc.8"))
+        XCTAssertTrue(text.contains("npm 可安装版本：0.1.0-rc.7"))
     }
 
     func testUnknownVersionRendersAsUnknown() {
         var provider = FakeDiagnosticsProvider()
         provider.harnessVersion = nil
-        provider.latestVersion = nil
+        provider.latestReleaseVersion = nil
+        provider.latestInstallableVersion = nil
         let text = DiagnosticsFactory.make(coordinator: provider).text
         XCTAssertTrue(text.contains("Harness 版本：unknown"))
-        XCTAssertTrue(text.contains("最新版本：unknown"))
+        XCTAssertTrue(text.contains("官方最新版本：unknown"))
+        XCTAssertTrue(text.contains("npm 可安装版本：unknown"))
     }
 
     func testManagedVersionNilRendersAsNone() {

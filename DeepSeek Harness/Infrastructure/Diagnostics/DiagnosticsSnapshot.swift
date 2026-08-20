@@ -14,7 +14,8 @@ struct DiagnosticsSnapshot: Equatable, Sendable {
     var nativeIntegrationState: String
     var managedRuntime: String
     var managedVersion: String?
-    var latestVersion: String?
+    var latestReleaseVersion: String?
+    var latestInstallableVersion: String?
     var lastConnectionError: String?
 
     /// 渲染为可复制的文本。
@@ -30,7 +31,8 @@ struct DiagnosticsSnapshot: Equatable, Sendable {
         lines.append("Native 集成：\(nativeIntegrationState)")
         lines.append("Managed Runtime：\(managedRuntime)")
         lines.append("Managed 版本：\(managedVersion ?? "无")")
-        lines.append("最新版本：\(latestVersion ?? "unknown")")
+        lines.append("官方最新版本：\(latestReleaseVersion ?? "unknown")")
+        lines.append("npm 可安装版本：\(latestInstallableVersion ?? "unknown")")
         if let lastConnectionError, !lastConnectionError.isEmpty {
             lines.append("最近连接错误：\(lastConnectionError)")
         }
@@ -51,7 +53,8 @@ enum DiagnosticsFactory {
             nativeIntegrationState: coordinator.nativeIntegrationDescription,
             managedRuntime: coordinator.managedRuntimeDescription,
             managedVersion: coordinator.managedVersion?.description,
-            latestVersion: coordinator.latestVersion?.description,
+            latestReleaseVersion: coordinator.latestReleaseVersion?.description,
+            latestInstallableVersion: coordinator.latestInstallableVersion?.description,
             lastConnectionError: coordinator.lastConnectionError
         )
     }
@@ -68,6 +71,7 @@ protocol DiagnosticsProviding {
     var nativeIntegrationDescription: String { get }
     var managedRuntimeDescription: String { get }
     var managedVersion: HarnessVersion? { get }
-    var latestVersion: HarnessVersion? { get }
+    var latestReleaseVersion: HarnessVersion? { get }
+    var latestInstallableVersion: HarnessVersion? { get }
     var lastConnectionError: String? { get }
 }
