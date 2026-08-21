@@ -23,7 +23,13 @@ struct MainWindowView: View {
                     isPreparingRuntime: coordinator.isPreparingRuntime,
                     isStartingManaged: coordinator.isStartingManaged,
                     isManagedRunning: coordinator.activeManagedIdentity != nil,
+                    sourceInstallations: coordinator.runtimeInventory.sourceInstallations,
+                    isStartingExternal: coordinator.isStartingExternalRuntime,
+                    externalRuntimeError: coordinator.externalRuntimeError,
                     onRediscover: { coordinator.rediscover() },
+                    onStartNPM: { coordinator.startExternalHarness(mode: .npm) },
+                    onStartSource: { coordinator.startExternalHarness(mode: .source, sourcePath: $0) },
+                    onStopExternal: { coordinator.stopExternalHarness() },
                     onPrepareRuntime: { coordinator.prepareManagedRuntime() },
                     onStartManaged: { coordinator.startManagedHarness() },
                     onStopManaged: { coordinator.stopManagedHarness() }
@@ -76,7 +82,14 @@ private struct NotRunningView: View {
     let isStartingManaged: Bool
     /// Phase 11：Managed Harness 是否在运行（显示停止按钮）。
     let isManagedRunning: Bool
+    /// 文档 §8：扫描到的源码版本。
+    let sourceInstallations: [HarnessSourceInstallation]
+    let isStartingExternal: Bool
+    let externalRuntimeError: String?
     let onRediscover: () -> Void
+    let onStartNPM: () -> Void
+    let onStartSource: (String) -> Void
+    let onStopExternal: () -> Void
     /// Phase 10：一键准备（只调用 Helper 强类型 API，不执行任意命令）。
     let onPrepareRuntime: () -> Void
     /// Phase 11：启动 / 停止 Managed Harness。
@@ -95,7 +108,14 @@ private struct NotRunningView: View {
             Text("DeepSeek Harness 未运行")
                 .font(.title2.weight(.semibold))
 
-            if isPreparingRuntime {
+            if isStartingExternal {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("正在启动 Harness…")
+                        .foregroundStyle(.secondary)
+                }
+            } else if isPreparingRuntime {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
@@ -113,6 +133,15 @@ private struct NotRunningView: View {
                 prepareSection
             } else if runtimeStatus == .ready {
                 managedReadySection
+            }
+
+            externalLaunchSection
+
+            if let externalRuntimeError {
+                Text(externalRuntimeError)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
             }
 
             Text("请先在终端运行：")
@@ -141,6 +170,44 @@ private struct NotRunningView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(40)
+    }
+
+    /// 文档 §3 / §11：直接从未运行页启动 npm 或源码版本。
+    @ViewBuilder
+    private var externalLaunchSection: some View {
+        VStack(spacing: 8) {
+            Text("请选择启动方式")
+                .font(.callout)
+            HStack(spacing: 12) {
+                Button("npm 版本启动") {
+                    onStartNPM()
+                }
+                .controlSize(.large)
+                .disabled(isStartingExternal)
+
+                if sourceInstallations.isEmpty {
+                    Button("源码版本启动") {}
+                        .controlSize(.large)
+                        .disabled(true)
+                } else {
+                    Menu("源码版本启动") {
+                        ForEach(sourceInstallations) { installation in
+                            Button("\(installation.version) · \(installation.path)") {
+                                onStartSource(installation.path)
+                            }
+                        }
+                    }
+                    .controlSize(.large)
+                    .disabled(isStartingExternal)
+                }
+            }
+            if sourceInstallations.isEmpty {
+                Text("未在 Projects、Developer、Documents 或 Work 中发现 deepseek-harness 源码")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
     }
 
     /// 一键准备区（文档 §25）：说明 + 主按钮。

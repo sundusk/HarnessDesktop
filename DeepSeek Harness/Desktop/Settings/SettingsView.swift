@@ -201,6 +201,14 @@ struct SettingsView: View {
                     }
 
                     Section {
+                        externalRuntimeSection
+                    } header: {
+                        Text("npm / 源码启动")
+                    } footer: {
+                        Text("启动命令仅使用固定的 npx 或 pnpm 参数；运行版本仍以当前实例的 host.describe 为准。")
+                    }
+
+                    Section {
                         runtimeVersionSection
                     } header: {
                         Text("Managed Harness")
@@ -264,6 +272,49 @@ struct SettingsView: View {
             return "Managed Harness（HarnessDesktop 启动）"
         case nil:
             return "未运行"
+        }
+    }
+
+    @ViewBuilder
+    private var externalRuntimeSection: some View {
+        switch coordinator.externalRuntimeStatus {
+        case .stopped:
+            HStack(spacing: 10) {
+                Button("npm 版本启动") {
+                    coordinator.startExternalHarness(mode: .npm)
+                }
+                if let source = coordinator.runtimeInventory.sourceInstallations.first {
+                    Button("源码启动（\(source.version)）") {
+                        coordinator.startExternalHarness(mode: .source, sourcePath: source.path)
+                    }
+                }
+            }
+        case .starting(let mode):
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("正在启动\(mode.title) Harness…")
+                    .foregroundStyle(.secondary)
+            }
+        case .running(let record):
+            LabeledContent("模式", value: record.mode.title)
+            LabeledContent("PID", value: String(record.pid))
+            LabeledContent("日志", value: record.logPath)
+                .font(.caption)
+            HStack(spacing: 10) {
+                Button("重启") {
+                    coordinator.restartExternalHarness()
+                }
+                Button("停止") {
+                    coordinator.stopExternalHarness()
+                }
+            }
+        case .failed(let message):
+            Text(message)
+                .foregroundStyle(.red)
+            Button("重新启动") {
+                coordinator.startExternalHarness(mode: .npm)
+            }
         }
     }
 

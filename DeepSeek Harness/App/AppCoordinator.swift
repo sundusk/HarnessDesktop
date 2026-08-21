@@ -28,6 +28,16 @@ final class AppCoordinator {
     private(set) var isCheckingAppUpdate = false
     /// Phase 9：Runtime Manager 客户端（强类型能力协议；Helper 不可用时优雅降级）。
     let runtimeManager: any HarnessRuntimeManaging
+    /// 文档 §4：npm / 源码外部 Harness 管理器。
+    let externalRuntimeManager: any HarnessRuntimeControlling
+    /// npm / 源码候选扫描结果（不作为 runningVersion 来源）。
+    private(set) var runtimeInventory = HarnessRuntimeInventory.empty
+    /// 本应用自己启动的 npm / 源码进程状态。
+    private(set) var externalRuntimeStatus: HarnessExternalRuntimeStatus = .stopped
+    /// 外部运行时启动是否进行中。
+    private(set) var isStartingExternalRuntime = false
+    /// 最近一次外部运行时错误（只展示错误码文案，不暴露 stderr）。
+    private(set) var externalRuntimeError: String?
     /// Phase 10：一键准备是否进行中（防重复点击）。
     private(set) var isPreparingRuntime = false
     /// Phase 11：Managed Harness 是否正在启动（防重复启动）。
@@ -77,16 +87,19 @@ final class AppCoordinator {
          petSettings: MoodBallSettings? = nil,
          versionService: HarnessVersionService? = nil,
          runtimeManager: (any HarnessRuntimeManaging)? = nil,
+         externalRuntimeManager: (any HarnessRuntimeControlling)? = nil,
          appUpdateProvider: (any GitHubLatestReleaseProviding)? = nil) {
         self.settings = settings
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
-        self.discovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
+        let configuredDiscovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
+        self.discovery = configuredDiscovery
         self.compatibilityResolver = compatibilityResolver
         self.notificationCoordinator = NotificationCoordinator(settings: settings)
         // Phase 8：版本服务缓存复用 AppSettings（UserDefaults）。
         self.versionService = versionService ?? HarnessVersionService(cache: settings)
         // Phase 9：默认 XPC 客户端（惰性连接；测试注入 fake）。
         self.runtimeManager = runtimeManager ?? RuntimeManagerClient()
+        self.externalRuntimeManager = externalRuntimeManager ?? HarnessRuntimeManager(discovery: configuredDiscovery)
         // App 自身更新查询（GitHub releases/latest）。
         self.appUpdateProvider = appUpdateProvider ?? GitHubLatestReleaseProvider()
         // 默认值不能写在参数默认表达式里：MoodBallSettings() 是 MainActor 隔离的，
@@ -111,6 +124,7 @@ final class AppCoordinator {
         // Phase 9：启动时查询 Helper 状态（只读；Helper 不可用 → managedRuntime = missing，
         // 优雅降级，不影响 Web Core / Attach）。
         Task { await refreshManagedRuntimeStatus() }
+        Task { await refreshExternalRuntimeInventory() }
         // Phase 11：退出策略（文档 §19）——App 断开时 Helper 是否停止 Managed Harness。
         Task {
             try? await runtimeManager.setStopOnDisconnect(settings.stopManagedHarnessOnQuit)
@@ -272,6 +286,86 @@ final class AppCoordinator {
         // 显式通知 Helper 停止（连接失效时 Helper 也会按 stopOnDisconnect 兜底）
         Task {
             try? await runtimeManager.stopHarness(identity: identity)
+        }
+    }
+
+    // MARK: - npm / 源码 Runtime Manager
+
+    /// 刷新 npm 与源码候选。扫描失败只返回空结果，不影响 Attach。
+    func refreshExternalRuntimeInventory() async {
+        runtimeInventory = await externalRuntimeManager.detect()
+        externalRuntimeStatus = await externalRuntimeManager.status()
+    }
+
+    /// 文档 §11：后台启动 npm / 源码 Harness，并等待 loopback 可用。
+    func startExternalHarness(mode: HarnessRuntimeMode, sourcePath: String? = nil) {
+        guard !isStartingExternalRuntime else { return }
+        isStartingExternalRuntime = true
+        externalRuntimeError = nil
+        externalRuntimeStatus = .starting(mode)
+        Task {
+            defer { isStartingExternalRuntime = false }
+            let configured = await externalRuntimeManager.configuration()
+            let selectedSourcePath = sourcePath ?? configured.sourcePath ?? runtimeInventory.sourceInstallations.first?.path
+            do {
+                let record = try await externalRuntimeManager.start(
+                    mode: mode,
+                    sourcePath: selectedSourcePath,
+                    port: settings.port
+                )
+                externalRuntimeStatus = .running(record)
+                await performDiscovery()
+            } catch let failure as HarnessExternalRuntimeFailure {
+                externalRuntimeError = failure.userMessage
+                if failure == .harnessAlreadyRunning {
+                    // Attach-first：已有实例只连接，不尝试停止或接管。
+                    await performDiscovery()
+                } else {
+                    externalRuntimeStatus = .failed(failure.userMessage)
+                }
+            } catch {
+                externalRuntimeError = "Harness 启动失败，请查看日志。"
+                externalRuntimeStatus = .failed(externalRuntimeError ?? "Harness 启动失败")
+            }
+        }
+    }
+
+    /// 文档 §11：停止本应用自己启动的 npm / 源码进程。
+    func stopExternalHarness() {
+        Task {
+            do {
+                try await externalRuntimeManager.stop()
+                externalRuntimeStatus = .stopped
+                externalRuntimeError = nil
+                rediscover()
+            } catch let failure as HarnessExternalRuntimeFailure {
+                externalRuntimeError = failure.userMessage
+                externalRuntimeStatus = .failed(failure.userMessage)
+            } catch {
+                externalRuntimeError = "Harness 停止失败，请查看日志。"
+                externalRuntimeStatus = .failed(externalRuntimeError ?? "Harness 停止失败")
+            }
+        }
+    }
+
+    /// 文档 §11：stop → wait → start。
+    func restartExternalHarness() {
+        guard !isStartingExternalRuntime else { return }
+        isStartingExternalRuntime = true
+        externalRuntimeError = nil
+        Task {
+            defer { isStartingExternalRuntime = false }
+            do {
+                let record = try await externalRuntimeManager.restart()
+                externalRuntimeStatus = .running(record)
+                await performDiscovery()
+            } catch let failure as HarnessExternalRuntimeFailure {
+                externalRuntimeError = failure.userMessage
+                externalRuntimeStatus = .failed(failure.userMessage)
+            } catch {
+                externalRuntimeError = "Harness 重启失败，请查看日志。"
+                externalRuntimeStatus = .failed(externalRuntimeError ?? "Harness 重启失败")
+            }
         }
     }
 
@@ -459,6 +553,8 @@ final class AppCoordinator {
     /// 设置变更后调用：用新 host/port 重建 Discovery 并重新探测。
     func settingsDidChange() {
         discovery = LocalHarnessDiscovery(host: settings.host, port: settings.port)
+        let currentDiscovery = discovery
+        Task { await externalRuntimeManager.update(discovery: currentDiscovery) }
         healthCheckTask?.cancel()
         handshakeTask?.cancel()
         eventTask?.cancel()
@@ -469,6 +565,7 @@ final class AppCoordinator {
         environmentReport = HarnessEnvironmentReport()
         reducer = ActivityReducer()
         Task { await performDiscovery() }
+        Task { await refreshExternalRuntimeInventory() }
     }
 
     /// 释放 Native Adapter（断开事件流）。

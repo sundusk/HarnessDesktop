@@ -60,6 +60,8 @@
 		B0000000000000000000003C /* HarnessUpdateStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003D /* HarnessUpdateStatus.swift */; };
 		B0000000000000000000003D /* HarnessVersionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003E /* HarnessVersionService.swift */; };
 		B00000000000000000000065 /* AppUpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000067 /* AppUpdateChecker.swift */; };
+		B00000000000000000000068 /* HarnessExternalRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006B /* HarnessExternalRuntime.swift */; };
+		B00000000000000000000069 /* HarnessExternalRuntimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000006C /* HarnessExternalRuntimeTests.swift */; };
 		B00000000000000000000063 /* HarnessTerminalVersionChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000065 /* HarnessTerminalVersionChecker.swift */; };
 		B0000000000000000000003E /* HarnessRuntimeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003F /* HarnessRuntimeState.swift */; };
 		B0000000000000000000003F /* HarnessEnvironmentReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000040 /* HarnessEnvironmentReport.swift */; };
@@ -185,6 +187,8 @@
 		A00000000000000000000066 /* HarnessTerminalVersionCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessTerminalVersionCheckerTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessEnvironmentDoctorTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000068 /* AppUpdateCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateCheckerTests.swift; sourceTree = "<group>"; };
+		A0000000000000000000006B /* HarnessExternalRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessExternalRuntime.swift; sourceTree = "<group>"; };
+		A0000000000000000000006C /* HarnessExternalRuntimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessExternalRuntimeTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000046 /* RuntimeHelper.xpc */ = {isa = PBXFileReference; explicitFileType = "wrapper.xpc-service"; includeInIndex = 0; path = RuntimeHelper.xpc; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000047 /* RuntimeHelperContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperContract.swift; sourceTree = "<group>"; };
 		A00000000000000000000048 /* RuntimeHelperIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeHelperIdentity.swift; sourceTree = "<group>"; };
@@ -306,6 +310,7 @@
 				A0000000000000000000003F /* HarnessRuntimeState.swift */,
 				A00000000000000000000040 /* HarnessEnvironmentReport.swift */,
 				A00000000000000000000041 /* HarnessEnvironmentDoctor.swift */,
+				A0000000000000000000006B /* HarnessExternalRuntime.swift */,
 				A0000000000000000000004D /* HarnessRuntimeManaging.swift */,
 				A0000000000000000000004E /* RuntimeManagerClient.swift */,
 				A00000000000000000000059 /* HarnessUpdateTransaction.swift */,
@@ -504,6 +509,7 @@
 				A00000000000000000000044 /* HarnessOwnershipTests.swift */,
 				A00000000000000000000045 /* HarnessEnvironmentDoctorTests.swift */,
 				A00000000000000000000068 /* AppUpdateCheckerTests.swift */,
+				A0000000000000000000006C /* HarnessExternalRuntimeTests.swift */,
 				A0000000000000000000004F /* RuntimeManagerClientTests.swift */,
 				A00000000000000000000050 /* RuntimeHelperIdentityTests.swift */,
 				A00000000000000000000057 /* RuntimePreparationTests.swift */,
@@ -706,6 +712,7 @@
 				B0000000000000000000003E /* HarnessRuntimeState.swift in Sources */,
 				B0000000000000000000003F /* HarnessEnvironmentReport.swift in Sources */,
 				B00000000000000000000040 /* HarnessEnvironmentDoctor.swift in Sources */,
+				B00000000000000000000068 /* HarnessExternalRuntime.swift in Sources */,
 				B00000000000000000000045 /* RuntimeHelperContract.swift in Sources */,
 				B00000000000000000000046 /* RuntimeHelperIdentity.swift in Sources */,
 				B00000000000000000000047 /* HarnessRuntimeManaging.swift in Sources */,
@@ -745,6 +752,7 @@
 				B00000000000000000000043 /* HarnessOwnershipTests.swift in Sources */,
 				B00000000000000000000044 /* HarnessEnvironmentDoctorTests.swift in Sources */,
 				B00000000000000000000066 /* AppUpdateCheckerTests.swift in Sources */,
+				B00000000000000000000069 /* HarnessExternalRuntimeTests.swift in Sources */,
 				B0000000000000000000004E /* RuntimeManagerClientTests.swift in Sources */,
 				B0000000000000000000004F /* RuntimeHelperIdentityTests.swift in Sources */,
 				B00000000000000000000059 /* RuntimePreparationTests.swift in Sources */,
@@ -917,7 +925,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -945,7 +953,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -962,7 +970,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -978,7 +986,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1003,7 +1011,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1028,7 +1036,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
