@@ -181,25 +181,12 @@ final class MenuBarCoordinator {
         if coordinator.sessionCount > 0 {
             details.append("会话数：\(coordinator.sessionCount)")
         }
-        if let version = coordinator.environmentReport.runningVersion {
-            details.append("运行版本：\(version)")
-        }
-        // Phase 8：当前 / 最新版本 + 更新状态（规格 §20 / §24）
+        // 版本信息仅展示两个可查询来源，不展示当前运行版本或更新状态。
         if let latest = coordinator.environmentReport.latestReleaseVersion {
             details.append("官方最新：\(latest)")
         }
         if let installable = coordinator.environmentReport.latestInstallableVersion {
-            details.append("npm 可安装：\(installable)")
-        }
-        switch coordinator.environmentReport.updateStatus {
-        case .checking:
-            details.append("正在检查更新…")
-        case .updateAvailable:
-            details.append("⬆ 有更新可用")
-        case .releaseAvailableButNotInstallable:
-            details.append("● 新版已发布，等待 npm")
-        default:
-            break
+            details.append("npm 最新版：\(installable)")
         }
         detailsItem?.title = details.joined(separator: " · ")
         detailsItem?.isHidden = details.isEmpty
@@ -210,17 +197,9 @@ final class MenuBarCoordinator {
         // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」
         stopManagedItem?.isHidden = coordinator.activeManagedIdentity == nil
 
-        // Phase 12：Managed 且可更新 → 显示「更新 Harness…」；有上一版本 → 显示「回退到 X…」
-        let isManaged = coordinator.activeManagedIdentity != nil
-            || coordinator.environmentReport.ownership == .managed
-        let notBusy = !coordinator.isUpdatingManaged
-        updateItem?.isHidden = !(isManaged && coordinator.environmentReport.updateStatus.hasUpdate && notBusy)
-        if let previous = coordinator.settings.previousManagedVersion {
-            rollbackItem?.title = "回退到 \(previous)…"
-            rollbackItem?.isHidden = !(isManaged && notBusy)
-        } else {
-            rollbackItem?.isHidden = true
-        }
+        // 版本区域仅用于展示，不显示更新或回退提示。
+        updateItem?.isHidden = true
+        rollbackItem?.isHidden = true
     }
 
     // MARK: - 文案

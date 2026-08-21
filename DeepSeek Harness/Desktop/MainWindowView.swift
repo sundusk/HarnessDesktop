@@ -18,7 +18,6 @@ struct MainWindowView: View {
                 NotRunningView(
                     host: coordinator.settings.host,
                     port: coordinator.settings.port,
-                    versionHint: coordinator.environmentReport.updateStatus.summary,
                     runtimeStatus: coordinator.environmentReport.managedRuntime,
                     isPreparingRuntime: coordinator.isPreparingRuntime,
                     isStartingManaged: coordinator.isStartingManaged,
@@ -72,8 +71,6 @@ private struct PlaceholderView: View {
 private struct NotRunningView: View {
     let host: String
     let port: Int
-    /// Phase 8：最新版本 / 更新状态一行提示（nil 不显示；规格 §25 / §28）。
-    let versionHint: String?
     /// Phase 10：Managed Runtime 状态（未准备 → 显示一键准备）。
     let runtimeStatus: ManagedRuntimeStatus
     /// Phase 10：一键准备是否进行中。
@@ -159,11 +156,6 @@ private struct NotRunningView: View {
                     onRediscover()
                 }
                 .keyboardShortcut(.defaultAction)
-            }
-            if let versionHint {
-                Text(versionHint)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             Text("检测地址：\(host):\(port)")
                 .font(.caption)

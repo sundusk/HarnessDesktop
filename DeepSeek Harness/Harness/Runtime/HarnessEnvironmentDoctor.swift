@@ -50,7 +50,7 @@ struct HarnessEnvironmentDoctor: HarnessEnvironmentInspecting {
         // 2. Harness 正在运行
         report.discoveredEndpoint = endpoint
         // 2.1 host.describe → running version（统一 Version Model）
-        report.runningVersion = await describe(endpoint)
+        report.setRunningVersion(from: await describe(endpoint))
         // 2.2 所有权：Phase 8 尚无 Managed 身份匹配能力，未知来源一律 external
         //     （规格 §35 Ownership：discovered unknown process → external）。
         report.ownership = .external

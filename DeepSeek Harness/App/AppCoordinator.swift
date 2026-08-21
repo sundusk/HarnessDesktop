@@ -496,7 +496,7 @@ final class AppCoordinator {
             async let release = versionService.latestReleaseVersion(force: true)
             async let installable = versionService.latestInstallableVersion(force: true)
             let (latestRelease, latestInstallable) = await (release, installable)
-            environmentReport.runningVersion = described
+            environmentReport.setRunningVersion(from: described)
             environmentReport.latestReleaseVersion = latestRelease
             environmentReport.latestInstallableVersion = latestInstallable
             environmentReport.refreshUpdateStatus()
@@ -769,7 +769,9 @@ final class AppCoordinator {
                     self.nativeAdapter = adapter
                     self.consumeAdapterEvents(adapter)
                     // Phase 8：host.describe.version 接入统一 Version Model（规格 §10 / §41）。
-                    self.environmentReport.runningVersion = adapter.harnessInfo.flatMap { HarnessVersion($0.version) }
+                    self.environmentReport.setRunningVersion(
+                        from: adapter.harnessInfo.flatMap { HarnessVersion($0.version) }
+                    )
                     self.environmentReport.ownership = .external
                     self.environmentReport.refreshUpdateStatus()
                     AppLogger.compatibility.info(

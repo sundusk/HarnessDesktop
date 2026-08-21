@@ -11,6 +11,8 @@ struct HarnessEnvironmentReport: Equatable, Sendable {
     var ownership: HarnessOwnership?
     /// 运行中 Harness 的版本（来自 `host.describe.version`，统一 Version Model）。
     var runningVersion: HarnessVersion?
+    /// `host.describe` 返回已知占位版本时的诊断信息。
+    var runningVersionWarning: String?
     /// Managed Runtime 状态（未准备 / 已就绪）。
     var managedRuntime: ManagedRuntimeStatus = .unknown
     /// Managed 模式固定的 exact Harness 版本。
@@ -29,6 +31,19 @@ extension HarnessEnvironmentReport {
         discoveredEndpoint = nil
         ownership = nil
         runningVersion = nil
+        runningVersionWarning = nil
+        refreshUpdateStatus()
+    }
+
+    /// 设置当前运行版本。已知的上游占位值不能当作真实运行版本展示或比较。
+    mutating func setRunningVersion(from version: HarnessVersion?) {
+        if version?.description == "0.0.1" {
+            runningVersion = nil
+            runningVersionWarning = "Harness 返回了占位版本 0.0.1，无法确定真实运行版本"
+        } else {
+            runningVersion = version
+            runningVersionWarning = nil
+        }
         refreshUpdateStatus()
     }
 

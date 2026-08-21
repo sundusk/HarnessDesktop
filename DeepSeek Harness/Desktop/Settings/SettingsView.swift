@@ -207,7 +207,7 @@ struct SettingsView: View {
                     } header: {
                         Text("npm / 源码启动")
                     } footer: {
-                        Text("启动命令仅使用固定的 npx 或 pnpm 参数；运行版本仍以当前实例的 host.describe 为准。")
+                        Text("启动命令仅使用固定的 npx 或 pnpm 参数。")
                     }
 
                     Section {
@@ -364,45 +364,15 @@ struct SettingsView: View {
             ?? coordinator.runtimeInventory.sourceInstallations.first?.path
     }
 
-    /// Managed Harness 版本 + 更新 / 回退动作（文档 §26）。
+    /// 仅展示官方最新版本与 npm 可安装版本。
     @ViewBuilder
     private var runtimeVersionSection: some View {
-        LabeledContent("运行版本") {
-            Text(coordinator.environmentReport.runningVersion?.description ?? "未知")
-        }
-        LabeledContent("上一版本") {
-            Text(settings.previousManagedVersion ?? "无")
-        }
         LabeledContent("官方最新版本") {
             Text(coordinator.environmentReport.latestReleaseVersion?.description ?? "unknown")
         }
-        LabeledContent("npm 可安装版本") {
+        LabeledContent("npm 最新版") {
             Text(coordinator.environmentReport.latestInstallableVersion?.description ?? "unknown")
         }
-        if let summary = coordinator.environmentReport.updateStatus.summary {
-            Text(summary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        HStack(spacing: 12) {
-            Button("检查更新") {
-                coordinator.checkForUpdates()
-            }
-            Button("更新 Harness…") {
-                coordinator.updateManagedHarness()
-            }
-            .disabled(!canUpdate)
-            Button("回退…") {
-                coordinator.rollbackManagedHarness()
-            }
-            .disabled(settings.previousManagedVersion == nil)
-        }
-    }
-
-    private var canUpdate: Bool {
-        coordinator.environmentReport.updateStatus.hasUpdate
-            && (coordinator.environmentReport.ownership == .managed
-                || coordinator.activeManagedIdentity != nil)
     }
 
     private var managedHomePath: String {

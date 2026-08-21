@@ -75,13 +75,14 @@ final class HarnessUpdateStatusTests: XCTestCase {
         )
     }
 
-    func testDescribePlaceholderFallsBackOnlyToInstallableVersion() {
+    func testDescribePlaceholderIsMarkedUnknown() {
         var report = HarnessEnvironmentReport()
-        report.runningVersion = HarnessVersion("0.0.1")
+        report.setRunningVersion(from: HarnessVersion("0.0.1"))
         report.latestReleaseVersion = rc9
         report.latestInstallableVersion = rc7
 
-        XCTAssertEqual(report.runningVersion, HarnessVersion("0.0.1"))
+        XCTAssertNil(report.runningVersion)
+        XCTAssertEqual(report.runningVersionWarning, "Harness 返回了占位版本 0.0.1，无法确定真实运行版本")
         XCTAssertEqual(report.updateStatus, .unknown)
     }
 
