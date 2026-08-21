@@ -32,6 +32,8 @@ final class AppCoordinator {
     let externalRuntimeManager: any HarnessRuntimeControlling
     /// npm / 源码候选扫描结果（不作为 runningVersion 来源）。
     private(set) var runtimeInventory = HarnessRuntimeInventory.empty
+    /// 用户选择并持久化的源码目录（不作为 runningVersion 来源）。
+    private(set) var externalRuntimeConfiguration = HarnessRuntimeConfiguration()
     /// 本应用自己启动的 npm / 源码进程状态。
     private(set) var externalRuntimeStatus: HarnessExternalRuntimeStatus = .stopped
     /// 外部运行时启动是否进行中。
@@ -293,8 +295,24 @@ final class AppCoordinator {
 
     /// 刷新 npm 与源码候选。扫描失败只返回空结果，不影响 Attach。
     func refreshExternalRuntimeInventory() async {
+        externalRuntimeConfiguration = await externalRuntimeManager.configuration()
         runtimeInventory = await externalRuntimeManager.detect()
         externalRuntimeStatus = await externalRuntimeManager.status()
+    }
+
+    /// 选择并保存外部 Harness 源码目录，支持直接选择 package.json。
+    func selectExternalHarnessSource(at url: URL) {
+        Task {
+            do {
+                externalRuntimeConfiguration = try await externalRuntimeManager.selectSourceDirectory(at: url)
+                externalRuntimeError = nil
+                await refreshExternalRuntimeInventory()
+            } catch let failure as HarnessExternalRuntimeFailure {
+                externalRuntimeError = failure.userMessage
+            } catch {
+                externalRuntimeError = HarnessExternalRuntimeFailure.sourceSelectionFailed.userMessage
+            }
+        }
     }
 
     /// 文档 §11：后台启动 npm / 源码 Harness，并等待 loopback 可用。
@@ -306,6 +324,7 @@ final class AppCoordinator {
         Task {
             defer { isStartingExternalRuntime = false }
             let configured = await externalRuntimeManager.configuration()
+            externalRuntimeConfiguration = configured
             let selectedSourcePath = sourcePath ?? configured.sourcePath ?? runtimeInventory.sourceInstallations.first?.path
             do {
                 let record = try await externalRuntimeManager.start(

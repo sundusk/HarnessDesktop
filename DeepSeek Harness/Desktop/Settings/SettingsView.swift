@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// 设置页：左右标签页布局。
 ///
@@ -26,6 +27,7 @@ struct SettingsView: View {
     /// 导致点击后选中态不刷新，直到切换页面才显示。）
     @State private var launchManagedHarnessAtAppStart: Bool
     @State private var stopManagedHarnessOnQuit: Bool
+    @State private var isSourcePickerPresented = false
 
     enum Tab: String, CaseIterable, Identifiable {
         case general = "常规"
@@ -255,6 +257,14 @@ struct SettingsView: View {
                 .formStyle(.grouped)
             }
         }
+        .fileImporter(
+            isPresented: $isSourcePickerPresented,
+            allowedContentTypes: [.folder, .json],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            coordinator.selectExternalHarnessSource(at: url)
+        }
     }
 
     /// Harness 模式：外部 / HarnessDesktop / 未运行。
@@ -277,45 +287,81 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var externalRuntimeSection: some View {
-        switch coordinator.externalRuntimeStatus {
-        case .stopped:
-            HStack(spacing: 10) {
-                Button("npm 版本启动") {
-                    coordinator.startExternalHarness(mode: .npm)
+        VStack(alignment: .leading, spacing: 10) {
+            sourceSelectionSection
+
+            if let error = coordinator.externalRuntimeError {
+                Text(error)
+                    .font(.callout)
+                    .foregroundStyle(.red)
+            }
+
+            switch coordinator.externalRuntimeStatus {
+            case .stopped:
+                HStack(spacing: 10) {
+                    Button("npm 版本启动") {
+                        coordinator.startExternalHarness(mode: .npm)
+                    }
+                    Button("源码启动") {
+                        coordinator.startExternalHarness(
+                            mode: .source,
+                            sourcePath: selectedSourcePath
+                        )
+                    }
+                    .disabled(selectedSourcePath == nil)
                 }
-                if let source = coordinator.runtimeInventory.sourceInstallations.first {
-                    Button("源码启动（\(source.version)）") {
-                        coordinator.startExternalHarness(mode: .source, sourcePath: source.path)
+            case .starting(let mode):
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("正在启动\(mode.title) Harness…")
+                        .foregroundStyle(.secondary)
+                }
+            case .running(let record):
+                LabeledContent("模式", value: record.mode.title)
+                LabeledContent("PID", value: String(record.pid))
+                LabeledContent("日志", value: record.logPath)
+                    .font(.caption)
+                HStack(spacing: 10) {
+                    Button("重启") {
+                        coordinator.restartExternalHarness()
+                    }
+                    Button("停止") {
+                        coordinator.stopExternalHarness()
                     }
                 }
-            }
-        case .starting(let mode):
-            HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("正在启动\(mode.title) Harness…")
-                    .foregroundStyle(.secondary)
-            }
-        case .running(let record):
-            LabeledContent("模式", value: record.mode.title)
-            LabeledContent("PID", value: String(record.pid))
-            LabeledContent("日志", value: record.logPath)
-                .font(.caption)
-            HStack(spacing: 10) {
-                Button("重启") {
-                    coordinator.restartExternalHarness()
+            case .failed(let message):
+                Text(message)
+                    .foregroundStyle(.red)
+                Button("重新启动") {
+                    coordinator.startExternalHarness(mode: .source, sourcePath: selectedSourcePath)
                 }
-                Button("停止") {
-                    coordinator.stopExternalHarness()
-                }
-            }
-        case .failed(let message):
-            Text(message)
-                .foregroundStyle(.red)
-            Button("重新启动") {
-                coordinator.startExternalHarness(mode: .npm)
             }
         }
+    }
+
+    private var sourceSelectionSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            LabeledContent("源码位置") {
+                Text(selectedSourcePath ?? "未选择")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(selectedSourcePath == nil ? .secondary : .primary)
+                    .textSelection(.enabled)
+                    .lineLimit(2)
+            }
+            Button("选择源码目录或 package.json…") {
+                isSourcePickerPresented = true
+            }
+            .buttonStyle(.link)
+            Text("自动扫描不到时，可手动选择 deepseek-harness 目录或其中的 package.json。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var selectedSourcePath: String? {
+        coordinator.externalRuntimeConfiguration.sourcePath
+            ?? coordinator.runtimeInventory.sourceInstallations.first?.path
     }
 
     /// Managed Harness 版本 + 更新 / 回退动作（文档 §26）。

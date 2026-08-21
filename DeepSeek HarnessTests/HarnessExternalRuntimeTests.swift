@@ -70,6 +70,32 @@ final class HarnessExternalRuntimeTests: XCTestCase {
         try? FileManager.default.removeItem(at: directory)
     }
 
+    func testSelectSourceDirectoryPersistsDirectoryAndAcceptsPackageJSON() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let source = root.appendingPathComponent("deepseek-harness")
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try Data(#"{"name":"deepseek-harness","version":"0.1.0-rc.8"}"#.utf8)
+            .write(to: source.appendingPathComponent("package.json"))
+
+        let store = RuntimeTestConfigurationStore()
+        let manager = HarnessRuntimeManager(
+            discovery: RuntimeTestDiscovery(result: nil),
+            processLauncher: RuntimeTestProcessLauncher(),
+            configurationStore: store,
+            isPortOccupied: { _ in false },
+            logDirectory: root.appendingPathComponent("logs")
+        )
+
+        let configuration = try await manager.selectSourceDirectory(
+            at: source.appendingPathComponent("package.json")
+        )
+
+        XCTAssertEqual(configuration.runtimeMode, .source)
+        XCTAssertEqual(configuration.sourcePath, source.standardizedFileURL.path)
+        XCTAssertEqual(store.value.sourcePath, source.standardizedFileURL.path)
+        try? FileManager.default.removeItem(at: root)
+    }
+
     func testDetectorReadsNpmVersionsAndSourceManifests() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let source = root.appendingPathComponent("Projects/AI/deepseek-harness")

@@ -41,6 +41,7 @@ struct HarnessRuntimeInventory: Equatable, Sendable {
 struct HarnessRuntimeConfiguration: Codable, Equatable, Sendable {
     var runtimeMode: HarnessRuntimeMode = .npm
     var sourcePath: String?
+    var sourceBookmark: Data? = nil
     var port: Int = 3080
     var autoStart: Bool = false
 }
@@ -64,6 +65,7 @@ enum HarnessExternalRuntimeFailure: Error, Equatable, Sendable {
     case nodeUnavailable
     case pnpmUnavailable
     case sourcePathMissing
+    case sourceSelectionFailed
     case invalidPort
     case endpointOccupied
     case harnessAlreadyRunning
@@ -81,6 +83,8 @@ extension HarnessExternalRuntimeFailure {
             return "源码模式需要 pnpm，请先安装 pnpm。"
         case .sourcePathMissing:
             return "未找到有效的 deepseek-harness 源码目录。"
+        case .sourceSelectionFailed:
+            return "无法保存源码目录访问权限，请重新选择源码目录。"
         case .invalidPort:
             return "端口必须是 1…65535 之间的整数。"
         case .endpointOccupied:
@@ -382,6 +386,7 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
 protocol HarnessRuntimeControlling: Sendable {
     func detect() async -> HarnessRuntimeInventory
     func configuration() async -> HarnessRuntimeConfiguration
+    func selectSourceDirectory(at url: URL) async throws -> HarnessRuntimeConfiguration
     func start(mode: HarnessRuntimeMode, sourcePath: String?, port: Int) async throws -> HarnessRuntimeProcessRecord
     func stop() async throws
     func restart() async throws -> HarnessRuntimeProcessRecord
@@ -407,6 +412,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
     private var lastSourcePath: String?
     private var lastPort = 3080
     private var monitorTask: Task<Void, Never>?
+    private var sourceAccessURL: URL?
 
     init(discovery: any HarnessDiscovering,
          detector: HarnessRuntimeDetector = HarnessRuntimeDetector(),
@@ -424,6 +430,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         self.lastMode = self.configurationValue.runtimeMode
         self.lastSourcePath = self.configurationValue.sourcePath
         self.lastPort = self.configurationValue.port
+        self.sourceAccessURL = nil
     }
 
     func detect() async -> HarnessRuntimeInventory {
@@ -432,6 +439,24 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
 
     func configuration() async -> HarnessRuntimeConfiguration {
         configurationValue
+    }
+
+    func selectSourceDirectory(at url: URL) async throws -> HarnessRuntimeConfiguration {
+        let sourceURL = try normalizedSourceURL(from: url)
+        let bookmark = try? sourceURL.bookmarkData(
+            options: [.withSecurityScope],
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+
+        configurationValue.runtimeMode = .source
+        configurationValue.sourcePath = sourceURL.path
+        configurationValue.sourceBookmark = bookmark
+        lastMode = .source
+        lastSourcePath = sourceURL.path
+        try configurationStore.save(configurationValue)
+        beginSourceAccess(for: sourceURL)
+        return configurationValue
     }
 
     func update(discovery: any HarnessDiscovering) async {
@@ -460,11 +485,10 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         case .npm:
             validatedSourcePath = nil
         case .source:
-            guard let sourcePath else { throw HarnessExternalRuntimeFailure.sourcePathMissing }
-            let url = URL(fileURLWithPath: sourcePath).standardizedFileURL
-            guard FileManager.default.fileExists(atPath: url.appendingPathComponent("package.json").path) else {
-                throw HarnessExternalRuntimeFailure.sourcePathMissing
-            }
+            let requestedPath = sourcePath ?? configurationValue.sourcePath
+            guard let requestedPath else { throw HarnessExternalRuntimeFailure.sourcePathMissing }
+            let url = try sourceURL(for: requestedPath)
+            beginSourceAccess(for: url)
             validatedSourcePath = url
         }
 
@@ -565,6 +589,54 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         guard activeProcess?.pid == process.pid else { return }
         activeProcess = nil
         activeRecord = nil
+    }
+
+    private func normalizedSourceURL(from url: URL) throws -> URL {
+        var sourceURL = url.standardizedFileURL
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: sourceURL.path, isDirectory: &isDirectory) else {
+            throw HarnessExternalRuntimeFailure.sourcePathMissing
+        }
+        if !isDirectory.boolValue && sourceURL.lastPathComponent == "package.json" {
+            sourceURL.deleteLastPathComponent()
+            isDirectory = true
+        }
+        guard isDirectory.boolValue,
+              FileManager.default.fileExists(atPath: sourceURL.appendingPathComponent("package.json").path) else {
+            throw HarnessExternalRuntimeFailure.sourcePathMissing
+        }
+        return sourceURL
+    }
+
+    private func sourceURL(for path: String) throws -> URL {
+        if path == configurationValue.sourcePath,
+           let bookmark = configurationValue.sourceBookmark {
+            var isStale = false
+            if let resolved = try? URL(
+                resolvingBookmarkData: bookmark,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                if isStale,
+                   let refreshedBookmark = try? resolved.bookmarkData(
+                       options: [.withSecurityScope],
+                       includingResourceValuesForKeys: nil,
+                       relativeTo: nil
+                   ) {
+                    configurationValue.sourceBookmark = refreshedBookmark
+                    try? configurationStore.save(configurationValue)
+                }
+                return try normalizedSourceURL(from: resolved)
+            }
+        }
+        return try normalizedSourceURL(from: URL(fileURLWithPath: path))
+    }
+
+    private func beginSourceAccess(for url: URL) {
+        guard sourceAccessURL?.standardizedFileURL.path != url.standardizedFileURL.path else { return }
+        sourceAccessURL?.stopAccessingSecurityScopedResource()
+        sourceAccessURL = url.startAccessingSecurityScopedResource() ? url : nil
     }
 }
 
