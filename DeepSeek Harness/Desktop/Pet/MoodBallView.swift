@@ -17,6 +17,7 @@ import SwiftUI
 struct MoodBallView: View {
     var model: MoodBallModel
     var settings: MoodBallSettings
+    let onOpenMainWindow: () -> Void
 
     /// 按下时鼠标与窗口原点的偏移（全局坐标），拖拽中保持不变
     @State private var grabOffset: CGSize = .zero
@@ -171,7 +172,7 @@ struct MoodBallView: View {
 
     /// 拖拽：让窗口跟随鼠标的全局位置（抓取点保持在光标下），
     /// 不依赖手势 translation，避免窗口移动后坐标系反馈导致拖拽缩水。
-    /// 单击无操作；双击触发兴奋晃动；锁定位置时不可拖拽。
+    /// 单击无操作；双击触发宠物动作并展开主 App；锁定位置时不可拖拽。
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { _ in
@@ -219,11 +220,11 @@ struct MoodBallView: View {
                     isTap = false
                 }
                 if isTap {
-                    // 双击（0.35s 内两次单击）→ 兴奋晃动；单击无操作
+                    // 双击（0.35s 内两次单击）→ 宠物动作 + 恢复主窗口；单击无操作
                     let now = Date()
                     if let last = lastTapAt, now.timeIntervalSince(last) < 0.35 {
                         lastTapAt = nil
-                        model.triggerWiggle()
+                        model.handleDoubleClick(openMainWindow: onOpenMainWindow)
                     } else {
                         lastTapAt = now
                     }

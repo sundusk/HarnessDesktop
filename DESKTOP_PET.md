@@ -7,13 +7,13 @@
 
 - 桌面宠物已实现，默认皮肤为 **小雨**，可在设置中切回完整保留的 **心情球**。
 - 状态只来自 `AppCoordinator.activityState`，不读取 WebView DOM，也不直接消费 wire 事件。
-- 小雨支持 7 种 Harness 呈现状态、空闲双击挥手以及左右拖拽奔跑。
+- 小雨支持 7 种 Harness 呈现状态、空闲双击挥手、双击展开主 App 以及左右拖拽奔跑。
 - 小雨使用原始角色颜色；心情状态色只用于角色背后的光晕和气泡描边。
 - 所有动作、气泡显示与隐藏均保持同一个宠物视口、角色尺度规则和屏幕底部锚点。
 - 目前没有自动行走、屏幕边缘巡逻、碰撞逻辑或鼠标视线跟随。
 - `HarnessActivityState`、事件协议、`ActivityReducer` 优先级和完成事件 2.5 秒 transient 行为没有因宠物功能而改变。
 
-截至最后核验：完整测试 **258/258 通过**；拖拽奔跑视觉 QA **97/100，通过**；Release App 已验证 `arm64 + x86_64`、签名和 Bundle 资源，并安装到 `/Applications/DeepSeek Harness.app`。这是日期快照，后续修改后必须重新验证，不能把它当作永久现状。
+截至最后核验：当前源码完整测试 **259/259 通过**，Universal Release 构建已验证 `arm64 + x86_64` 和签名；拖拽奔跑视觉 QA **97/100，通过**。双击展开主 App 属于尚未发布的源码改动，当前 `/Applications/DeepSeek Harness.app` 仍是已发布的 v0.2.10，不包含本次改动。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
 
 ## 2. 架构与数据流
 
@@ -41,7 +41,7 @@ MoodBallCoordinator + MoodBallPanel
 | 文件 | 责任 |
 | --- | --- |
 | `DeepSeek Harness/App/AppCoordinator.swift` | 持有 `petSettings` / `petModel`；任务完成时调用 `noteTaskCompletion()` |
-| `DeepSeek Harness/App/AppDelegate.swift` | 创建并启动 `MoodBallCoordinator` |
+| `DeepSeek Harness/App/AppDelegate.swift` | 创建并启动 `MoodBallCoordinator`；提供双击恢复主窗口的统一入口 |
 | `DeepSeek Harness/Desktop/Pet/MoodBallSettings.swift` | 皮肤、大小、颜色、气泡、穿透、位置等 UserDefaults 持久化 |
 | `DeepSeek Harness/Desktop/Pet/MoodBallModel.swift` | `HarnessActivityState` 到呈现 mood 的唯一映射；气泡文案和颜色 |
 | `DeepSeek Harness/Desktop/Pet/MoodBallCoordinator.swift` | 悬浮面板生命周期、尺寸、显隐、悬停穿透、屏幕变化兜底 |
@@ -94,7 +94,7 @@ MoodBallCoordinator + MoodBallPanel
 
 - `TimelineView` 以 `1/60s` 最小刷新间隔驱动，但真正换帧由上表逐帧时长决定。
 - mood 变化时从对应动画首帧重新开始。
-- 双击由 `MoodBallModel.triggerWiggle()` 记录时间；小雨只有在 `idle` 时允许 `wave` 覆盖状态，心情球继续使用原有衰减晃动。
+- 双击由 `MoodBallModel.handleDoubleClick(...)` 同时触发动作时间和主窗口回调；小雨只有在 `idle` 时允许 `wave` 覆盖状态，心情球继续使用原有衰减晃动。
 - 提问动作语义固定为“正面关注 → 轻微歪头 → 手离开口袋 → 胸前开放手掌询问 → 保持倾听 → 回到关注姿势”。禁止问号、文字、光效或新道具。
 
 ### 3.3 左右拖拽奔跑
@@ -160,6 +160,7 @@ MoodBallCoordinator + MoodBallPanel
 - 显示器变化后，如果窗口中心不在任何屏幕可视区，自动收回右下角。
 - 拖拽使用 `NSEvent.mouseLocation` 和抓取点偏移，不依赖 SwiftUI `translation`，避免移动窗口后坐标系反馈导致拖拽缩水。
 - 位移小于 4 px 视为点击；0.35 秒内两次点击视为双击。
+- 双击任一皮肤时保留原有动作反馈，并调用 `AppDelegate.showMainWindow()`：取消 App 隐藏、激活 App、恢复最小化窗口并将主窗口置前；窗口已关闭时重新显示，窗口已可见时只前置。
 - 点击穿透模式：
   - `.hover`：默认穿透，鼠标进入宠物有效区域后恢复响应；
   - `.always`：始终穿透，不可拖拽；
@@ -206,12 +207,14 @@ moodball.moodColor.<mood>
 | 60 Hz 时间线和逐帧时长 | ✅ |
 | 失败一次播放后停末帧 | ✅ |
 | 空闲双击挥手两轮 | ✅ |
+| 双击宠物恢复并前置主 App | ✅ |
 | 气泡出现不挤动宠物 | ✅ |
 | 所有姿势使用整行动画尺度校准 | ✅ |
 | 左右拖拽 2×8 奔跑图集和运行时切换 | ✅ |
 | 资源、状态、时序、持久化、底部锚点单测 | ✅ |
 | 深浅背景、60/120/200 px、动作联系表视觉检查 | ✅ |
-| Universal Release、签名、Bundle 资源和本地安装验证 | ✅（2026-08-23 快照） |
+| 当前源码 Universal Release、签名和双架构验证 | ✅（2026-08-23） |
+| 双击展开主 App 的发布与正式安装 | ⬜ 尚未进行；当前正式安装仍为 v0.2.10 |
 
 ## 9. 仍需人工补验
 
@@ -221,7 +224,8 @@ moodball.moodColor.<mood>
 - 实际左右拖动，确认方向、反向切换、松手恢复和 60/120/200 px 手感。
 - 菜单栏“显示/隐藏桌面宠物”。
 - 沙盒环境下全局鼠标监视器与 `.hover` 点击穿透恢复。
-- 空闲状态双击挥手；非空闲状态不应被挥手覆盖。
+- 空闲状态双击挥手；非空闲状态不应被挥手覆盖；两种皮肤都应展开主 App。
+- 分别从 App 隐藏、主窗口最小化、主窗口关闭和其他 App 前台四种状态双击宠物，确认主窗口恢复并获得焦点。
 - 多显示器增删、缩放或分辨率变化后的可见区回收。
 
 ## 10. 测试与视觉证据
@@ -231,7 +235,7 @@ moodball.moodColor.<mood>
 - `DeepSeek HarnessTests/MoodBallSettingsTests.swift`
   - 默认皮肤、持久化、范围钳制、颜色重置、位置和穿透文案。
 - `DeepSeek HarnessTests/MoodBallModelTests.swift`
-  - 状态映射、气泡、完成 transient、断连自定义颜色、晃动、显隐、气泡底部锚点。
+  - 状态映射、气泡、完成 transient、断连自定义颜色、双击动作与主窗口回调、显隐、气泡底部锚点。
 - `DeepSeek HarnessTests/XiaoyuSpriteTests.swift`
   - mood 到图集 row、逐帧时长、播放策略、整行显示倍率、空闲挥手覆盖、拖拽方向阈值、奔跑循环、两张 Bundle 图集的尺寸/透明度/占用。
 
@@ -309,6 +313,7 @@ xcodebuild \
 - 在 60、120、200 px 检查所有受影响姿势；气泡开/关各检查一次。
 - 检查深浅背景、光晕开/关、断连透明度和自定义颜色。
 - 检查拖拽、反向、松手恢复、位置记忆、锁定和三种点击穿透模式。
+- 检查双击动作，以及隐藏、最小化、关闭、其他 App 前台时的主窗口恢复。
 - 确认 App Bundle 同时包含 `XiaoyuSprites.png` 和 `XiaoyuDragSprites.png`。
 - 运行完整测试和 Debug/Release 构建；需要安装时再验证签名、架构和实际启动。
 - 按仓库 `AGENTS.md` 清理项目构建目录、相关 DerivedData 和临时构建目录；用户明确保留的 `/Applications/DeepSeek Harness.app` 不删除。

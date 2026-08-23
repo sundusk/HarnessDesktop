@@ -148,7 +148,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   既遵守 Zero Mutation（不装插件、不改 `~/.dsh`），也满足规格 23
   「Pet 不通过 WebView DOM 判断状态」；未连接时显示灰球
 - [x] `Desktop/Pet/MoodBallView.swift`：呼吸发光小球（12fps TimelineView + drawingGroup、
-  多 stop 渐变光晕代替 blur）+ 眨眼 + 双击兴奋晃动 + 漫画风状态气泡（移植自 moodball）
+  多 stop 渐变光晕代替 blur）+ 眨眼 + 双击动作并展开主 App + 漫画风状态气泡（移植自 moodball）
 - [x] `Desktop/Pet/MoodBallPanel.swift` + `MoodBallCoordinator.swift`：NSPanel 置顶悬浮窗
   （非激活 / 点击穿透悬停恢复 / 拖拽 / 位置记忆 / 屏幕变化兜底回右下角 / 设置变化即时同步面板）
 - [x] `Desktop/Pet/MoodBallModel.swift`：`HarnessActivityState` → mood 映射
@@ -167,6 +167,8 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   不按单帧包围盒缩放，保留蹲坐、跳跃的真实高度变化
 - [x] 从原始 Codex pet 图集 row 1/2 无损提取左右各 8 帧奔跑动作；横向拖拽小雨时按屏幕方向播放，
   反向拖动立即换向，松手恢复当前 Harness 状态动画，角色尺度与脚底基线保持不变
+- [x] 双击任一宠物皮肤时保留原有动作反馈，并复用 `AppDelegate.showMainWindow()` 恢复主 App；
+  覆盖 App 隐藏、窗口最小化、窗口关闭和其他 App 位于前台的情况
 - [x] 菜单栏：使用「显示桌面宠物」开关（其余设置都在设置页）
 - [x] 设置页：新增「桌面宠物」Section 与“心情球 / 小雨”皮肤选择（即时生效；含 6 状态颜色自定义、未连接灰、
   「恢复默认颜色」、「重置位置到右下角」）
@@ -184,14 +186,14 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   「设置…」项，把它的 action 直接发给它的 target（`MenuBarCoordinator.openSettingsAction`），
   主窗口关闭时也能打开设置
 - [x] 单元测试：`MoodBallSettingsTests`（默认皮肤 / 持久化 / 越界钳制 / 颜色契约 / 位置）、
-  `MoodBallModelTests`（状态映射 / 气泡文字 / transient 庆祝 / 断连自定义颜色 / 晃动）、
+  `MoodBallModelTests`（状态映射 / 气泡文字 / transient 庆祝 / 断连自定义颜色 / 双击动作与主窗口回调）、
   `XiaoyuSpriteTests`（动画映射 / 逐帧配置 / 双击覆盖规则 / 拖拽方向与奔跑循环 / 图集尺寸、透明度与格子占用）
 - [x] Build 通过
-- [x] Test 通过（258 个）
+- [x] Test 通过（259 个）
 - [x] 冒烟：小雨默认皮肤、心情球回退、皮肤专属设置显隐、60/120/200 px、光晕开关、
       菜单设置入口与设置即时生效
 - [ ] 待人工补验：真实 Harness 非空闲状态气泡、拖拽、菜单栏显隐开关、
-      沙盒下全局鼠标监视器（悬停恢复穿透）与空闲双击挥手
+      沙盒下全局鼠标监视器（悬停恢复穿透），以及双击从隐藏/最小化/关闭状态恢复主窗口
 
 ### Phase 8（V1 原计划）— 稳定性与发布准备 ⬜ 进行中
 

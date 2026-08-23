@@ -14,6 +14,7 @@ private let petLog = Logger(subsystem: "dev.deepseekharness.DeepSeekHarness", ca
 final class MoodBallCoordinator {
     private let model: MoodBallModel
     private let settings: MoodBallSettings
+    private let onOpenMainWindow: () -> Void
 
     private var panel: MoodBallPanel?
     private var hoverMonitors: [Any] = []
@@ -21,9 +22,14 @@ final class MoodBallCoordinator {
     private var changeContinuation: CheckedContinuation<Void, Never>?
     private var screenObserver: NSObjectProtocol?
 
-    init(model: MoodBallModel, settings: MoodBallSettings) {
+    init(
+        model: MoodBallModel,
+        settings: MoodBallSettings,
+        onOpenMainWindow: @escaping () -> Void
+    ) {
         self.model = model
         self.settings = settings
+        self.onOpenMainWindow = onOpenMainWindow
     }
 
     // MARK: - 生命周期
@@ -82,7 +88,11 @@ final class MoodBallCoordinator {
         panel.animationBehavior = .none
         panel.isExcludedFromWindowsMenu = true
 
-        let hosting = NSHostingView(rootView: MoodBallView(model: model, settings: settings))
+        let hosting = NSHostingView(rootView: MoodBallView(
+            model: model,
+            settings: settings,
+            onOpenMainWindow: onOpenMainWindow
+        ))
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
         panel.contentView = hosting

@@ -107,6 +107,13 @@ final class MoodBallModel {
         wiggleTriggeredAt = Date()
     }
 
+    /// 宠物双击的统一语义：保留当前皮肤的动作反馈，同时恢复并前置主窗口。
+    /// 窗口动作以调用时回调注入，模型不持有 AppKit 窗口对象。
+    func handleDoubleClick(openMainWindow: () -> Void) {
+        triggerWiggle()
+        openMainWindow()
+    }
+
     // MARK: 任务完成短暂庆祝（transient）
 
     /// 任务完成时短暂进入 `done`（青色「搞定啦」），`holdDuration` 后回到真实状态。

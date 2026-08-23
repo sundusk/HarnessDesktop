@@ -29,7 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menuBar.start()
         menuBarCoordinator = menuBar
         // 心情球悬浮窗（不依赖 Harness 连接：未连接时显示灰球）
-        let pet = MoodBallCoordinator(model: coordinator.petModel, settings: coordinator.petSettings)
+        let pet = MoodBallCoordinator(
+            model: coordinator.petModel,
+            settings: coordinator.petSettings,
+            onOpenMainWindow: { [weak self] in
+                self?.showMainWindow()
+            }
+        )
         pet.start()
         petCoordinator = pet
         if coordinator.settings.launchMainWindowAtStart {
@@ -65,8 +71,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if mainWindowController == nil {
             mainWindowController = MainWindowController(coordinator: coordinator)
         }
-        mainWindowController?.showWindow(nil)
+        guard let mainWindowController else { return }
+
+        // 宠物、菜单栏和 Dock 共用这一条恢复路径：先取消 App 隐藏，再恢复最小化窗口，
+        // 最后把主窗口提到当前桌面最前方。关闭过的窗口也可由 showWindow 重新显示。
+        NSApp.unhide(nil)
         NSApp.activate(ignoringOtherApps: true)
+        mainWindowController.showWindow(nil)
+        if let window = mainWindowController.window {
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+            window.makeKeyAndOrderFront(nil)
+        }
     }
 
     /// 设置页「重置心情球位置到右下角」。

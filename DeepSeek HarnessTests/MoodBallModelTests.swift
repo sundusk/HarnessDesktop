@@ -101,6 +101,18 @@ final class MoodBallModelTests: XCTestCase {
         XCTAssertNotNil(model.wiggleTriggeredAt)
     }
 
+    func testDoubleClickTriggersPetActionAndOpensMainWindow() {
+        let model = MoodBallModel(settings: MoodBallSettings(defaults: defaults))
+        var didOpenMainWindow = false
+
+        model.handleDoubleClick {
+            didOpenMainWindow = true
+        }
+
+        XCTAssertNotNil(model.wiggleTriggeredAt)
+        XCTAssertTrue(didOpenMainWindow)
+    }
+
     func testVisibilityPassthrough() {
         let settings = MoodBallSettings(defaults: defaults)
         let model = MoodBallModel(settings: settings)
