@@ -82,7 +82,9 @@ final class MoodBallModel {
     }
 
     var color: Color {
-        settings.moodColors[mood] ?? Color(hex: disconnectedHex)
+        mood == "disconnected"
+            ? settings.disconnectedColor
+            : settings.moodColors[mood] ?? settings.disconnectedColor
     }
 
     var ballSize: CGFloat { settings.ballSize }

@@ -85,6 +85,15 @@ final class MoodBallModelTests: XCTestCase {
         XCTAssertEqual(colorToHex(model.color), 0x112233)
     }
 
+    func testDisconnectedUsesCustomizedColor() {
+        let settings = MoodBallSettings(defaults: defaults)
+        settings.disconnectedColor = Color(hex: 0x2468AC)
+        let model = MoodBallModel(settings: settings)
+
+        XCTAssertEqual(model.mood, "disconnected")
+        XCTAssertEqual(colorToHex(model.color), 0x2468AC)
+    }
+
     func testWiggleTrigger() {
         let model = MoodBallModel(settings: MoodBallSettings(defaults: defaults))
         XCTAssertNil(model.wiggleTriggeredAt)
@@ -99,5 +108,24 @@ final class MoodBallModelTests: XCTestCase {
 
         settings.isBallVisible = false
         XCTAssertEqual(model.isBallVisible, false)
+    }
+
+    func testPanelFrameKeepsPetBottomAnchorWhenBubbleAppears() {
+        let initial = NSRect(x: 900, y: 80, width: 240, height: 240)
+        let withBubble = MoodBallCoordinator.panelFrame(
+            currentFrame: initial,
+            ballSize: 120,
+            showBubble: true
+        )
+        let hiddenAgain = MoodBallCoordinator.panelFrame(
+            currentFrame: withBubble,
+            ballSize: 120,
+            showBubble: false
+        )
+
+        XCTAssertEqual(withBubble.origin, initial.origin)
+        XCTAssertEqual(withBubble.width, initial.width)
+        XCTAssertEqual(withBubble.height, initial.height + MoodBallView.bubbleHeight)
+        XCTAssertEqual(hiddenAgain, initial)
     }
 }

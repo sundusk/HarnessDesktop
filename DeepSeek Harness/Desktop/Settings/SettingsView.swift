@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 /// 设置页：左右标签页布局。
 ///
 /// - 左侧标签：**常规**（Harness 连接，Save 式）、**运行环境**（2.0 Runtime Manager，即时生效）
-///   与 **悬浮球**（心情球设置，即时生效）；
+///   与 **桌面宠物**（小雨 / 心情球设置，即时生效）；
 /// - 右侧内容区随标签切换。
 struct SettingsView: View {
     /// Phase 13：coordinator 提供环境报告与 Runtime 动作（更新 / 回退 / 检查）。
@@ -32,7 +32,7 @@ struct SettingsView: View {
     enum Tab: String, CaseIterable, Identifiable {
         case general = "常规"
         case runtime = "运行环境"
-        case moodBall = "悬浮球"
+        case moodBall = "桌面宠物"
         var id: String { rawValue }
     }
 
@@ -379,7 +379,7 @@ struct SettingsView: View {
         ManagedRuntimePaths.makeDefault()?.managedHarnessHome.path ?? "不可用"
     }
 
-    // MARK: - 悬浮球（即时生效）
+    // MARK: - 桌面宠物（即时生效）
 
     private var moodBallTab: some View {
         ScrollView {
@@ -388,9 +388,9 @@ struct SettingsView: View {
                     Section {
                         petSection
                     } header: {
-                        Text("心情球")
+                        Text("桌面宠物")
                     } footer: {
-                        Text("悬浮球设置即时生效：修改球大小、呼吸速度、颜色等会立刻反映到桌面上的心情球。")
+                        Text("桌面宠物设置即时生效。小雨为默认皮肤，也可随时切回心情球。")
                     }
                 }
                 .formStyle(.grouped)
@@ -400,10 +400,21 @@ struct SettingsView: View {
 
     @ViewBuilder
     private var petSection: some View {
-        Toggle("显示悬浮球", isOn: $petSettings.isBallVisible)
-            .help("关闭后桌面心情球隐藏，菜单栏「显示悬浮球」可随时重新打开")
+        Toggle("显示桌面宠物", isOn: $petSettings.isBallVisible)
+            .help("关闭后桌面宠物隐藏，菜单栏「显示桌面宠物」可随时重新打开")
 
-        LabeledContent("球体大小") {
+        LabeledContent("皮肤") {
+            Picker("", selection: $petSettings.skin) {
+                ForEach(FloatingPetSkin.allCases) { skin in
+                    Text(skin.label).tag(skin)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .frame(width: 180)
+        }
+
+        LabeledContent("宠物大小") {
             HStack {
                 Slider(value: $petSettings.ballSize, in: 60...200, step: 4)
                 Text("\(Int(petSettings.ballSize)) px")
@@ -413,39 +424,41 @@ struct SettingsView: View {
             }
         }
 
-        LabeledContent("呼吸速度") {
-            HStack {
-                Slider(value: $petSettings.breathingSpeed, in: 0.5...5, step: 0.1)
-                Text(String(format: "%.1fs", petSettings.breathingSpeed))
-                    .monospacedDigit()
-                    .frame(width: 44, alignment: .trailing)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        Text("周期越短呼吸越快。")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-        Toggle("显示眼睛", isOn: $petSettings.showEyes)
-
-        LabeledContent("眼睛颜色") {
-            Picker("", selection: $petSettings.eyeColor) {
-                ForEach(EyeColor.allCases) { color in
-                    Text(color.label).tag(color)
+        if petSettings.skin == .moodBall {
+            LabeledContent("呼吸速度") {
+                HStack {
+                    Slider(value: $petSettings.breathingSpeed, in: 0.5...5, step: 0.1)
+                    Text(String(format: "%.1fs", petSettings.breathingSpeed))
+                        .monospacedDigit()
+                        .frame(width: 44, alignment: .trailing)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-            .frame(width: 140)
+            Text("周期越短呼吸越快。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Toggle("显示眼睛", isOn: $petSettings.showEyes)
+
+            LabeledContent("眼睛颜色") {
+                Picker("", selection: $petSettings.eyeColor) {
+                    ForEach(EyeColor.allCases) { color in
+                        Text(color.label).tag(color)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 140)
+            }
         }
 
         Toggle("显示气泡文字", isOn: $petSettings.showStatusBubble)
-        Text("非空闲状态时在球上方显示漫画风状态提醒（正在思考中/等待你的授权…），空闲自动隐藏。")
+        Text("非空闲状态时在宠物上方显示漫画风状态提醒（正在思考中/等待你的授权…），空闲自动隐藏。")
             .font(.caption)
             .foregroundStyle(.secondary)
 
         Toggle("发光", isOn: $petSettings.glowEnabled)
-        Text("关闭后球体不再显示彩色光晕与投影。")
+        Text("关闭后不再显示状态色光晕；心情球也会关闭投影。")
             .font(.caption)
             .foregroundStyle(.secondary)
 
@@ -463,7 +476,7 @@ struct SettingsView: View {
         Toggle("记住拖拽位置（重启恢复）", isOn: $petSettings.rememberPosition)
 
         Toggle("锁定位置", isOn: $petSettings.lockPosition)
-        Text("开启后不可拖拽移动小球（仍可双击）。")
+        Text("开启后不可拖拽移动宠物（仍可双击）。")
             .font(.caption)
             .foregroundStyle(.secondary)
 
@@ -473,7 +486,7 @@ struct SettingsView: View {
 
         Divider()
 
-        Text("球始终跟随 Harness 状态变色；下面的颜色可在默认契约基础上自定义。")
+        Text("心情球使用状态色本体；小雨保持原色，并把状态色用于背后光晕和气泡描边。")
             .font(.caption)
             .foregroundStyle(.secondary)
 

@@ -67,13 +67,13 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
    - 菜单栏与设置页独立显示「运行版本 / 官方最新版本 / npm 可安装版本」；
    - 菜单栏「检查 Harness 更新…」手动强制检查；
    - 仅提示，**不自动更新**；网络不可用不影响任何功能。
-5. 桌面右下角出现**心情球**悬浮灯：随 Harness 状态实时呼吸变色
-   （蓝=空闲 / 绿=工作中 / 黄=等待批准 / 粉=等待输入 / 红=出错 / 灰=未连接），
-   任务完成时短暂「搞定啦」庆祝。按住可拖到任意位置（位置会记住），双击会兴奋晃动。
-   - 菜单栏（鲸鱼图标）只有「显示悬浮球」开关（显示/隐藏心情球）；
-   - 其余悬浮球设置都在「设置… → 悬浮球」标签里（球大小 / 呼吸速度 / 眼睛 / 气泡文字 /
-     发光 / 点击穿透 / 锁定位置 / 状态颜色，即时生效）；
-   - 设置窗口为左右标签页：**常规**（Harness 连接）与**悬浮球**。
+5. 桌面右下角出现**桌面宠物**，默认皮肤为“小雨”，也可在设置中切回完整保留的“心情球”。
+   两种皮肤都沿用状态色契约（蓝=空闲 / 绿=工作中 / 黄=等待批准 / 粉=等待输入 /
+   青=完成 / 红=出错 / 灰=未连接）；小雨保持角色原色，状态色只用于背后光晕和气泡描边。
+   - 小雨按状态播放站立眨眼、思考、等待许可、询问、庆祝与沮丧动作；空闲双击会挥手两轮，左右拖拽时按方向播放奔跑动作；
+   - 两种皮肤都支持拖拽、位置记忆、点击穿透、气泡、大小、光晕、状态颜色与显隐；
+   - 菜单栏（鲸鱼图标）提供“显示桌面宠物”开关，其余选项在“设置… → 桌面宠物”；
+   - 呼吸速度、眼睛和眼睛颜色只属于心情球皮肤。
 
 ## 开发状态
 
@@ -86,7 +86,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
 | 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
 | 6 | Notifications（approval/question 立即、完成/错误通知、debounce/dedupe） | ✅ |
-| 7 | 心情球悬浮球（内置 MoodBall，状态来自 Native 活动状态；菜单栏开关 + 设置页悬浮球设置） | ✅ |
+| 7 | 桌面宠物（默认小雨、心情球回退；状态来自 Native 活动状态） | ✅ |
 | 8（V1） | 稳定性与发布准备（App 图标已完成；signing/notarization 移交 2.0 Phase 13/14） | ⬜ 进行中 |
 | 2.0-8 | Runtime Domain & Environment Doctor（所有权模型 / 版本服务 / npm registry 查询 / semver 比较 / 启动静默检查 / 菜单栏检查更新 / 当前与最新版本 UI） | ✅ |
 | 2.0-9 | Runtime Helper Skeleton（内嵌 XPC Service target / 强类型能力 API / 调用方身份校验 / 所有权验证 / health check；无任意命令） | ✅ |

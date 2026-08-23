@@ -77,8 +77,8 @@ final class MenuBarCoordinator {
 
         menu.addItem(.separator())
 
-        // 悬浮球显示/隐藏开关（状态栏唯一的悬浮球入口；其余设置都在「设置…」里）
-        toggleItem = NSMenuItem(title: "显示悬浮球", action: #selector(toggleBallVisibility(_:)), keyEquivalent: "")
+        // 桌面宠物显示/隐藏开关（其余设置都在「设置…」里）
+        toggleItem = NSMenuItem(title: "显示桌面宠物", action: #selector(toggleBallVisibility(_:)), keyEquivalent: "")
         toggleItem?.target = self
         menu.addItem(toggleItem!)
 
@@ -191,7 +191,7 @@ final class MenuBarCoordinator {
         detailsItem?.title = details.joined(separator: " · ")
         detailsItem?.isHidden = details.isEmpty
 
-        toggleItem?.title = coordinator.petSettings.isBallVisible ? "隐藏悬浮球" : "显示悬浮球"
+        toggleItem?.title = coordinator.petSettings.isBallVisible ? "隐藏桌面宠物" : "显示桌面宠物"
         toggleItem?.state = coordinator.petSettings.isBallVisible ? .on : .off
 
         // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」

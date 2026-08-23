@@ -21,6 +21,7 @@ final class MoodBallSettingsTests: XCTestCase {
 
     func testDefaults() {
         let settings = MoodBallSettings(defaults: defaults)
+        XCTAssertEqual(settings.skin, .xiaoyu)
         XCTAssertEqual(settings.ballSize, 120)
         XCTAssertEqual(settings.breathingSpeed, 2.0)
         XCTAssertEqual(settings.showEyes, true)
@@ -44,6 +45,7 @@ final class MoodBallSettingsTests: XCTestCase {
 
     func testPersistenceRoundTrip() {
         let settings = MoodBallSettings(defaults: defaults)
+        settings.skin = .moodBall
         settings.ballSize = 160
         settings.breathingSpeed = 3.2
         settings.showEyes = false
@@ -59,6 +61,7 @@ final class MoodBallSettingsTests: XCTestCase {
         settings.savedBallPosition = CGPoint(x: 100, y: 200)
 
         let reloaded = MoodBallSettings(defaults: defaults)
+        XCTAssertEqual(reloaded.skin, .moodBall)
         XCTAssertEqual(reloaded.ballSize, 160)
         XCTAssertEqual(reloaded.breathingSpeed, 3.2)
         XCTAssertEqual(reloaded.showEyes, false)

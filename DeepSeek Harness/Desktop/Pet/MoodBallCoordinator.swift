@@ -34,7 +34,7 @@ final class MoodBallCoordinator {
         startObservations()
         startHoverMonitor()
         observeScreenChanges()
-        petLog.info("心情球已启动")
+        petLog.info("桌面宠物已启动")
     }
 
     func stop() {
@@ -53,7 +53,7 @@ final class MoodBallCoordinator {
         panel?.orderOut(nil)
         panel = nil
         MoodBallPanel.current = nil
-        petLog.info("心情球已停止")
+        petLog.info("桌面宠物已停止")
     }
 
     /// 设置面板「重置位置到右下角」
@@ -97,7 +97,7 @@ final class MoodBallCoordinator {
             panel.orderFrontRegardless()
         }
         self.panel = panel
-        petLog.info("心情球面板已创建")
+        petLog.info("桌面宠物面板已创建")
     }
 
     private func positionAtBottomRight(_ panel: NSPanel) {
@@ -163,6 +163,7 @@ final class MoodBallCoordinator {
             changeContinuation = continuation
             withObservationTracking {
                 _ = settings.ballSize
+                _ = settings.skin
                 _ = settings.showStatusBubble
                 _ = settings.isBallVisible
                 _ = settings.clickThroughMode
@@ -187,7 +188,11 @@ final class MoodBallCoordinator {
     private func applyPanelState() {
         guard let panel else { return }
         let showBubble = model.bubbleText != nil && settings.showStatusBubble
-        let frame = panelFrame(ballSize: settings.ballSize, showBubble: showBubble)
+        let frame = Self.panelFrame(
+            currentFrame: panel.frame,
+            ballSize: settings.ballSize,
+            showBubble: showBubble
+        )
         if !frame.equalTo(panel.frame) {
             panel.setFrame(frame, display: true)
             petLog.info("面板尺寸 -> \(Int(frame.width))x\(Int(frame.height)) 气泡=\(showBubble)")
@@ -203,10 +208,9 @@ final class MoodBallCoordinator {
     }
 
     /// 依据球大小与气泡显隐计算面板 frame：保持球心（水平中心、距底边 = 球径）屏幕位置不变。
-    private func panelFrame(ballSize d: CGFloat, showBubble: Bool) -> NSRect {
+    static func panelFrame(currentFrame old: NSRect, ballSize d: CGFloat, showBubble: Bool) -> NSRect {
         let w = d * 2.0
         let h = d * 2.0 + (showBubble ? MoodBallView.bubbleHeight : 0)
-        let old = panel?.frame ?? NSRect(x: 0, y: 0, width: w, height: h)
         let ballCenterX = old.midX
         let ballCenterY = old.minY + old.width / 2 // 球心距底边 = 旧球径
         return NSRect(x: ballCenterX - w / 2, y: ballCenterY - d, width: w, height: h)
@@ -243,12 +247,23 @@ final class MoodBallCoordinator {
             // 永不穿透：常驻响应
             if panel.ignoresMouseEvents { panel.ignoresMouseEvents = false }
         case .hover:
-            // 悬停恢复：鼠标在球体圆形区域（球心距底边 = 球径）内时响应（可拖拽），否则穿透。
-            // 面板在气泡出现时会向上增高，因此命中判定收窄到球体圆形，气泡区域保持点击穿透。
+            // 悬停恢复：只让宠物画面区域响应，气泡区域始终穿透。
             let mouse = NSEvent.mouseLocation
             let d = settings.ballSize
             let ballCenter = NSPoint(x: panel.frame.midX, y: panel.frame.minY + d)
-            let inside = hypot(mouse.x - ballCenter.x, mouse.y - ballCenter.y) <= d
+            let inside: Bool
+            switch settings.skin {
+            case .moodBall:
+                inside = hypot(mouse.x - ballCenter.x, mouse.y - ballCenter.y) <= d
+            case .xiaoyu:
+                let hitRect = NSRect(
+                    x: ballCenter.x - d * 0.55,
+                    y: panel.frame.minY + d * 0.5,
+                    width: d * 1.1,
+                    height: d
+                )
+                inside = hitRect.contains(mouse)
+            }
             let shouldIgnore = !panel.isDragging && !inside
             if panel.ignoresMouseEvents != shouldIgnore {
                 panel.ignoresMouseEvents = shouldIgnore

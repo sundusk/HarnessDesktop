@@ -138,7 +138,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 - [x] Test 通过（85 个，含 6 个防抖策略测试）
 - [x] 冒烟：应用运行正常（首次启动会弹通知授权提示）
 
-### Phase 7 — 心情球悬浮球（Floating MoodBall）✅（实现完成，冒烟待做）
+### Phase 7 — 桌面宠物（小雨 / 心情球）✅（实现完成，基础冒烟通过）
 
 此前用户决定不做 Pet（Phase 7 曾标记 🚫）；本轮按新需求改为内置**属于 DeepSeek Harness 自己的心情球**
 （参考 [dsh-moodball](https://github.com/sundusk/dsh-moodball) 代码移植，状态源换成本 App 的 Native 活动状态）：
@@ -157,8 +157,18 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   任务完成 transient「搞定啦」青色庆祝 2.5s 后回真实状态
 - [x] `Desktop/Pet/MoodBallSettings.swift`：UserDefaults 持久化（球大小 / 呼吸速度 /
   眼睛与颜色 / 气泡文字 / 发光 / 点击穿透 / 记住位置 / 锁定位置 / 显隐开关 / 状态颜色契约）
-- [x] 菜单栏：仅新增「显示悬浮球」开关（其余悬浮球设置都在设置页）
-- [x] 设置页：新增「悬浮球」Section（即时生效；含 6 状态颜色自定义、未连接灰、
+- [x] 新增“小雨”皮肤并设为默认，心情球完整保留；小雨使用 8×8、192×208 单格的透明 PNG 图集，
+  状态映射为断连静帧 / 待机 / 处理 / 授权 / 提问 / 完成 / 失败，空闲双击播放两轮挥手
+- [x] 小雨保持角色原色，7 种状态色只用于背后光晕和气泡描边；断连透明度为 65%，
+  失败动画播放一次后停在最终帧，状态变化从首帧重启
+- [x] 小雨动画以 60 Hz 时间线驱动，工作状态帧间隔收紧至 0.12–0.24s；状态气泡出现时
+  面板只向上扩展，宠物底部屏幕锚点保持不变
+- [x] 以待机帧为尺度基准对每个动作整行校准显示比例，所有姿势与气泡显隐共用固定宠物视口；
+  不按单帧包围盒缩放，保留蹲坐、跳跃的真实高度变化
+- [x] 从原始 Codex pet 图集 row 1/2 无损提取左右各 8 帧奔跑动作；横向拖拽小雨时按屏幕方向播放，
+  反向拖动立即换向，松手恢复当前 Harness 状态动画，角色尺度与脚底基线保持不变
+- [x] 菜单栏：使用「显示桌面宠物」开关（其余设置都在设置页）
+- [x] 设置页：新增「桌面宠物」Section 与“心情球 / 小雨”皮肤选择（即时生效；含 6 状态颜色自定义、未连接灰、
   「恢复默认颜色」、「重置位置到右下角」）
 - [x] 修复（用户反馈）：**菜单栏菜单跑到屏幕右侧、与鲸鱼图标脱开** ——
   根因是 macOS 26 下 SwiftUI `MenuBarExtra` 的菜单会错误右对齐到屏幕边缘而非状态项。
@@ -166,19 +176,22 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
   dsh-moodball 同款方案）：菜单锚定在鲸鱼图标正下方、24×24 标准状态项；
   菜单内容（状态 / 会话数 / 版本 / 悬浮球开关 / 动作）由 Observation 驱动即时刷新；
   删除 `MenuBarView.swift`（MenuBarExtra 场景）
-- [x] 修复（用户反馈）：**设置面板改为左右标签页** —— 左侧标签栏（常规 / 悬浮球），
-  右侧内容区随标签切换；「常规」保留 Save 式表单，「悬浮球」即时生效
+- [x] 修复（用户反馈）：**设置面板改为左右标签页** —— 左侧标签栏（常规 / 桌面宠物），
+  右侧内容区随标签切换；「常规」保留 Save 式表单，「桌面宠物」即时生效
 - [x] 修复（用户反馈）：**菜单栏点击「设置…」无反应** ——
   `NSApp.sendAction(showSettingsWindow:, to: nil)` 走响应链，SwiftUI Settings
   命令处理器不在链上时静默失败。改为从系统主菜单递归查找 SwiftUI 自动生成的
   「设置…」项，把它的 action 直接发给它的 target（`MenuBarCoordinator.openSettingsAction`），
   主窗口关闭时也能打开设置
-- [x] 单元测试：`MoodBallSettingsTests`（默认值 / 持久化 / 越界钳制 / 颜色契约 / 位置）、
-  `MoodBallModelTests`（状态映射 / 气泡文字 / transient 庆祝 / 颜色跟随设置 / 晃动）
+- [x] 单元测试：`MoodBallSettingsTests`（默认皮肤 / 持久化 / 越界钳制 / 颜色契约 / 位置）、
+  `MoodBallModelTests`（状态映射 / 气泡文字 / transient 庆祝 / 断连自定义颜色 / 晃动）、
+  `XiaoyuSpriteTests`（动画映射 / 逐帧配置 / 双击覆盖规则 / 拖拽方向与奔跑循环 / 图集尺寸、透明度与格子占用）
 - [x] Build 通过
-- [x] Test 通过（104 个）
-- [ ] 冒烟：真实 Harness 运行时球的颜色 / 气泡 / 拖拽 / 菜单栏开关 / 设置即时生效 /
-      沙盒下全局鼠标监视器（悬停恢复穿透）行为
+- [x] Test 通过（258 个）
+- [x] 冒烟：小雨默认皮肤、心情球回退、皮肤专属设置显隐、60/120/200 px、光晕开关、
+      菜单设置入口与设置即时生效
+- [ ] 待人工补验：真实 Harness 非空闲状态气泡、拖拽、菜单栏显隐开关、
+      沙盒下全局鼠标监视器（悬停恢复穿透）与空闲双击挥手
 
 ### Phase 8（V1 原计划）— 稳定性与发布准备 ⬜ 进行中
 

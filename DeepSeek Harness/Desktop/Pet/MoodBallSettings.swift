@@ -29,6 +29,22 @@ let moodColorConfigs: [MoodColorConfig] = [
 /// 未连接时的灰色
 let disconnectedHex: UInt32 = 0x9ca3af
 
+// MARK: - 桌面宠物皮肤
+
+enum FloatingPetSkin: String, CaseIterable, Identifiable {
+    case moodBall
+    case xiaoyu
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .moodBall: return "心情球"
+        case .xiaoyu: return "小雨"
+        }
+    }
+}
+
 // MARK: - 点击穿透模式
 
 enum ClickThroughMode: String, CaseIterable, Identifiable {
@@ -91,6 +107,7 @@ final class MoodBallSettings {
     private let defaults: UserDefaults
 
     private enum Key {
+        static let skin = "moodball.skin"
         static let ballSize = "moodball.ballSize"
         static let breathingSpeed = "moodball.breathingSpeed"
         static let showEyes = "moodball.showEyes"
@@ -107,6 +124,11 @@ final class MoodBallSettings {
     }
 
     // MARK: 外观
+
+    /// 桌面宠物皮肤。新安装默认显示小雨，仍可随时切回心情球。
+    var skin: FloatingPetSkin {
+        didSet { defaults.set(skin.rawValue, forKey: Key.skin) }
+    }
 
     /// 球体直径 60–200，默认 120
     var ballSize: CGFloat {
@@ -199,6 +221,7 @@ final class MoodBallSettings {
         let d = defaults
         let clamp = { (v: Double, lo: Double, hi: Double) in min(max(v, lo), hi) }
 
+        skin = FloatingPetSkin(rawValue: d.string(forKey: Key.skin) ?? "") ?? .xiaoyu
         ballSize = CGFloat(clamp(d.double(forKey: Key.ballSize) == 0 ? 120 : d.double(forKey: Key.ballSize), 60, 200))
         breathingSpeed = clamp(d.double(forKey: Key.breathingSpeed) == 0 ? 2.0 : d.double(forKey: Key.breathingSpeed), 0.5, 5)
         showEyes = d.object(forKey: Key.showEyes) == nil ? true : d.bool(forKey: Key.showEyes)

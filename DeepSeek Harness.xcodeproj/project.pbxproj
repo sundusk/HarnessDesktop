@@ -56,6 +56,10 @@
 		B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000038 /* MoodBallCoordinator.swift */; };
 		B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000039 /* MoodBallSettingsTests.swift */; };
 		B0000000000000000000003A /* MoodBallModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003A /* MoodBallModelTests.swift */; };
+		B20000000000000000000001 /* XiaoyuSpriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* XiaoyuSpriteView.swift */; };
+		B20000000000000000000002 /* XiaoyuSpriteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* XiaoyuSpriteTests.swift */; };
+		B20000000000000000000003 /* XiaoyuSprites.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* XiaoyuSprites.png */; };
+		B20000000000000000000004 /* XiaoyuDragSprites.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* XiaoyuDragSprites.png */; };
 		B0000000000000000000003B /* HarnessOwnership.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003C /* HarnessOwnership.swift */; };
 		B0000000000000000000003C /* HarnessUpdateStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003D /* HarnessUpdateStatus.swift */; };
 		B0000000000000000000003D /* HarnessVersionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000003E /* HarnessVersionService.swift */; };
@@ -173,6 +177,10 @@
 		A00000000000000000000038 /* MoodBallCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000039 /* MoodBallSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallSettingsTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000003A /* MoodBallModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoodBallModelTests.swift; sourceTree = "<group>"; };
+		A20000000000000000000001 /* XiaoyuSpriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XiaoyuSpriteView.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* XiaoyuSpriteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XiaoyuSpriteTests.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* XiaoyuSprites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Pet/Xiaoyu/XiaoyuSprites.png; sourceTree = "<group>"; };
+		A20000000000000000000004 /* XiaoyuDragSprites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Pet/Xiaoyu/XiaoyuDragSprites.png; sourceTree = "<group>"; };
 		A0000000000000000000003C /* HarnessOwnership.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessOwnership.swift; sourceTree = "<group>"; };
 		A0000000000000000000003D /* HarnessUpdateStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessUpdateStatus.swift; sourceTree = "<group>"; };
 		A0000000000000000000003E /* HarnessVersionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessVersionService.swift; sourceTree = "<group>"; };
@@ -401,6 +409,7 @@
 				A00000000000000000000036 /* MoodBallView.swift */,
 				A00000000000000000000037 /* MoodBallPanel.swift */,
 				A00000000000000000000038 /* MoodBallCoordinator.swift */,
+				A20000000000000000000001 /* XiaoyuSpriteView.swift */,
 			);
 			path = Pet;
 			sourceTree = "<group>";
@@ -481,6 +490,8 @@
 				A0000000000000000000004C /* RuntimeHelper.entitlements */,
 				A0000000000000000000000B /* Assets.xcassets */,
 				A00000000000000000000069 /* Runtime */,
+				A20000000000000000000003 /* XiaoyuSprites.png */,
+				A20000000000000000000004 /* XiaoyuDragSprites.png */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -503,6 +514,7 @@
 				A00000000000000000000033 /* MainWindowControllerTests.swift */,
 				A00000000000000000000039 /* MoodBallSettingsTests.swift */,
 				A0000000000000000000003A /* MoodBallModelTests.swift */,
+				A20000000000000000000002 /* XiaoyuSpriteTests.swift */,
 				A00000000000000000000042 /* HarnessVersionServiceTests.swift */,
 				A00000000000000000000066 /* HarnessTerminalVersionCheckerTests.swift */,
 				A00000000000000000000043 /* HarnessUpdateStatusTests.swift */,
@@ -633,6 +645,8 @@
 			files = (
 				B00000000000000000000009 /* Assets.xcassets in Resources */,
 				B00000000000000000000067 /* Runtime in Resources */,
+				B20000000000000000000003 /* XiaoyuSprites.png in Resources */,
+				B20000000000000000000004 /* XiaoyuDragSprites.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -704,6 +718,7 @@
 				B00000000000000000000036 /* MoodBallView.swift in Sources */,
 				B00000000000000000000037 /* MoodBallPanel.swift in Sources */,
 				B00000000000000000000038 /* MoodBallCoordinator.swift in Sources */,
+				B20000000000000000000001 /* XiaoyuSpriteView.swift in Sources */,
 				B0000000000000000000003B /* HarnessOwnership.swift in Sources */,
 				B0000000000000000000003C /* HarnessUpdateStatus.swift in Sources */,
 				B0000000000000000000003D /* HarnessVersionService.swift in Sources */,
@@ -746,6 +761,7 @@
 				B00000000000000000000033 /* MainWindowControllerTests.swift in Sources */,
 				B00000000000000000000039 /* MoodBallSettingsTests.swift in Sources */,
 				B0000000000000000000003A /* MoodBallModelTests.swift in Sources */,
+				B20000000000000000000002 /* XiaoyuSpriteTests.swift in Sources */,
 				B00000000000000000000041 /* HarnessVersionServiceTests.swift in Sources */,
 				B00000000000000000000064 /* HarnessTerminalVersionCheckerTests.swift in Sources */,
 				B00000000000000000000042 /* HarnessUpdateStatusTests.swift in Sources */,
@@ -925,7 +941,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -953,7 +969,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -970,7 +986,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -986,7 +1002,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1011,7 +1027,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1036,7 +1052,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.8;
+				MARKETING_VERSION = 0.2.9;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
