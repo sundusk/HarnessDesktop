@@ -192,7 +192,6 @@ final class MenuBarCoordinator {
         detailsItem?.isHidden = details.isEmpty
 
         toggleItem?.title = coordinator.petSettings.isBallVisible ? "隐藏桌面宠物" : "显示桌面宠物"
-        toggleItem?.state = coordinator.petSettings.isBallVisible ? .on : .off
 
         // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」
         stopManagedItem?.isHidden = coordinator.activeManagedIdentity == nil
