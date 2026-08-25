@@ -54,6 +54,35 @@ private final class RuntimeTestProcessLauncher: HarnessRuntimeProcessLaunching, 
 }
 
 final class HarnessExternalRuntimeTests: XCTestCase {
+    func testExecutableLocatorChecksAdditionalDirectoriesWhenGUIPathIsShort() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let executable = directory.appendingPathComponent("npx")
+        try Data("#!/bin/sh\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let resolved = HarnessExecutableLocator.url(
+            for: "npx",
+            environment: ["PATH": "/usr/bin:/bin"],
+            additionalSearchDirectories: [directory.path]
+        )
+
+        XCTAssertEqual(resolved?.standardizedFileURL, executable.standardizedFileURL)
+    }
+
+    func testExecutableEnvironmentPrependsResolvedBinDirectoryToGUIPath() {
+        let executable = URL(fileURLWithPath: "/opt/homebrew/bin/npx")
+
+        let environment = HarnessExecutableLocator.environment(
+            for: executable,
+            base: ["PATH": "/usr/bin:/bin", "HOME": "/Users/test"]
+        )
+
+        XCTAssertEqual(environment["PATH"], "/opt/homebrew/bin:/usr/bin:/bin")
+        XCTAssertEqual(environment["HOME"], "/Users/test")
+    }
+
     func testConfigurationStoreRoundTripsISO8601JSON() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let url = directory.appendingPathComponent("config.json")

@@ -170,21 +170,30 @@ struct SystemHarnessCommandRunner: HarnessCommandRunning, Sendable {
         return try await ProcessGroupLauncher().run(
             executable: executable,
             arguments: arguments,
-            environment: [:],
+            environment: HarnessExecutableLocator.environment(for: executable),
             currentDirectory: currentDirectory
         )
     }
 }
 
 enum HarnessExecutableLocator {
-    static func url(for name: String, environment: [String: String] = ProcessInfo.processInfo.environment) -> URL? {
+    private static let defaultAdditionalSearchDirectories = [
+        "/opt/homebrew/bin",
+        "/usr/local/bin"
+    ]
+
+    static func url(
+        for name: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        additionalSearchDirectories: [String] = defaultAdditionalSearchDirectories
+    ) -> URL? {
         if name.contains("/") {
             let url = URL(fileURLWithPath: name)
             return FileManager.default.isExecutableFile(atPath: url.path) ? url : nil
         }
-        let paths = (environment["PATH"] ?? "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin")
+        let paths = (environment["PATH"] ?? "/usr/bin:/bin")
             .split(separator: ":")
-            .map(String.init)
+            .map(String.init) + additionalSearchDirectories
         for path in paths {
             let candidate = URL(fileURLWithPath: path, isDirectory: true).appendingPathComponent(name)
             if FileManager.default.isExecutableFile(atPath: candidate.path) {
@@ -192,6 +201,22 @@ enum HarnessExecutableLocator {
             }
         }
         return nil
+    }
+
+    /// Finder 启动的 App 通常只有系统 PATH。把已定位到的 npm/npx 所在目录放到最前面，
+    /// 让其 `#!/usr/bin/env node` 以及后续子进程能解析同目录下的 Node。
+    static func environment(
+        for executable: URL,
+        base: [String: String] = ProcessInfo.processInfo.environment
+    ) -> [String: String] {
+        var environment = base
+        let executableDirectory = executable.deletingLastPathComponent().standardizedFileURL.path
+        let existingDirectories = (base["PATH"] ?? "/usr/bin:/bin")
+            .split(separator: ":", omittingEmptySubsequences: true)
+            .map(String.init)
+            .filter { $0 != executableDirectory }
+        environment["PATH"] = ([executableDirectory] + existingDirectories).joined(separator: ":")
+        return environment
     }
 }
 
@@ -336,7 +361,7 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
         process.executableURL = executable
         process.arguments = arguments
         process.currentDirectoryURL = currentDirectory
-        process.environment = ProcessInfo.processInfo.environment
+        process.environment = HarnessExecutableLocator.environment(for: executable)
         process.standardOutput = output
         process.standardError = output
         do {
