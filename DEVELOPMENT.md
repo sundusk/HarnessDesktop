@@ -35,7 +35,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 ### Phase 0 — 项目骨架 ✅
 
 - [x] macOS App target（SwiftUI App lifecycle）
-- [x] App Sandbox + `com.apple.security.network.client` entitlement
+- [x] GitHub ad-hoc 分发采用主 App 非 Sandbox 简化方案，以支持固定 npm/source 启动向量访问用户已有工具链；RuntimeHelper 继续保持 App Sandbox
 - [x] 基础 `AppCoordinator`
 - [x] `README.md` / `ARCHITECTURE.md` / `AGENTS.md` / `DEVELOPMENT.md`
 - [x] Unit Test target

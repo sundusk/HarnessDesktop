@@ -54,6 +54,23 @@ private final class RuntimeTestProcessLauncher: HarnessRuntimeProcessLaunching, 
 }
 
 final class HarnessExternalRuntimeTests: XCTestCase {
+    func testMainAppEntitlementsAllowUserInstalledToolchains() throws {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let entitlementsURL = repositoryRoot
+            .appendingPathComponent("DeepSeek Harness/Resources/DeepSeek Harness.entitlements")
+        let data = try Data(contentsOf: entitlementsURL)
+        let entitlements = try XCTUnwrap(
+            PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+        )
+
+        XCTAssertNil(
+            entitlements["com.apple.security.app-sandbox"],
+            "主 App 启用 Sandbox 会阻止 npm/source 模式访问并启动用户安装的工具链"
+        )
+    }
+
     func testExecutableLocatorChecksAdditionalDirectoriesWhenGUIPathIsShort() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

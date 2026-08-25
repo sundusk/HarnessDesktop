@@ -116,11 +116,11 @@
 
 ### ADR-007 — Runtime Helper boundary（2.0，Phase 9 已实现）
 
-**背景**：主 App 处于 App Sandbox；若由 Sandbox App 直接创建 Node / Harness 子进程，子进程会继承极窄 Sandbox，导致 Harness 核心能力（访问用户工作目录 / 工具链 / 文件系统）被错误限制。
+**背景**：若主 App 处于 App Sandbox，由 Sandbox App 直接创建的 Node / Harness 子进程会继承极窄 Sandbox，导致 Harness 核心能力（访问用户工作目录 / 工具链 / 文件系统）被错误限制。
 
 **决策**：不在 SwiftUI 主进程里直接 `Process()` 启动 Harness。使用独立的、签名的、用户级 Runtime Helper（优先 `SMAppService` 用户级 Agent + XPC / 强类型 IPC）。Helper API 必须是强类型能力白名单（`inspectRuntime` / `prepareRuntime` / `startHarness(version:port:dataMode:)` / `stopHarness(identity:)` / `status(identity:)`），**禁止** `runCommand(_:)` / `runShell(_:)` / `execute(arguments:)` 等任意命令接口。若签名 / IPC 成本不可接受，允许 V1 采用 Developer ID 站外分发、主 App 非 Sandbox 的简化方案，但必须保留命令白名单限制，且不得因取消 Sandbox 增加任意 shell 能力。
 
-**实施状态（Phase 9）**：已实现内嵌 XPC Service target（`RuntimeHelper.xpc`，launchd 按需拉起，无需 SMAppService 注册）——强类型 @objc 协议 + NSSecureCoding DTO、调用方 Team ID 校验（`SecCodeCopyGuestWithAttributes`）、generation+pid 所有权验证、无任意命令。**签名约束**：XPC 要求 App 与 Helper 同一 team 签名；本工程为可移植性使用 ad-hoc 签名（无 team），开发构建下连接被拒 → `helperUnavailable` 优雅降级，正式分发（同一 Developer ID）时正常。若未来发现该成本不可接受，可按上文简化方案执行并更新本 ADR。
+**实施状态（Phase 9）**：已实现内嵌 XPC Service target（`RuntimeHelper.xpc`，launchd 按需拉起，无需 SMAppService 注册）——强类型 @objc 协议 + NSSecureCoding DTO、调用方 Team ID 校验（`SecCodeCopyGuestWithAttributes`）、generation+pid 所有权验证、无任意命令。**签名约束**：XPC 要求 App 与 Helper 同一 team 签名；本工程当前采用 GitHub 站外 ad-hoc 分发（无 team），因此主 App 使用上文允许的非 Sandbox 简化方案，使固定的 npm/source 启动向量能够访问用户已有工具链与配置。RuntimeHelper 仍保持 Sandbox，Helper 不可用时优雅降级。不得借取消主 App Sandbox 引入任意 shell/命令执行能力；若改为 Developer ID 分发，应恢复由签名 Helper 承担进程启动边界。
 
 **理由**：进程边界即安全边界；Helper 是能力提供者，不是通用终端。
 

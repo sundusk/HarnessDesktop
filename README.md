@@ -11,7 +11,7 @@ DeepSeek Harness 是一个 macOS 原生客户端 / 宿主，为已经安装并�
 - **不管理 Harness**：不安装 / 更新 / 卸载 Harness，不管理插件与 Profile。
 - **连接已运行的 Harness**：可通过 npm/npx 或官方源码启动；只要监听 loopback 端点，应用即可 Attach。
 - **默认连接 `127.0.0.1:3080`**（仅 loopback）。
-- **不修改 `~/.dsh`**：应用从权限模型上（App Sandbox）就没有理由写入 Harness 数据。
+- **不修改 `~/.dsh`**：应用以固定命令向量和进程所有权边界保证不修改 Harness 配置资产；非 Sandbox 的 GitHub 分发仅用于访问用户已安装的工具链与既有配置。
 - **自动检查版本，但不自动更新**，不执行任何 npm / pnpm / dsh plugin 命令；
   External Harness（终端启动的）永远不会被本应用停止。
 
