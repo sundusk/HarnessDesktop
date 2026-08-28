@@ -20,7 +20,7 @@ final class MenuBarCoordinator {
     private var statusTextItem: NSMenuItem?
     private var detailsItem: NSMenuItem?
     private var toggleItem: NSMenuItem?
-    private var stopManagedItem: NSMenuItem?
+    private var stopHarnessItem: NSMenuItem?
     private var updateItem: NSMenuItem?
     private var rollbackItem: NSMenuItem?
     private var observationTask: Task<Void, Never>?
@@ -92,10 +92,10 @@ final class MenuBarCoordinator {
         menu.addItem(makeActionItem("检查 App 更新…", #selector(checkForAppUpdatesAction)))
         // Phase 13：诊断信息导出（非敏感）
         menu.addItem(makeActionItem("复制诊断信息", #selector(copyDiagnosticsAction)))
-        // Phase 11：停止 Managed Harness（只对 App 自己启动的进程显示；External 永不停止）
-        stopManagedItem = makeActionItem("停止 Harness", #selector(stopManagedAction))
-        stopManagedItem?.isHidden = true
-        menu.addItem(stopManagedItem!)
+        // 只停止本 App 自己启动的 Harness；终端或其他 App 启动的实例保持 Attach-only。
+        stopHarnessItem = makeActionItem("停止 Harness", #selector(stopHarnessAction))
+        stopHarnessItem?.isHidden = true
+        menu.addItem(stopHarnessItem!)
         // Phase 12：更新 / 回退（仅 Managed；确认后执行）
         updateItem = makeActionItem("更新 Harness…", #selector(updateManagedAction))
         updateItem?.isHidden = true
@@ -152,8 +152,10 @@ final class MenuBarCoordinator {
                 _ = coordinator.environmentReport.runningVersion
                 _ = coordinator.environmentReport.latestReleaseVersion
                 _ = coordinator.environmentReport.latestInstallableVersion
-                // Phase 11：Managed 运行状态（停止项显隐）
+                // App-owned Harness 运行状态（停止项显隐）
                 _ = coordinator.activeManagedIdentity
+                _ = coordinator.externalRuntimeStatus
+                _ = coordinator.canStopHarness
                 // Phase 12：更新 / 回退状态
                 _ = coordinator.isUpdatingManaged
                 _ = coordinator.environmentReport.ownership
@@ -193,8 +195,8 @@ final class MenuBarCoordinator {
 
         toggleItem?.title = coordinator.petSettings.isBallVisible ? "隐藏桌面宠物" : "显示桌面宠物"
 
-        // Phase 11：只有 Managed Harness 运行中才显示「停止 Harness」
-        stopManagedItem?.isHidden = coordinator.activeManagedIdentity == nil
+        // 只有本 App 自己启动的 Harness 运行中才显示「停止 Harness」
+        stopHarnessItem?.isHidden = !coordinator.canStopHarness
 
         // 版本区域仅用于展示，不显示更新或回退提示。
         updateItem?.isHidden = true
@@ -270,8 +272,8 @@ final class MenuBarCoordinator {
         menuBarLog.info("诊断信息已复制")
     }
 
-    @objc private func stopManagedAction() {
-        coordinator.stopManagedHarness()
+    @objc private func stopHarnessAction() {
+        coordinator.stopHarness()
     }
 
     @objc private func updateManagedAction() {

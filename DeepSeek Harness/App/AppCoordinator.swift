@@ -83,6 +83,12 @@ final class AppCoordinator {
         reducer.sessions.count
     }
 
+    /// 状态栏停止项是否可用：只覆盖本 App 当前拥有的 Harness 进程。
+    /// 终端或其他应用启动的 Harness 仍然遵守 Attach-only，不显示停止动作。
+    var canStopHarness: Bool {
+        activeManagedIdentity != nil || externalRuntimeStatus.isRunning
+    }
+
     init(settings: AppSettings = AppSettings(),
          discovery: (any HarnessDiscovering)? = nil,
          compatibilityResolver: HarnessCompatibilityResolver = HarnessCompatibilityResolver(),
@@ -364,6 +370,16 @@ final class AppCoordinator {
                 externalRuntimeError = "Harness 停止失败，请查看日志。"
                 externalRuntimeStatus = .failed(externalRuntimeError ?? "Harness 停止失败")
             }
+        }
+    }
+
+    /// 状态栏的统一停止入口，覆盖 Managed、npm 和源码启动方式。
+    /// 停止顺序优先处理 Managed；同一端口不会同时存在两类 App-owned 进程。
+    func stopHarness() {
+        if activeManagedIdentity != nil {
+            stopManagedHarness()
+        } else if externalRuntimeStatus.isRunning {
+            stopExternalHarness()
         }
     }
 

@@ -59,6 +59,11 @@ enum HarnessExternalRuntimeStatus: Equatable, Sendable {
     case starting(HarnessRuntimeMode)
     case running(HarnessRuntimeProcessRecord)
     case failed(String)
+
+    var isRunning: Bool {
+        if case .running = self { return true }
+        return false
+    }
 }
 
 enum HarnessExternalRuntimeFailure: Error, Equatable, Sendable {
@@ -177,23 +182,35 @@ struct SystemHarnessCommandRunner: HarnessCommandRunning, Sendable {
 }
 
 enum HarnessExecutableLocator {
-    private static let defaultAdditionalSearchDirectories = [
-        "/opt/homebrew/bin",
-        "/usr/local/bin"
-    ]
+    /// Finder / LaunchServices 不会读取用户的 shell 初始化文件，因此不能只依赖
+    /// `ProcessInfo.processInfo.environment["PATH"]`。这些目录覆盖 Homebrew、npm
+    /// 全局 prefix、pnpm 默认目录和常见的用户 bin 目录。
+    private static func defaultAdditionalSearchDirectories(environment: [String: String]) -> [String] {
+        let home = environment["HOME"] ?? FileManager.default.homeDirectoryForCurrentUser.path
+        return [
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "\(home)/.npm-global/bin",
+            "\(home)/Library/pnpm",
+            "\(home)/.local/share/pnpm",
+            "\(home)/.local/bin"
+        ]
+    }
 
     static func url(
         for name: String,
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        additionalSearchDirectories: [String] = defaultAdditionalSearchDirectories
+        additionalSearchDirectories: [String]? = nil
     ) -> URL? {
         if name.contains("/") {
             let url = URL(fileURLWithPath: name)
             return FileManager.default.isExecutableFile(atPath: url.path) ? url : nil
         }
+        let additionalDirectories = additionalSearchDirectories
+            ?? defaultAdditionalSearchDirectories(environment: environment)
         let paths = (environment["PATH"] ?? "/usr/bin:/bin")
             .split(separator: ":")
-            .map(String.init) + additionalSearchDirectories
+            .map(String.init) + additionalDirectories
         for path in paths {
             let candidate = URL(fileURLWithPath: path, isDirectory: true).appendingPathComponent(name)
             if FileManager.default.isExecutableFile(atPath: candidate.path) {
@@ -207,15 +224,32 @@ enum HarnessExecutableLocator {
     /// 让其 `#!/usr/bin/env node` 以及后续子进程能解析同目录下的 Node。
     static func environment(
         for executable: URL,
-        base: [String: String] = ProcessInfo.processInfo.environment
+        base: [String: String] = ProcessInfo.processInfo.environment,
+        additionalSearchDirectories: [String]? = nil
     ) -> [String: String] {
         var environment = base
         let executableDirectory = executable.deletingLastPathComponent().standardizedFileURL.path
+        let additionalDirectories = additionalSearchDirectories
+            ?? defaultAdditionalSearchDirectories(environment: base)
         let existingDirectories = (base["PATH"] ?? "/usr/bin:/bin")
             .split(separator: ":", omittingEmptySubsequences: true)
             .map(String.init)
             .filter { $0 != executableDirectory }
-        environment["PATH"] = ([executableDirectory] + existingDirectories).joined(separator: ":")
+        var pathDirectories = [executableDirectory]
+        if let node = url(
+            for: "node",
+            environment: base,
+            additionalSearchDirectories: additionalDirectories
+        ) {
+            let nodeDirectory = node.deletingLastPathComponent().standardizedFileURL.path
+            if !pathDirectories.contains(nodeDirectory) {
+                pathDirectories.append(nodeDirectory)
+            }
+        }
+        for directory in existingDirectories where !pathDirectories.contains(directory) {
+            pathDirectories.append(directory)
+        }
+        environment["PATH"] = pathDirectories.joined(separator: ":")
         return environment
     }
 }

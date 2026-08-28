@@ -88,6 +88,23 @@ final class HarnessExternalRuntimeTests: XCTestCase {
         XCTAssertEqual(resolved?.standardizedFileURL, executable.standardizedFileURL)
     }
 
+    func testExecutableLocatorFindsUserGlobalPnpmWhenGUIPathIsShort() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let executable = directory.appendingPathComponent("pnpm")
+        try Data("#!/bin/sh\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let resolved = HarnessExecutableLocator.url(
+            for: "pnpm",
+            environment: ["PATH": "/usr/bin:/bin", "HOME": "/Users/test"],
+            additionalSearchDirectories: [directory.path]
+        )
+
+        XCTAssertEqual(resolved?.standardizedFileURL, executable.standardizedFileURL)
+    }
+
     func testExecutableEnvironmentPrependsResolvedBinDirectoryToGUIPath() {
         let executable = URL(fileURLWithPath: "/opt/homebrew/bin/npx")
 
@@ -98,6 +115,46 @@ final class HarnessExternalRuntimeTests: XCTestCase {
 
         XCTAssertEqual(environment["PATH"], "/opt/homebrew/bin:/usr/bin:/bin")
         XCTAssertEqual(environment["HOME"], "/Users/test")
+    }
+
+    func testExecutableEnvironmentAddsNodeDirectoryForUserInstalledPnpm() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let pnpmDirectory = root.appendingPathComponent("pnpm-bin")
+        let nodeDirectory = root.appendingPathComponent("node-bin")
+        try FileManager.default.createDirectory(at: pnpmDirectory, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: nodeDirectory, withIntermediateDirectories: true)
+        let pnpm = pnpmDirectory.appendingPathComponent("pnpm")
+        let node = nodeDirectory.appendingPathComponent("node")
+        for executable in [pnpm, node] {
+            try Data("#!/bin/sh\n".utf8).write(to: executable)
+            try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+        }
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let environment = HarnessExecutableLocator.environment(
+            for: pnpm,
+            base: ["PATH": "/usr/bin:/bin", "HOME": "/Users/test"],
+            additionalSearchDirectories: [pnpmDirectory.path, nodeDirectory.path]
+        )
+
+        XCTAssertEqual(
+            environment["PATH"],
+            "\(pnpmDirectory.path):\(nodeDirectory.path):/usr/bin:/bin"
+        )
+    }
+
+    func testExternalRuntimeStatusIsRunningOnlyForRunningProcess() {
+        let record = HarnessRuntimeProcessRecord(
+            pid: 4242,
+            mode: .source,
+            startedAt: Date(timeIntervalSince1970: 0),
+            logPath: "/tmp/harness.log"
+        )
+
+        XCTAssertTrue(HarnessExternalRuntimeStatus.running(record).isRunning)
+        XCTAssertFalse(HarnessExternalRuntimeStatus.stopped.isRunning)
+        XCTAssertFalse(HarnessExternalRuntimeStatus.starting(.npm).isRunning)
+        XCTAssertFalse(HarnessExternalRuntimeStatus.failed("error").isRunning)
     }
 
     func testConfigurationStoreRoundTripsISO8601JSON() throws {
