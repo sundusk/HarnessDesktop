@@ -58,15 +58,22 @@ enum HarnessStreamState: Equatable, Sendable {
 ///
 /// - 握手 = 认证交换 + `session/list` 成功（同时验证认证、路由与协议版本）；
 /// - 事件流 = `/api/remote.mux` WebSocket 上的 `$events` 逻辑流；
-/// - `emit` 帧 → Domain Event；`waterfall` 帧 → requested 事件 + 应答 `next`
-///   （纯观察者，绝不代替用户审批/答题；全部客户端放行后 Host 链才继续）；
+/// - `emit` 帧 → Domain Event；其中 `parentSessionId` 非空的 **子会话（subagent）**
+///   及其 status / error 事件被过滤掉，不进入全局宠物状态（子会话是一次性的，
+///   其错误/完成会永久污染全局优先级，见 ActivityReducer 的容忍设计）；
+/// - `waterfall` 帧 → requested 事件。**本 App 是纯观察者，绝不代替用户审批/答题，
+///   也绝不主动应答 `next`**：web UI 客户端（内嵌 WKWebView）会持有瀑布并等待用户，
+///   用户作答后以 result 终结，或 agent 中止 / 作用域释放时撤销——上述每条终结路径
+///   都会给仍在投递列表中的本客户端补发 `cancel` 帧。主动应答 `next` 反而会把本
+///   客户端移出投递列表，从此观察不到解决（宠物会永远卡在「做出你的抉择」）；
 /// - `cancel` 帧 → 对应 resolved 事件（被认领 / 全员放行 / 撤销都终结为 cancel）；
 /// - 流断开后按退避策略自动重连：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（+少量 jitter），
-///   每次（重）连补拉一次 session 基线（emit 不回放）；
+///   每次（重）连补拉一次 session 基线（emit 不回放）；断开时未决 waterfall 视为
+///   已终结（补发 resolved），避免门跨连接悬置；
 /// - 单条坏帧跳过，绝不拖垮整个流（规格 19）。
 ///
 /// `@unchecked Sendable` 理由：可变状态（`_handshakeInfo`、`_clientId`、
-/// `_streamState`、`_pendingWaterfalls`）中仅流转计数与心跳在锁外，
+/// `_streamState`、`_pendingWaterfalls`、`_childSessionIDs`）中仅心跳在锁外，
 /// 共享状态全部由 `NSLock` 保护。
 final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     var supportedVersionRange: ClosedRange<String>? { nil }
@@ -81,21 +88,14 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     private var _handshakeInfo: HarnessHandshakeInfo?
     private var _clientId: String?
     private var _streamState: HarnessStreamState = .disconnected
-    /// 待决 waterfall：eventId → (事件名, agentId)。仅在事件消费循环内读写。
+    /// 待决 waterfall：eventId → (事件名, agentId)。全部访问由 `lock` 保护。
     private var pendingWaterfalls: [String: (event: String, agentId: String?)] = [:]
-    /// 延迟应答任务：eventId → 定时 `next` 应答任务（收到 cancel 帧时取消）。
-    private var ackTasks: [String: Task<Void, Never>] = [:]
+    /// 已知子会话（subagent）id：从基线 / `api-session/added` 的 parentSessionId 学习。
+    /// 子会话的 status / error / 审批 / 提问一律不进入全局状态。
+    private var childSessionIDs: Set<String> = []
 
     private var streamsTask: Task<Void, Never>?
 
-    /// waterfall 观察者应答延迟（秒）。
-    ///
-    /// 应答 `next` 会被 Gateway 移出投递列表，此后该 waterfall 被认领 / 放行 /
-    /// 撤销时的 `cancel` 帧不再投递给本客户端——即应答后再也无法观察到解决。
-    /// 延迟应答以在窗口内捕获 GUI 认领（cancel → 立即映射 resolved）；
-    /// 超时才应答，保证纯观察者永远不会挂起 Host 瀑布链（全部客户端放行后才继续）。
-    /// 窗口外的解决由 ActivityReducer 在 turn 边界清除门计数兜底。
-    static let waterfallAckDelay: Duration = .seconds(15)
     /// 退避延迟（秒）：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（规格 20）。
     private static let backoffDelays: [Duration] = [
         .milliseconds(500), .seconds(1), .seconds(2), .seconds(4), .seconds(8), .seconds(10), .seconds(10),
@@ -143,12 +143,12 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     func disconnect() async {
         streamsTask?.cancel()
         streamsTask = nil
-        let tasks = lock.withLock { self.ackTasks }
-        tasks.values.forEach { $0.cancel() }
+        // 未决 waterfall 视为已终结：补发 resolved，门不跨连接悬置。
+        resolvePendingWaterfalls()
         lock.withLock {
             _clientId = nil
             pendingWaterfalls.removeAll()
-            ackTasks.removeAll()
+            childSessionIDs.removeAll()
             _streamState = .disconnected
         }
         eventsContinuation.finish()
@@ -158,49 +158,104 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
 
     // MARK: - Mapping（纯函数，供单测）
 
+    /// 一帧 emit 的映射结果：领域事件 + 本帧新发现的子会话 id。
+    ///
+    /// `childIDs` 供调用方登记（子会话不产生领域事件，但必须被记住，
+    /// 以便后续 status / error / 审批 / 提问帧按 id 过滤）。
+    struct HarnessEmitMapping: Equatable, Sendable {
+        let events: [HarnessDomainEvent]
+        let childIDs: Set<String>
+
+        init(events: [HarnessDomainEvent], childIDs: Set<String> = []) {
+            self.events = events
+            self.childIDs = childIDs
+        }
+    }
+
     /// session 基线 → Domain Events（added + 可选 running 同步）。
-    static func domainEvents(forSummary summary: HarnessSessionSummary) -> [HarnessDomainEvent] {
+    ///
+    /// 子会话（`parentSessionId` 非空）不产生领域事件，id 交给调用方登记。
+    static func mappedEvents(forSummary summary: HarnessSessionSummary,
+                             knownChildIDs: Set<String>) -> HarnessEmitMapping {
+        if knownChildIDs.contains(summary.sessionId) {
+            // 已登记的子会话（重连基线重复出现）：不补发、不重复登记。
+            return HarnessEmitMapping(events: [])
+        }
+        if summary.parentSessionId != nil {
+            return HarnessEmitMapping(events: [], childIDs: [summary.sessionId])
+        }
         var events: [HarnessDomainEvent] = [.sessionAdded(id: summary.sessionId)]
         if summary.running == true {
             events.append(.sessionRunningChanged(id: summary.sessionId, running: true))
         }
-        return events
+        return HarnessEmitMapping(events: events)
+    }
+
+    /// session 基线 → Domain Events（不含子会话过滤的纯映射，兼容单测）。
+    static func domainEvents(forSummary summary: HarnessSessionSummary) -> [HarnessDomainEvent] {
+        mappedEvents(forSummary: summary, knownChildIDs: []).events
     }
 
     /// `emit` 帧 → Domain Events。未知事件返回空数组（规格 19：忽略，不得关流）。
     ///
     /// 事件名与 args 形状对照上游 `packages/api/session-controller/src/index.ts`：
-    /// - `api-session/added`   `[summary{sessionId,running,...}]`
+    /// - `api-session/added`   `[summary{sessionId,running,parentSessionId,...}]`
     /// - `api-session/removed` `[sessionId]`
     /// - `api-session/status`  `[sessionId, Bool]`（Bool = status === 'running'）
     /// - `api-session/error`   `[sessionId, message]`
     /// - `api-session/activity`（无领域对应，忽略）
-    static func domainEvents(forEmit event: String, args: [HarnessJSONValue]) -> [HarnessDomainEvent] {
+    ///
+    /// 子会话过滤：`added` 中 `parentSessionId` 非空 → 不产生事件、id 交调用方登记；
+    /// 已登记子会话 id 的 status / error / removed → 忽略（子会话是一次性 agent，
+    /// 其错误 / 完成进入 reducer 会永久污染全局状态——该 id 不会再 running=true 来清除）。
+    static func mappedEvents(forEmit event: String,
+                             args: [HarnessJSONValue],
+                             knownChildIDs: Set<String>) -> HarnessEmitMapping {
         switch event {
         case "api-session/added":
-            guard let summary = args.first else { return [] }
-            guard let id = summary["sessionId"]?.stringValue else { return [] }
+            guard let summary = args.first else { return HarnessEmitMapping(events: []) }
+            guard let id = summary["sessionId"]?.stringValue else { return HarnessEmitMapping(events: []) }
+            if knownChildIDs.contains(id) {
+                // 已登记的子会话：不补发、不重复登记。
+                return HarnessEmitMapping(events: [])
+            }
+            if summary["parentSessionId"]?.stringValue != nil {
+                return HarnessEmitMapping(events: [], childIDs: [id])
+            }
             var events: [HarnessDomainEvent] = [.sessionAdded(id: id)]
             if summary["running"]?.boolValue == true {
                 events.append(.sessionRunningChanged(id: id, running: true))
             }
-            return events
+            return HarnessEmitMapping(events: events)
         case "api-session/removed":
-            guard let id = args.first?.stringValue else { return [] }
-            return [.sessionRemoved(id: id)]
+            guard let id = args.first?.stringValue else { return HarnessEmitMapping(events: []) }
+            if knownChildIDs.contains(id) { return HarnessEmitMapping(events: []) }
+            return HarnessEmitMapping(events: [.sessionRemoved(id: id)])
         case "api-session/status":
-            guard let id = args.first?.stringValue else { return [] }
-            guard let running = args.dropFirst().first?.boolValue else { return [] }
-            return [.sessionRunningChanged(id: id, running: running)]
+            guard let id = args.first?.stringValue else { return HarnessEmitMapping(events: []) }
+            if knownChildIDs.contains(id) { return HarnessEmitMapping(events: []) }
+            guard let running = args.dropFirst().first?.boolValue else { return HarnessEmitMapping(events: []) }
+            return HarnessEmitMapping(events: [.sessionRunningChanged(id: id, running: running)])
         case "api-session/error":
-            guard let id = args.first?.stringValue else { return [] }
+            guard let id = args.first?.stringValue else { return HarnessEmitMapping(events: []) }
+            if knownChildIDs.contains(id) { return HarnessEmitMapping(events: []) }
             let message = args.dropFirst().first?.stringValue ?? "unknown"
-            return [.agentError(sessionID: id, message: message)]
+            return HarnessEmitMapping(events: [.agentError(sessionID: id, message: message)])
         default:
             // 未知事件：忽略 + debug log（规格 19），不得关闭流。
             AppLogger.compatibility.debug("未知 emit 事件：\(event, privacy: .public)")
-            return []
+            return HarnessEmitMapping(events: [])
         }
+    }
+
+    /// `emit` 帧 → Domain Events（不含子会话过滤的纯映射，兼容单测）。
+    static func domainEvents(forEmit event: String, args: [HarnessJSONValue]) -> [HarnessDomainEvent] {
+        mappedEvents(forEmit: event, args: args, knownChildIDs: []).events
+    }
+
+    /// 判断一帧 `api-session/added` 的 summary 是否子会话（subagent）。
+    static func isChildSessionSummary(_ summary: HarnessJSONValue) -> Bool {
+        summary["parentSessionId"]?.stringValue != nil
     }
 
     /// `waterfall` 交付 → Domain Event（观察者视角：开始等待 → requested）。
@@ -236,12 +291,25 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         streamsTask?.cancel()
         // 先补基线（emit 不回放；reducer 对 sessionAdded 幂等、对 running 同步安全）。
         for summary in baseline {
-            for event in Self.domainEvents(forSummary: summary) {
-                eventsContinuation.yield(event)
-            }
+            emitBaseline(summary)
         }
         streamsTask = Task { [weak self] in
             await self?.consumeEventStream()
+        }
+    }
+
+    /// 补发一条基线 summary（子会话只登记 id，不产生领域事件）。
+    private func emitBaseline(_ summary: HarnessSessionSummary) {
+        let known = lock.withLock { childSessionIDs }
+        let mapping = Self.mappedEvents(forSummary: summary, knownChildIDs: known)
+        if !mapping.childIDs.isEmpty {
+            lock.withLock { childSessionIDs.formUnion(mapping.childIDs) }
+            AppLogger.compatibility.debug(
+                "基线跳过子会话：\(summary.sessionId, privacy: .public)"
+            )
+        }
+        for event in mapping.events {
+            eventsContinuation.yield(event)
         }
     }
 
@@ -262,9 +330,7 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
                 let baseline = try await transport.listSessions(endpoint: endpoint)
                 guard !Task.isCancelled else { return }
                 for summary in baseline {
-                    for event in Self.domainEvents(forSummary: summary) {
-                        eventsContinuation.yield(event)
-                    }
+                    emitBaseline(summary)
                 }
                 AppLogger.compatibility.info("事件流连接中：\(HarnessProtocolPath.remoteMux, privacy: .public)")
                 for try await frame in webSocketTransport.openEventStream(endpoint: endpoint) {
@@ -292,52 +358,57 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
                 _streamState = .connected
             }
         case .emit(let event, let args):
-            for event in Self.domainEvents(forEmit: event, args: args) {
-                eventsContinuation.yield(event)
+            let known = lock.withLock { childSessionIDs }
+            let mapping = Self.mappedEvents(forEmit: event, args: args, knownChildIDs: known)
+            if !mapping.childIDs.isEmpty {
+                lock.withLock { childSessionIDs.formUnion(mapping.childIDs) }
+                AppLogger.compatibility.debug("跳过子会话事件：\(event, privacy: .public)")
+            }
+            for domainEvent in mapping.events {
+                eventsContinuation.yield(domainEvent)
             }
         case .waterfall(let event, let eventId, let agentId, _):
+            // 子会话（subagent）的审批 / 提问不进入全局宠物状态；
+            // web UI 客户端仍会独立收到该 waterfall 并向用户展示。
+            if let agentId, lock.withLock({ childSessionIDs.contains(agentId) }) {
+                break
+            }
             if let domainEvent = Self.domainEvent(fromWaterfall: event, agentId: agentId) {
                 eventsContinuation.yield(domainEvent)
             }
-            pendingWaterfalls[eventId] = (event, agentId)
-            scheduleAck(eventId: eventId)
+            // 纯观察者：不应答 next，保持留在 Gateway 投递列表中——
+            // 用户作答 / 撤销 / agent 中止 / 作用域释放时都会收到 cancel 帧，
+            // 那就是唯一可靠的「已解决」信号。
+            lock.withLock { pendingWaterfalls[eventId] = (event, agentId) }
         case .cancelled(let eventId):
-            let ackTask = lock.withLock {
-                self.ackTasks.removeValue(forKey: eventId)
-            }
-            ackTask?.cancel()
-            if let pending = pendingWaterfalls.removeValue(forKey: eventId),
+            let pending = lock.withLock { pendingWaterfalls.removeValue(forKey: eventId) }
+            if let pending,
                let domainEvent = Self.resolutionEvent(forWaterfall: pending.event, agentId: pending.agentId) {
                 eventsContinuation.yield(domainEvent)
             }
         }
     }
 
-    /// 延迟应答单个 waterfall 交付（`next`）；若期间收到 cancel 帧则取消。
-    private func scheduleAck(eventId: String) {
-        let clientId = lock.withLock { _clientId }
-        guard let clientId else {
-            AppLogger.compatibility.debug("waterfall 到达时还没有 ready 帧，跳过应答")
-            return
+    /// 未决 waterfall 全部补发 resolved（流断开 / 主动断开时调用），
+    /// 使 reducer 的审批 / 提问门不跨连接悬置。
+    private func resolvePendingWaterfalls() {
+        let pending = lock.withLock {
+            let values = pendingWaterfalls
+            pendingWaterfalls.removeAll()
+            return values
         }
-        let transport = self.transport
-        let endpoint = self.endpoint
-        let task = Task {
-            try? await Task.sleep(for: Self.waterfallAckDelay)
-            guard !Task.isCancelled else { return }
-            lock.withLock { self.ackTasks.removeValue(forKey: eventId) }
-            await transport.sendEventResult(endpoint: endpoint, clientId: clientId, eventId: eventId)
+        for (_, waterfall) in pending {
+            if let domainEvent = Self.resolutionEvent(forWaterfall: waterfall.event, agentId: waterfall.agentId) {
+                eventsContinuation.yield(domainEvent)
+            }
         }
-        lock.withLock { self.ackTasks[eventId] = task }
     }
 
     private func markStreamClosed() {
-        let tasks = lock.withLock { Array(self.ackTasks.values) }
-        tasks.forEach { $0.cancel() }
+        resolvePendingWaterfalls()
         lock.withLock {
             _clientId = nil
             pendingWaterfalls.removeAll()
-            ackTasks.removeAll()
             _streamState = .disconnected
         }
     }

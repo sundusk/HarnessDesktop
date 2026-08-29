@@ -150,4 +150,84 @@ final class HarnessEventMappingTests: XCTestCase {
         )
         XCTAssertEqual(events, [.sessionAdded(id: "s1")])
     }
+
+    // MARK: - 子会话（subagent）过滤
+
+    /// 基线上的子会话（parentSessionId 非空）不产生领域事件，id 交给调用方登记。
+    func testSummaryChildSessionIgnoredAndRecorded() {
+        let summary = HarnessSessionSummary(
+            sessionId: "child-1", running: true, updatedAt: 1, parentSessionId: "s1"
+        )
+        let mapping = HarnessGenericAdapter.mappedEvents(forSummary: summary, knownChildIDs: [])
+        XCTAssertTrue(mapping.events.isEmpty)
+        XCTAssertEqual(mapping.childIDs, ["child-1"])
+    }
+
+    /// 已登记为子会话的 id 即使再出现在基线中也不补发。
+    func testSummaryKnownChildIgnored() {
+        let summary = HarnessSessionSummary(
+            sessionId: "child-1", running: true, updatedAt: 1, parentSessionId: "s1"
+        )
+        let mapping = HarnessGenericAdapter.mappedEvents(forSummary: summary, knownChildIDs: ["child-1"])
+        XCTAssertTrue(mapping.events.isEmpty)
+        XCTAssertTrue(mapping.childIDs.isEmpty)
+    }
+
+    /// `api-session/added` 携带 parentSessionId → 不产生事件、id 交调用方登记。
+    func testChildSessionAddedIgnoredAndRecorded() {
+        let mapping = HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/added",
+            args: [.object([
+                "sessionId": .string("child-1"),
+                "running": .bool(true),
+                "parentSessionId": .string("s1"),
+            ])],
+            knownChildIDs: []
+        )
+        XCTAssertTrue(mapping.events.isEmpty)
+        XCTAssertEqual(mapping.childIDs, ["child-1"])
+    }
+
+    /// 子会话的 status / error / removed 一律忽略（一次性 agent，错误永不自行清除）。
+    func testChildSessionStatusErrorRemovedIgnored() {
+        let known: Set<String> = ["child-1"]
+        XCTAssertTrue(HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/status", args: [.string("child-1"), .bool(true)], knownChildIDs: known
+        ).events.isEmpty)
+        XCTAssertTrue(HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/status", args: [.string("child-1"), .bool(false)], knownChildIDs: known
+        ).events.isEmpty)
+        XCTAssertTrue(HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/error", args: [.string("child-1"), .string("boom")], knownChildIDs: known
+        ).events.isEmpty)
+        XCTAssertTrue(HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/removed", args: [.string("child-1")], knownChildIDs: known
+        ).events.isEmpty)
+    }
+
+    /// 子会话的审批 / 提问 waterfall 不进入全局状态。
+    func testChildSessionWaterfallIgnored() {
+        // 调用方在 handle() 中先查 childSessionIDs；这里验证判断函数。
+        XCTAssertTrue(HarnessGenericAdapter.isChildSessionSummary(.object([
+            "sessionId": .string("child-1"),
+            "parentSessionId": .string("s1"),
+        ])))
+        XCTAssertFalse(HarnessGenericAdapter.isChildSessionSummary(.object([
+            "sessionId": .string("s1"),
+        ])))
+    }
+
+    /// 普通会话（无 parentSessionId）不受子会话过滤影响。
+    func testTopLevelSessionUnaffectedByChildFilter() {
+        let mapping = HarnessGenericAdapter.mappedEvents(
+            forEmit: "api-session/added",
+            args: [.object(["sessionId": .string("s1"), "running": .bool(true)])],
+            knownChildIDs: ["child-1"]
+        )
+        XCTAssertEqual(mapping.events, [
+            .sessionAdded(id: "s1"),
+            .sessionRunningChanged(id: "s1", running: true),
+        ])
+        XCTAssertTrue(mapping.childIDs.isEmpty)
+    }
 }

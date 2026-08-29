@@ -204,23 +204,4 @@ final class HarnessHTTPTransportTests: XCTestCase {
             XCTFail("错误类型不对：\(error)")
         }
     }
-
-    // MARK: - sendEventResult
-
-    /// waterfall 应答：POST `$events/result`，outcome 固定 next；HTTP 失败只吞掉，不抛出。
-    func testSendEventResultSwallowsHTTPFailures() async throws {
-        var bodies: [[String: Any]] = []
-        MockURLProtocol.handler = { request in
-            XCTAssertEqual(request.httpMethod, "POST")
-            XCTAssertTrue(request.url!.path.hasSuffix("/api/$events/result"))
-            bodies.append(try JSONSerialization.jsonObject(with: self.body(of: request)) as! [String: Any])
-            return try self.response(500, url: request.url!, json: "unauthorized")
-        }
-        await makeTransport().sendEventResult(endpoint: endpoint, clientId: "c1", eventId: "e1")
-        XCTAssertEqual(bodies.count, 1)
-        let args = ((bodies[0]["payload"] as! [String: Any])["args"] as! [String: Any])
-        XCTAssertEqual(args["clientId"] as? String, "c1")
-        XCTAssertEqual(args["eventId"] as? String, "e1")
-        XCTAssertEqual((args["outcome"] as! [String: Any])["kind"] as? String, "next")
-    }
 }

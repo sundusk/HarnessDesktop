@@ -1,7 +1,7 @@
 # 桌面宠物设计、实现与进度
 
 > AI 快速入口：当任务涉及桌面宠物、小雨、心情球、状态气泡、悬浮窗、点击穿透、拖拽、精灵图或动画时，先读本文，再读对应源码。
-> 本文面向 Codex、DeepSeek Harness 和人工维护者。最后核验日期：**2026-08-29**。
+> 本文面向 Codex、DeepSeek Harness 和人工维护者。最后核验日期：**2026-08-30**。
 
 ## 1. 当前结论
 
@@ -11,11 +11,13 @@
 - 小雨使用原始角色颜色；心情状态色只用于角色背后的光晕和气泡描边。
 - 所有动作、气泡显示与隐藏均保持同一个宠物视口、角色尺度规则和屏幕底部锚点。
 - 目前没有自动行走、屏幕边缘巡逻、碰撞逻辑或鼠标视线跟随。
-- `HarnessActivityState`、事件协议、`ActivityReducer` 优先级和完成事件 2.5 秒 transient 行为没有因宠物功能而改变。
-- **协议适配（2026-08-29）**：Harness 侧 dsh-v0.1.2-alpha.1（commit `dcddaa1a6e`）移除了旧版 `host.describe` / `/api/events.mux` / `/api/events.host`，导致宠物曾无法随状态变化（永远 idle/disconnected）。App 的 `Harness/Compatibility` 层已迁移到新协议：认证交换（GET token URL 换持久 cookie，HTTP 与 WebSocket 共享 CookieStore）+ `POST /api/session/list` 握手与基线 + `/api/remote.mux` `$events` 事件流（`api-session/*` emit；`approval/request`、`user-questions/request` waterfall 由 App 观察后应答 `next`，`cancel` 帧映射为 resolved）。运行版本无 RPC 可读，App 按仓库 AGENTS.md 约束保持 unknown。
-- **waterfall 解决语义（2026-08-29 修复）**：新协议的 waterfall 没有独立 resolved 推送，且观察者应答 `next` 后即被移出投递列表、不再收到 `cancel`——宠物曾卡死在「做出你的抉择」。修复为双保险：① App 对 waterfall 延迟 15s 应答 `next`（窗口内收到 `cancel` 即映射 resolved 并取消应答；超时必答，绝不挂起 Host 瀑布链）；② `ActivityReducer` 在 turn 结束（`running=false`）清除该 session 的审批/提问门计数（门不可能跨 turn 存活）。
+- `HarnessActivityState`、事件协议、`ActivityReducer` 优先级和完成事件 2.5 秒 transient 行为没有因宠物功能而改变（错误新增「新鲜度窗口」判定，见下）。
+- **协议适配（2026-08-29）**：Harness 侧 dsh-v0.1.2-alpha.1（commit `dcddaa1a6e`）移除了旧版 `host.describe` / `/api/events.mux` / `/api/events.host`，导致宠物曾无法随状态变化（永远 idle/disconnected）。App 的 `Harness/Compatibility` 层已迁移到新协议：认证交换（GET token URL 换持久 cookie，HTTP 与 WebSocket 共享 CookieStore）+ `POST /api/session/list` 握手与基线 + `/api/remote.mux` `$events` 事件流（`api-session/*` emit；`approval/request`、`user-questions/request` waterfall 由 App **纯观察、不应答**，`cancel` 帧映射为 resolved）。运行版本无 RPC 可读，App 按仓库 AGENTS.md 约束保持 unknown。
+- **waterfall 解决语义（2026-08-29 修复后 2026-08-30 重做）**：新协议没有独立 resolved 推送。最初「延迟 15s 应答 `next`」的方案有根本缺陷——应答后 Gateway 会把本客户端移出投递列表，此后该 waterfall 被认领 / 放行 / 撤销时的 `cancel` 帧不再投递给本客户端，宠物会在用户超过 15 秒才作答时永远卡在「做出你的抉择」。**现行方案：纯观察者不应答 `next`**，保持留在投递列表中。Gateway 语义保证每条终结路径（web UI 客户端以 result 作答、用户撤销、agent 中止、作用域释放、流断开）都会给仍在投递列表中的客户端补发 `cancel` 帧；web UI 客户端（内嵌 WKWebView）才是实际作答者并持有瀑布直到用户作答，因此本 App 不应答既不会挂起 Host 瀑布链，又能可靠观察到 resolved。断线 / 重连时对未决 waterfall 补发 resolved，避免门跨连接悬置。`ActivityReducer` 在 turn 结束（`running=false`）清除该 session 的审批/提问门计数仍保留，作为最后一层兜底。
+- **子会话（subagent）过滤（2026-08-30 修复）**：`agent/status` / `agent/error` 是 agent 作用域事件，Harness 侧 session-controller 会为**子代理（subagent）**也发出 `api-session/status` / `api-session/error`（以子代理 id 为 sessionId）。子代理是一次性 id（不会再次 running=true），其错误进入 reducer 后**永不自行清除**，在多线程任务时永久压制全局状态——表现为宠物卡死「出错了」，重开任务也不变「思考中」。修复：adapter 从基线 / `api-session/added` 的 `parentSessionId` 学习子会话 id，子会话的 added / status / error / removed / 审批 / 提问一律不进入全局状态；顺带消除了子代理完成导致的「搞定啦」刷屏与子代理错误通知。
+- **错误新鲜度（2026-08-30 修复）**：`ActivityReducer` 给错误加「新鲜度窗口」（`errorHoldDuration`，默认 30 秒）。turn 结束后的过期错误不再参与全局优先级——用户重启其它线程时宠物能回到「思考中」/ 其它活动状态；错误在窗口内仍按规格 8 优先展示，同一 session 重新开工仍立即清除。
 
-截至最后核验：当前源码完整测试 **289/289 通过**（2026-08-29，Debug test + Universal 构建验证），Release 构建已通过；拖拽奔跑视觉 QA **97/100，通过**。协议迁移主体随 v0.2.15 构建落地；waterfall 门卡死修复构建为 v0.2.16 并已安装到 `/Applications/DeepSeek Harness.app`。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
+截至最后核验：当前源码完整测试 **297/297 通过**（2026-08-30，Debug test 验证；新增错误新鲜度 4 例 + 子会话过滤 6 例，移除已死 `$events/result` 应答 2 例），拖拽奔跑视觉 QA 维持 **97/100**。协议迁移主体随 v0.2.15 构建落地；waterfall 门卡死修复构建为 v0.2.16 并已安装到 `/Applications/DeepSeek Harness.app`。**2026-08-30 状态卡死修复（子会话过滤 + waterfall 纯观察 + 错误新鲜度）随 v0.2.17 构建并安装到 `/Applications/DeepSeek Harness.app`**。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
 
 ## 2. 架构与数据流
 
@@ -217,12 +219,19 @@ moodball.moodColor.<mood>
 | 深浅背景、60/120/200 px、动作联系表视觉检查 | ✅ |
 | 当前源码 Universal Release、签名和双架构验证 | ✅（2026-08-23） |
 | 双击展开主 App 的发布与正式安装 | ✅（v0.2.16 已安装到 /Applications） |
+| 子会话（subagent）过滤：多线程任务不再被子代理错误永久压制 | ✅（v0.2.17 已安装到 /Applications） |
+| waterfall 纯观察：用户超过 15 秒作答后宠物不再卡「做出你的抉择」 | ✅（v0.2.17 已安装到 /Applications） |
+| 错误新鲜度：过期错误自愈，不压制新工作 | ✅（v0.2.17 已安装到 /Applications） |
 
 ## 9. 仍需人工补验
 
 以下项目在 `DEVELOPMENT.md` 中仍明确保留为人工检查，不应被后续 AI 误报为已经完全验证：
 
 - 连接真实 Harness 后逐一触发非空闲状态，确认状态、气泡和动作匹配。
+- **（2026-08-30 修复后重点）多线程场景**：两个以上线程并发运行（含子代理），
+  ① 一个线程出错 → 宠物「出错了」→ 重启该线程 → 应立刻变「思考中」；
+  ② 回答 `ask_user_question` / 审批，分别测试 15 秒内作答与超过 15 秒作答，
+  宠物都应离开「做出你的抉择」/「等待你的授权」；③ 子代理完成不再触发「搞定啦」庆祝。
 - 实际左右拖动，确认方向、反向切换、松手恢复和 60/120/200 px 手感。
 - 菜单栏“显示/隐藏桌面宠物”。
 - 沙盒环境下全局鼠标监视器与 `.hover` 点击穿透恢复。
@@ -240,6 +249,10 @@ moodball.moodColor.<mood>
   - 状态映射、气泡、完成 transient、断连自定义颜色、双击动作与主窗口回调、显隐、气泡底部锚点。
 - `DeepSeek HarnessTests/XiaoyuSpriteTests.swift`
   - mood 到图集 row、逐帧时长、播放策略、整行显示倍率、空闲挥手覆盖、拖拽方向阈值、奔跑循环、两张 Bundle 图集的尺寸/透明度/占用。
+- `DeepSeek HarnessTests/ActivityReducerTests.swift`（状态域）
+  - 单/多 Session 优先级、turn 边界清门、**错误新鲜度窗口**（过期错误不压制其它线程的运行；运行中错误不受窗口限制）。
+- `DeepSeek HarnessTests/HarnessEventMappingTests.swift`（协议映射域）
+  - emit / waterfall / cancel 映射、**子会话（parentSessionId）过滤**（added / status / error / removed 全部忽略、基线登记）。
 
 常用验证命令：
 

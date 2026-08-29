@@ -9,6 +9,15 @@ import Foundation
 ///
 /// ⚠️ 上游处于快速迭代阶段（旧版 `host.describe` / `events.mux` / `events.host`
 /// 已在 dsh-v0.1.2-alpha.1 移除）；协议版本化时只修改本层。
+/// 协议端点（规格 16：集中管理，防止散落代码）。
+///
+/// Wire contract 已对照上游 `dsh-v0.1.2-alpha.1` 源码确认：
+/// - `packages/api/gateway/src/stream-protocol.ts`（remote.mux / $events）；
+/// - `packages/client/connection/src/client/rpc.ts`（`POST /api/<endpoint>` 信封）；
+/// - `packages/api/session-controller/src`（`session/list` 与事件名）。
+///
+/// ⚠️ 上游处于快速迭代阶段（旧版 `host.describe` / `events.mux` / `events.host`
+/// 已在 dsh-v0.1.2-alpha.1 移除）；协议版本化时只修改本层。
 enum HarnessProtocolPath {
     /// RPC 频道前缀：每个调用是 `POST /api/<namespace>/<method>`。
     static let api = "/api"
@@ -16,8 +25,6 @@ enum HarnessProtocolPath {
     static let remoteMux = "/api/remote.mux"
     /// Gateway 内部事件流逻辑端点（open 消息的 `endpoint` 字段值）。
     static let remoteEventStreamEndpoint = "$events"
-    /// Client Remote Event 结果 RPC 的 endpoint（`POST /api/$events/result`）。
-    static let remoteEventResultEndpoint = "$events/result"
     /// Session 基线 RPC 的 endpoint（`POST /api/session/list`）。
     static let sessionListEndpoint = "session/list"
 }
@@ -35,10 +42,20 @@ struct HarnessHandshakeInfo: Equatable, Sendable {
 ///
 /// 解码原则（规格 19）：Parse what we need, ignore what we do not need。
 /// 上游 `SessionSummary` 为必填 `running`；宽容起见仍按 Optional 处理。
+/// `parentSessionId` 标识子会话（subagent）——adapter 据此过滤一次性子会话，
+/// 避免其错误 / 完成永久污染全局宠物状态。
 struct HarnessSessionSummary: Decodable, Equatable, Sendable {
     let sessionId: String
     let running: Bool?
     let updatedAt: Double?
+    let parentSessionId: String?
+
+    init(sessionId: String, running: Bool?, updatedAt: Double?, parentSessionId: String? = nil) {
+        self.sessionId = sessionId
+        self.running = running
+        self.updatedAt = updatedAt
+        self.parentSessionId = parentSessionId
+    }
 }
 
 /// `session/list` 响应值。
@@ -102,27 +119,5 @@ struct HarnessRPCSessionListArgs: Encodable, Sendable {
 
     init() {
         self._request = HarnessRPCArgsEmpty()
-    }
-}
-
-/// `$events/result` 的 args：观察者对每个 waterfall 交付固定应答 `next`
-/// （放行给 Host 瀑布链的下一个监听者——审批 UI 等——绝不代替用户做决定）。
-struct HarnessRPCEventResultArgs: Encodable, Sendable {
-    let clientId: String
-    let eventId: String
-    let outcome: Outcome
-
-    init(clientId: String, eventId: String) {
-        self.clientId = clientId
-        self.eventId = eventId
-        self.outcome = Outcome()
-    }
-
-    struct Outcome: Encodable, Sendable {
-        let kind: String
-
-        init() {
-            self.kind = "next"
-        }
     }
 }

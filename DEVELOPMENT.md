@@ -101,8 +101,9 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 > 当前握手 = 认证交换（GET token URL 换持久 cookie）+ `POST /api/session/list`
 > （可达性探测 + session 基线）；事件流 = `/api/remote.mux` WebSocket 上的
 > `$events` 逻辑流（`api-session/*` emit + `approval/request`、
-> `user-questions/request` waterfall 观察者应答 `next`）。运行版本无 RPC 可读，
-> 保持 unknown。上表保留为历史记录。
+> `user-questions/request` waterfall **纯观察、不应答 `next`**——web UI 客户端
+> 作答后以 cancel 帧终结，App 据此得到 resolved；子会话（subagent）事件按
+> `parentSessionId` 过滤）。运行版本无 RPC 可读，保持 unknown。上表保留为历史记录。
 - [x] Test 通过（41 个，含 resolver / 宽松解码 / transport mock 16 个新测试）
 
 ### Phase 4 — WebSocket Event Layer ✅（实现完成，冒烟通过）

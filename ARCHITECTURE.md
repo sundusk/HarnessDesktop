@@ -166,7 +166,7 @@
 |------|------|------|
 | `Harness/Discovery` | 探测 loopback 端点（短超时 HTTP，2xx/3xx 即存在） | 扫进程、读 shell、读 `~/.dsh`、执行命令 |
 | `Harness/Web` | 承载官方 Web UI；导航策略；Reload；Open in Browser | 注入 JS、改 DOM/CSS、hook fetch/WebSocket、按 DOM 推断状态 |
-| `Harness/Compatibility` | 认证交换 + `session/list` 基线握手 / `remote.mux` 事件帧解析 / waterfall 观察者应答 / `HarnessVersion`（统一 Version Model） | 把上游 wire model 泄漏到上层 |
+| `Harness/Compatibility` | 认证交换 + `session/list` 基线握手 / `remote.mux` 事件帧解析 / waterfall 纯观察（不应答，cancel 帧即 resolved）+ 子会话（subagent）事件过滤 / `HarnessVersion`（统一 Version Model） | 把上游 wire model 泄漏到上层 |
 | `Harness/Runtime`（2.0） | Environment Doctor / 双源 Version Service / Runtime State / Update Status / RuntimeManagerClient | 混淆 GitHub release 与 npm installable；写非 App-owned 路径 |
 | `RuntimeHelper`（2.0） | XPC Service target：强类型能力接口 / 调用方身份校验 / 所有权验证 | 任意命令 / 任意 shell / 访问用户数据 |
 | `Domain` | 连接状态 / 端点 / 活动 / 所有权模型 | 不包含 Presentation 逻辑 |

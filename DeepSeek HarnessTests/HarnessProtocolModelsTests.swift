@@ -32,7 +32,9 @@ final class HarnessProtocolModelsTests: XCTestCase {
         XCTAssertEqual(envelope.result.value?.items.count, 2)
         XCTAssertEqual(envelope.result.value?.items[0].sessionId, "s1")
         XCTAssertEqual(envelope.result.value?.items[0].running, true)
+        XCTAssertEqual(envelope.result.value?.items[0].parentSessionId, nil)
         XCTAssertEqual(envelope.result.value?.items[1].running, false)
+        XCTAssertEqual(envelope.result.value?.items[1].parentSessionId, "s1")
     }
 
     /// 上游新增未知字段仍必须正常解析。
@@ -107,20 +109,6 @@ final class HarnessProtocolModelsTests: XCTestCase {
         XCTAssertEqual(args.count, 1)
         XCTAssertNotNil(args["_request"])
         XCTAssertEqual((args["_request"] as! [String: Any]).count, 0)
-    }
-
-    /// waterfall 应答 args：固定 `{clientId, eventId, outcome:{kind:"next"}}`。
-    func testEventResultArgsEncoding() throws {
-        let request = HarnessRPCRequest(
-            method: HarnessProtocolPath.remoteEventResultEndpoint,
-            args: HarnessRPCEventResultArgs(clientId: "c1", eventId: "e1")
-        )
-        let json = try JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as! [String: Any]
-        XCTAssertEqual(json["method"] as? String, "$events/result")
-        let args = (json["payload"] as! [String: Any])["args"] as! [String: Any]
-        XCTAssertEqual(args["clientId"] as? String, "c1")
-        XCTAssertEqual(args["eventId"] as? String, "e1")
-        XCTAssertEqual((args["outcome"] as! [String: Any])["kind"] as? String, "next")
     }
 
     // MARK: - HarnessJSONValue

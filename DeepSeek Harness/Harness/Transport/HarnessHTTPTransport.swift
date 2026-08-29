@@ -60,47 +60,6 @@ struct HarnessHTTPTransport: Sendable {
         return value.items
     }
 
-    /// `POST /api/$events/result`：waterfall 应答，outcome 固定 `next`（纯观察者）。
-    ///
-    /// Gateway 语义：全部客户端放行后才向 Host 瀑布链下游传递；桌面 App 不代替
-    /// 用户做审批 / 答题。服务器端幂等；失败只记录，绝不抛出拖垮事件循环。
-    func sendEventResult(endpoint: HarnessEndpoint, clientId: String, eventId: String) async {
-        do {
-            let request = HarnessRPCRequest(
-                method: HarnessProtocolPath.remoteEventResultEndpoint,
-                args: HarnessRPCEventResultArgs(clientId: clientId, eventId: eventId)
-            )
-            let url = endpoint.baseURL.appendingPathComponent(
-                "api/\(HarnessProtocolPath.remoteEventResultEndpoint)"
-            )
-            var urlRequest = URLRequest(url: url)
-            urlRequest.httpMethod = "POST"
-            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            urlRequest.timeoutInterval = 5
-            urlRequest.httpBody = try JSONEncoder().encode(request)
-            let (data, response) = try await session.data(for: urlRequest)
-            guard let http = response as? HTTPURLResponse else {
-                throw HarnessTransportError.invalidResponse
-            }
-            guard (200..<300).contains(http.statusCode) else {
-                throw HarnessTransportError.unexpectedStatus(http.statusCode)
-            }
-            let envelope = try? JSONDecoder().decode(
-                HarnessRPCEnvelope.Response<HarnessRPCEmptyValue>.self, from: data
-            )
-            if let envelope, envelope.result.ok == false {
-                AppLogger.compatibility.debug(
-                    "事件应答被 Harness 拒绝：\(envelope.result.error?.message ?? "unknown", privacy: .public)"
-                )
-            }
-        } catch {
-            // 幂等观察者应答：失败不影响事件流，只留非敏感日志。
-            AppLogger.compatibility.debug(
-                "事件应答发送失败：\(String(describing: error), privacy: .public)"
-            )
-        }
-    }
-
     // MARK: - Private
 
     /// 通用 RPC 调用：POST 信封 → 校验 2xx → 解码响应 → 校验 ok → 取 value。

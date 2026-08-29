@@ -18,6 +18,13 @@ import Foundation
 /// Presentation 层（MenuBar / Notification / Dock / Pet）只允许依赖
 /// `HarnessActivityState`，禁止自己实现优先级。
 struct ActivityReducer: Sendable {
+    /// 错误进入全局状态的新鲜度窗口（秒）。
+    ///
+    /// 错误是「turn 级」的瞬态事件：任务失败后宠物需要足够时间展示「出错了」，
+    /// 但旧错误不能永久压制新工作。turn 结束后超过该窗口的错误视为过期，
+    /// 不再参与全局优先级（同一 session 重新开工时仍然立即清除）。
+    static let errorHoldDuration: TimeInterval = 30
+
     private(set) var sessions: [String: SessionRuntimeState] = [:]
     private(set) var completions: [HarnessCompletionEvent] = []
 
@@ -51,12 +58,13 @@ struct ActivityReducer: Sendable {
             if running {
                 // 新一轮工作开始，视作错误已处理。
                 session.lastError = nil
+                session.lastErrorAt = nil
             }
             if !running {
                 // Turn 结束：审批 / 提问门不可能跨 turn 存活（agent 在门上冻结，
-                // 门被认领或中止后 turn 才可能结束）。新协议（dsh v0.1.2 起）的
-                // waterfall 没有独立的 resolved 推送，观察者在延迟应答后无法再
-                // 收到 cancel 帧——以 turn 边界作为门的确定性清除点。
+                // 门被认领或中止后 turn 才可能结束）。正常路径下 cancel 帧已经
+                // 清除门计数；此处作为最后兜底——断线 / 重连等极端情况下门
+                // 以 turn 边界为确定性清除点。
                 session.pendingApprovalCount = 0
                 session.pendingQuestionCount = 0
             }
@@ -91,10 +99,12 @@ struct ActivityReducer: Sendable {
             guard var session = sessions[sessionID] else {
                 var created = SessionRuntimeState(id: sessionID, now: now)
                 created.lastError = message
+                created.lastErrorAt = now
                 sessions[sessionID] = created
                 return
             }
             session.lastError = message
+            session.lastErrorAt = now
             session.lastUpdatedAt = now
             sessions[sessionID] = session
 
@@ -111,9 +121,17 @@ struct ActivityReducer: Sendable {
 
     /// 全局活动状态（规格 8 优先级）。连接状态不在此判断——
     /// 连接不存在时的 `.disconnected` 由 Integration 层映射。
-    func globalState() -> HarnessActivityState {
+    ///
+    /// - Parameter now: 可注入时钟（测试用）；默认当前时间。
+    ///   错误只在该 session 仍运行或处于 `errorHoldDuration` 新鲜度窗口内时
+    ///   参与优先级——过期错误不压制其它 session 的审批 / 提问 / 运行状态。
+    func globalState(now: Date = Date()) -> HarnessActivityState {
         for session in sessions.values where session.lastError != nil {
-            return .error(message: session.lastError)
+            let fresh = session.isRunning
+                || now.timeIntervalSince(session.lastErrorAt ?? .distantPast) <= Self.errorHoldDuration
+            if fresh {
+                return .error(message: session.lastError)
+            }
         }
         for session in sessions.values where session.pendingApprovalCount > 0 {
             return .waitingForApproval
