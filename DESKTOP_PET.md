@@ -15,7 +15,7 @@
 - **协议适配（2026-08-29）**：Harness 侧 dsh-v0.1.2-alpha.1（commit `dcddaa1a6e`）移除了旧版 `host.describe` / `/api/events.mux` / `/api/events.host`，导致宠物曾无法随状态变化（永远 idle/disconnected）。App 的 `Harness/Compatibility` 层已迁移到新协议：认证交换（GET token URL 换持久 cookie，HTTP 与 WebSocket 共享 CookieStore）+ `POST /api/session/list` 握手与基线 + `/api/remote.mux` `$events` 事件流（`api-session/*` emit；`approval/request`、`user-questions/request` waterfall 由 App 观察后应答 `next`，`cancel` 帧映射为 resolved）。运行版本无 RPC 可读，App 按仓库 AGENTS.md 约束保持 unknown。
 - **waterfall 解决语义（2026-08-29 修复）**：新协议的 waterfall 没有独立 resolved 推送，且观察者应答 `next` 后即被移出投递列表、不再收到 `cancel`——宠物曾卡死在「做出你的抉择」。修复为双保险：① App 对 waterfall 延迟 15s 应答 `next`（窗口内收到 `cancel` 即映射 resolved 并取消应答；超时必答，绝不挂起 Host 瀑布链）；② `ActivityReducer` 在 turn 结束（`running=false`）清除该 session 的审批/提问门计数（门不可能跨 turn 存活）。
 
-截至最后核验：当前源码完整测试 **285/285 通过**（2026-08-29，Debug test + Universal 构建验证），Release 构建已通过；拖拽奔跑视觉 QA **97/100，通过**。协议迁移与既有未发布改动已随 **v0.2.15** 发布，且 `/Applications/DeepSeek Harness.app` 已更新为 v0.2.15。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
+截至最后核验：当前源码完整测试 **289/289 通过**（2026-08-29，Debug test + Universal 构建验证），Release 构建已通过；拖拽奔跑视觉 QA **97/100，通过**。协议迁移主体随 v0.2.15 构建落地；waterfall 门卡死修复构建为 v0.2.16 并已安装到 `/Applications/DeepSeek Harness.app`。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
 
 ## 2. 架构与数据流
 
@@ -216,7 +216,7 @@ moodball.moodColor.<mood>
 | 资源、状态、时序、持久化、底部锚点单测 | ✅ |
 | 深浅背景、60/120/200 px、动作联系表视觉检查 | ✅ |
 | 当前源码 Universal Release、签名和双架构验证 | ✅（2026-08-23） |
-| 双击展开主 App 的发布与正式安装 | ✅（v0.2.15 已发布并安装到 /Applications） |
+| 双击展开主 App 的发布与正式安装 | ✅（v0.2.16 已安装到 /Applications） |
 
 ## 9. 仍需人工补验
 
