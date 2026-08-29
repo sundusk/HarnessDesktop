@@ -157,7 +157,7 @@ final class HarnessUpdateTransactionTests: XCTestCase {
         XCTAssertEqual(result, .failed(.rollbackFailed))
     }
 
-    // MARK: - verifyHarnessVersion（host.describe 版本校验；用不可达端口快速失败）
+    // MARK: - verifyHarnessVersion（新协议无版本 RPC：退化为可达性校验；用不可达端口快速失败）
 
     func testVerifyHarnessVersionReturnsFalseWhenUnreachable() async {
         struct NoDiscovery: HarnessDiscovering {

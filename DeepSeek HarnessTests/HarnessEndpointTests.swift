@@ -41,6 +41,19 @@ final class HarnessEndpointTests: XCTestCase {
         XCTAssertNil(HarnessEndpoint(validating: URL(string: "file:///tmp/x")!))
     }
 
+    func testAuthenticatedURLKeepsTokenOnlyForBrowserEntry() throws {
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:3080/?token=launch-secret"))
+        let endpoint = try XCTUnwrap(HarnessEndpoint(authenticatedURL: url))
+
+        XCTAssertEqual(endpoint.baseURL.absoluteString, "http://127.0.0.1:3080/")
+        XCTAssertEqual(endpoint.browserURL, url)
+    }
+
+    func testAuthenticatedURLRejectsMissingOrNonLoopbackToken() {
+        XCTAssertNil(HarnessEndpoint(authenticatedURL: URL(string: "http://127.0.0.1:3080/")!))
+        XCTAssertNil(HarnessEndpoint(authenticatedURL: URL(string: "http://example.com:3080/?token=secret")!))
+    }
+
     func testEquality() {
         let a = HarnessEndpoint(host: "127.0.0.1", port: 3080)
         let b = HarnessEndpoint(host: "127.0.0.1", port: 3080)

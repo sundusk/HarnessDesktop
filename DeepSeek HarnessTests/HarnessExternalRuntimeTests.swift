@@ -31,6 +31,7 @@ private final class RuntimeTestProcessHandle: HarnessRuntimeProcessHandle, @unch
     private(set) var running = true
 
     init(pid: Int32 = 4242) { self.pid = pid }
+    func authenticatedURL() -> URL? { nil }
     func interrupt() { running = false }
     func terminate() { running = false }
     func kill() { running = false }

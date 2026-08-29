@@ -88,7 +88,7 @@
 **理由**：
 - 同源加载保证与 `/api` 的一致性，最大限度兼容官方皮肤与第三方插件；
 - 官方 Web UI 升级后无需同步重写前端；
-- Native 协议（`/api/events.host`、`/api/events.mux` 等）属于易变上游契约，只允许存在于 Compatibility / Transport 层，且其失败不能影响 Web 核心。
+- Native 协议（`/api` RPC、`/api/remote.mux` 事件流等）属于快速迭代的易变上游契约（旧版 `host.describe` / `events.mux` / `events.host` 已在 dsh-v0.1.2-alpha.1 移除），只允许存在于 Compatibility / Transport 层，且其失败不能影响 Web 核心。
 
 ### ADR-004 — Attach First remains authoritative（2.0）
 
@@ -144,7 +144,7 @@
 
 **背景**：更新失败若直接覆盖当前版本，用户会失去可运行版本。
 
-**决策**：更新必须显式（用户确认界面）且事务化：`PrepareCandidate(latest)` → `StopCurrent` → `LaunchCandidate` → health check（host.describe 验证）→ `Commit managedVersion`。在新版本成功启动并通过验证之前不删除 previous version / cache；candidate 启动失败则尝试恢复 previous working version。
+**决策**：更新必须显式（用户确认界面）且事务化：`PrepareCandidate(latest)` → `StopCurrent` → `LaunchCandidate` → health check → `Commit managedVersion`。新协议（dsh v0.1.2 起）没有版本 RPC，health check 退化为 `session/list` 可达性校验；在新版本成功启动并通过验证之前不删除 previous version / cache；candidate 启动失败则尝试恢复 previous working version。
 
 **理由**：不允许「先覆盖再下载、失败后无版本可用」的破坏性更新。
 
@@ -152,7 +152,7 @@
 
 **背景**：DeepSeek Harness 的 GitHub prerelease 可能早于 npm `dist-tags.latest` 发布。把 npm 同时当成“官方最新”和“可安装最新”会漏报 Release；反过来直接安装 GitHub 版本会在 npm 尚未同步时失败。
 
-**决策**：版本系统固定为三个概念：`runningVersion` 只来自当前连接实例的 Compatibility Handshake（`host.describe.version`）；`latestReleaseVersion` 来自 GitHub `releases?per_page=20`，决定是否存在官方新版本；`latestInstallableVersion` 来自 npm Registry，决定 Managed Runtime 能否准备、启动或更新到该 exact 版本。两个网络源拥有独立的 6 小时缓存、节流和 single-flight。无法获取 `runningVersion` 时必须显示未知，绝不以 npm、npx、本地安装目录或 Managed Runtime 版本替代。
+**决策**：版本系统固定为三个概念：`runningVersion` 原则上只来自当前连接实例的握手；新协议（dsh v0.1.2 起）删除了 `host.describe` 且没有替代的版本 RPC，因此 `runningVersion` 恒为未知并如实显示，绝不以 npm、npx、本地安装目录或 Managed Runtime 版本替代。`latestReleaseVersion` 来自 GitHub `releases?per_page=20`，决定是否存在官方新版本；`latestInstallableVersion` 来自 npm Registry，决定 Managed Runtime 能否准备、启动或更新到该 exact 版本。两个网络源拥有独立的 6 小时缓存、节流和 single-flight。
 
 **安全边界**：所有 Managed Runtime 候选版本只允许经过 `latestManagedCandidateVersion()`，该入口仅消费 npm installable。GitHub-only Release 可以展示，但更新按钮必须禁用。App 自身的 `AppUpdateChecker` / `GitHubLatestReleaseProvider` 是另一套更新体系，不参与 Harness 版本判断。
 
@@ -166,7 +166,7 @@
 |------|------|------|
 | `Harness/Discovery` | 探测 loopback 端点（短超时 HTTP，2xx/3xx 即存在） | 扫进程、读 shell、读 `~/.dsh`、执行命令 |
 | `Harness/Web` | 承载官方 Web UI；导航策略；Reload；Open in Browser | 注入 JS、改 DOM/CSS、hook fetch/WebSocket、按 DOM 推断状态 |
-| `Harness/Compatibility` | `host.describe` 握手 / 事件帧解析 / `HarnessVersion`（统一 Version Model） | 把上游 wire model 泄漏到上层 |
+| `Harness/Compatibility` | 认证交换 + `session/list` 基线握手 / `remote.mux` 事件帧解析 / waterfall 观察者应答 / `HarnessVersion`（统一 Version Model） | 把上游 wire model 泄漏到上层 |
 | `Harness/Runtime`（2.0） | Environment Doctor / 双源 Version Service / Runtime State / Update Status / RuntimeManagerClient | 混淆 GitHub release 与 npm installable；写非 App-owned 路径 |
 | `RuntimeHelper`（2.0） | XPC Service target：强类型能力接口 / 调用方身份校验 / 所有权验证 | 任意命令 / 任意 shell / 访问用户数据 |
 | `Domain` | 连接状态 / 端点 / 活动 / 所有权模型 | 不包含 Presentation 逻辑 |

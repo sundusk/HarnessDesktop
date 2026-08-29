@@ -82,8 +82,8 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 | 0 | 项目骨架（App target / Sandbox / 测试 target / 文档） | ✅ |
 | 1 | Attach + WKWebView（发现 / 未运行页 / 导航策略 / Reload / Open in Browser） | ✅ |
 | 2 | 原生窗口体验（窗口恢复 / Menu Bar / Settings） | ✅ |
-| 3 | Native Handshake（`host.describe` / Transport / Adapter / Compatibility Resolver，降级不阻断 Web UI） | ✅ |
-| 4 | WebSocket Event Layer（`events.mux` / `events.host`，退避重连 / 宽松解码 / Domain Event 映射） | ✅ |
+| 3 | Native Handshake（认证交换 + `session/list`；旧 `host.describe` 已随 dsh-v0.1.2-alpha.1 移除，降级不阻断 Web UI） | ✅ |
+| 4 | WebSocket Event Layer（`/api/remote.mux` `$events`，退避重连 / 宽松解码 / Domain Event 映射 / waterfall 观察者应答） | ✅ |
 | 5 | ActivityReducer（多 Session / 全局活动状态优先级 / transient completion） | ✅ |
 | 6 | Notifications（approval/question 立即、完成/错误通知、debounce/dedupe） | ✅ |
 | 7 | 桌面宠物（默认小雨、心情球回退；状态来自 Native 活动状态） | ✅ |

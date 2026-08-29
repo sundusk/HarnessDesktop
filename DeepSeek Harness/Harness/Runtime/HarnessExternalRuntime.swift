@@ -339,6 +339,8 @@ struct HarnessRuntimeDetector: @unchecked Sendable {
 
 protocol HarnessRuntimeProcessHandle: Sendable {
     var pid: Int32 { get }
+    /// 从 stdout/stderr 捕获的认证入口；token 只在内存中流转。
+    func authenticatedURL() -> URL?
     func interrupt()
     func terminate()
     func kill()
@@ -384,8 +386,12 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
     let process: Process
     let pid: Int32
     private let output: FileHandle
+    private let outputPipe: Pipe
     private let lock = NSLock()
     private var didCloseOutput = false
+    private var outputBuffer = ""
+    private var logBuffer = ""
+    private var authenticatedURLValue: URL?
 
     init(executable: URL, arguments: [String], currentDirectory: URL?, logURL: URL) throws {
         try FileManager.default.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -396,8 +402,9 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
         process.arguments = arguments
         process.currentDirectoryURL = currentDirectory
         process.environment = HarnessExecutableLocator.environment(for: executable)
-        process.standardOutput = output
-        process.standardError = output
+        let outputPipe = Pipe()
+        process.standardOutput = outputPipe
+        process.standardError = outputPipe
         do {
             try process.run()
         } catch {
@@ -407,6 +414,16 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
         self.process = process
         self.pid = process.processIdentifier
         self.output = output
+        self.outputPipe = outputPipe
+        self.authenticatedURLValue = nil
+        outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
+            let data = handle.availableData
+            guard !data.isEmpty else {
+                handle.readabilityHandler = nil
+                return
+            }
+            self?.consumeOutput(data)
+        }
         // 该进程组由本次启动拥有，停止时只向此 pid 的组发信号。
         _ = setpgid(pid, pid)
     }
@@ -415,6 +432,7 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
     func terminate() { signal(SIGTERM) }
     func kill() { signal(SIGKILL) }
     func isRunning() -> Bool { process.isRunning }
+    func authenticatedURL() -> URL? { lock.withLock { authenticatedURLValue } }
 
     private func signal(_ signal: Int32) {
         guard process.isRunning else { return }
@@ -429,7 +447,63 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
         }
     }
 
-    deinit { closeOutput() }
+    deinit {
+        outputPipe.fileHandleForReading.readabilityHandler = nil
+        closeOutput()
+    }
+
+    private func consumeOutput(_ data: Data) {
+        lock.withLock {
+            guard let text = String(data: data, encoding: .utf8) else {
+                try? output.write(contentsOf: data)
+                return
+            }
+            logBuffer.append(text)
+            let logLines = logBuffer.components(separatedBy: .newlines)
+            logBuffer = logLines.last ?? ""
+            for line in logLines.dropLast() {
+                try? output.write(contentsOf: Data((Self.redactAuthenticationURL(line) + "\n").utf8))
+            }
+            outputBuffer.append(text)
+            let lines = outputBuffer.components(separatedBy: .newlines)
+            outputBuffer = lines.last ?? ""
+            for line in lines.dropLast() {
+                guard authenticatedURLValue == nil,
+                      let marker = line.range(of: "dsh web:") else { continue }
+                let printed = line[marker.upperBound...]
+                    .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+                    .first
+                    .map(String.init)
+                guard let printed,
+                      let url = URL(string: printed),
+                      let endpoint = HarnessEndpoint(authenticatedURL: url) else { continue }
+                authenticatedURLValue = endpoint.authenticatedURL ?? url
+            }
+        }
+    }
+
+    private static func redactAuthenticationURL(_ line: String) -> String {
+        guard let marker = line.range(of: "dsh web:") else { return line }
+        let suffix = line[marker.upperBound...]
+        guard let printed = suffix
+            .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            .first,
+              let url = URL(string: String(printed)),
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.queryItems?.contains(where: { $0.name == "token" }) == true else {
+            return line
+        }
+        components.queryItems = components.queryItems?.map { item in
+            item.name == "token" ? URLQueryItem(name: item.name, value: "[redacted]") : item
+        }
+        guard let redactedURL = components.url?.absoluteString,
+              let printedRange = suffix.range(of: printed) else {
+            return line
+        }
+        var result = line
+        result.replaceSubrange(printedRange, with: redactedURL)
+        return result
+    }
 
     private func closeOutput() {
         lock.withLock {
@@ -450,6 +524,7 @@ protocol HarnessRuntimeControlling: Sendable {
     func stop() async throws
     func restart() async throws -> HarnessRuntimeProcessRecord
     func status() async -> HarnessExternalRuntimeStatus
+    func activeEndpoint() async -> HarnessEndpoint?
     func update(discovery: any HarnessDiscovering) async
 }
 
@@ -472,6 +547,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
     private var lastPort = 3080
     private var monitorTask: Task<Void, Never>?
     private var sourceAccessURL: URL?
+    private var activeEndpointValue: HarnessEndpoint?
 
     init(discovery: any HarnessDiscovering,
          detector: HarnessRuntimeDetector = HarnessRuntimeDetector(),
@@ -490,6 +566,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         self.lastSourcePath = self.configurationValue.sourcePath
         self.lastPort = self.configurationValue.port
         self.sourceAccessURL = nil
+        self.activeEndpointValue = nil
     }
 
     func detect() async -> HarnessRuntimeInventory {
@@ -527,6 +604,10 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
             return .running(record)
         }
         return activeRecord == nil ? .stopped : .stopped
+    }
+
+    func activeEndpoint() async -> HarnessEndpoint? {
+        activeEndpointValue
     }
 
     func start(mode: HarnessRuntimeMode, sourcePath: String?, port: Int) async throws -> HarnessRuntimeProcessRecord {
@@ -567,6 +648,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         let record = HarnessRuntimeProcessRecord(pid: process.pid, mode: mode, startedAt: Date(), logPath: logURL.path)
         activeProcess = process
         activeRecord = record
+        activeEndpointValue = nil
         lastMode = mode
         lastSourcePath = validatedSourcePath?.path ?? sourcePath
         lastPort = port
@@ -578,7 +660,15 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         monitorTask = monitor(process: process)
 
         for _ in 0..<60 {
-            if await discovery.discover() != nil {
+            if let authenticatedURL = process.authenticatedURL(),
+               let endpoint = HarnessEndpoint(authenticatedURL: authenticatedURL) {
+                discovery = LocalHarnessDiscovery(endpoint: endpoint)
+                activeEndpointValue = endpoint
+            }
+            if let discoveredEndpoint = await discovery.discover() {
+                if activeEndpointValue == nil {
+                    activeEndpointValue = discoveredEndpoint
+                }
                 AppLogger.runtimeProcess.info("外部 Harness 已启动：mode=\(mode.rawValue, privacy: .public) pid=\(process.pid, privacy: .public) port=\(port, privacy: .public)")
                 return record
             }
@@ -648,6 +738,7 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         guard activeProcess?.pid == process.pid else { return }
         activeProcess = nil
         activeRecord = nil
+        activeEndpointValue = nil
     }
 
     private func normalizedSourceURL(from url: URL) throws -> URL {

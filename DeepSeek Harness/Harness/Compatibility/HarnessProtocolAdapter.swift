@@ -51,14 +51,23 @@ enum HarnessStreamState: Equatable, Sendable {
     case reconnecting
 }
 
-/// 通用适配器：`host.describe` 握手 + 双事件流（mux / host）消费。
+/// 通用适配器：认证交换 + `session/list` 基线 + `$events` 事件流消费。
 ///
-/// - 流断开后按退避策略自动重连：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（+少量 jitter）；
-/// - 单条坏帧跳过，绝不拖垮整个流（规格 19）；
-/// - 双流独立重连，任一流恢复后自动继续（Harness 重启后能够恢复）。
+/// Wire contract 对照上游 `dsh-v0.1.2-alpha.1`（旧版 `host.describe` /
+/// `events.mux` / `events.host` 已在该版本移除）：
 ///
-/// `@unchecked Sendable` 理由：所有成员均为 Sendable 值类型，
-/// 可变状态（`_harnessInfo`、`_streamState`、`_openStreams`）由 `NSLock` 保护。
+/// - 握手 = 认证交换 + `session/list` 成功（同时验证认证、路由与协议版本）；
+/// - 事件流 = `/api/remote.mux` WebSocket 上的 `$events` 逻辑流；
+/// - `emit` 帧 → Domain Event；`waterfall` 帧 → requested 事件 + 应答 `next`
+///   （纯观察者，绝不代替用户审批/答题；全部客户端放行后 Host 链才继续）；
+/// - `cancel` 帧 → 对应 resolved 事件（被认领 / 全员放行 / 撤销都终结为 cancel）；
+/// - 流断开后按退避策略自动重连：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（+少量 jitter），
+///   每次（重）连补拉一次 session 基线（emit 不回放）；
+/// - 单条坏帧跳过，绝不拖垮整个流（规格 19）。
+///
+/// `@unchecked Sendable` 理由：可变状态（`_handshakeInfo`、`_clientId`、
+/// `_streamState`、`_pendingWaterfalls`）中仅流转计数与心跳在锁外，
+/// 共享状态全部由 `NSLock` 保护。
 final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     var supportedVersionRange: ClosedRange<String>? { nil }
 
@@ -69,9 +78,11 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     private let eventsContinuation: AsyncStream<HarnessDomainEvent>.Continuation
 
     private let lock = NSLock()
-    private var _harnessInfo: HarnessDescribeInfo?
+    private var _handshakeInfo: HarnessHandshakeInfo?
+    private var _clientId: String?
     private var _streamState: HarnessStreamState = .disconnected
-    private var _openStreams: Set<String> = []
+    /// 待决 waterfall：eventId → (事件名, agentId)。仅在事件消费循环内读写。
+    private var pendingWaterfalls: [String: (event: String, agentId: String?)] = [:]
 
     private var streamsTask: Task<Void, Never>?
 
@@ -80,8 +91,8 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         .milliseconds(500), .seconds(1), .seconds(2), .seconds(4), .seconds(8), .seconds(10), .seconds(10),
     ]
 
-    var harnessInfo: HarnessDescribeInfo? {
-        lock.withLock { _harnessInfo }
+    var handshakeInfo: HarnessHandshakeInfo? {
+        lock.withLock { _handshakeInfo }
     }
 
     var streamState: HarnessStreamState {
@@ -92,23 +103,39 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
          transport: HarnessHTTPTransport = HarnessHTTPTransport(),
          webSocketTransport: HarnessWebSocketTransport = HarnessWebSocketTransport()) {
         self.endpoint = endpoint
-        self.transport = transport
-        self.webSocketTransport = webSocketTransport
+        if endpoint.authenticatedURL != nil,
+           transport.session === URLSession.shared,
+           webSocketTransport.session === URLSession.shared {
+            // HTTP 的认证交换必须与 WebSocket 共用 Cookie 存储；否则 native 握手虽成功，
+            // 事件流仍会被 Harness 的认证栅栏拒绝。
+            let session = URLSession(configuration: .default)
+            self.transport = HarnessHTTPTransport(session: session)
+            self.webSocketTransport = HarnessWebSocketTransport(session: session)
+        } else {
+            self.transport = transport
+            self.webSocketTransport = webSocketTransport
+        }
         (eventsStream, eventsContinuation) = AsyncStream.makeStream(of: HarnessDomainEvent.self)
     }
 
-    /// Compatibility Handshake：`host.describe` 成功 → 打开 mux / host 双事件流。
+    /// Compatibility Handshake：认证交换 + session 基线成功 → 打开 `$events` 流。
     func connect() async throws {
-        let info = try await transport.describe(endpoint: endpoint)
-        lock.withLock { _harnessInfo = info }
-        startEventStreams()
+        try await transport.authenticate(endpoint: endpoint)
+        // 新协议没有 host.describe：session/list 同时充当协议可达性探测与基线来源。
+        let baseline = try await transport.listSessions(endpoint: endpoint)
+        lock.withLock {
+            _handshakeInfo = HarnessHandshakeInfo(hostHome: nil)
+            _clientId = nil
+        }
+        startEventStreams(baseline: baseline)
     }
 
     func disconnect() async {
         streamsTask?.cancel()
         streamsTask = nil
         lock.withLock {
-            _openStreams = []
+            _clientId = nil
+            pendingWaterfalls.removeAll()
             _streamState = .disconnected
         }
         eventsContinuation.finish()
@@ -116,22 +143,97 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
 
     var events: AsyncStream<HarnessDomainEvent> { eventsStream }
 
-    // MARK: - Private
+    // MARK: - Mapping（纯函数，供单测）
 
-    private func startEventStreams() {
-        streamsTask?.cancel()
-        streamsTask = Task { [weak self] in
-            guard let self else { return }
-            await withTaskGroup(of: Void.self) { group in
-                group.addTask { await self.consumeStream(path: HarnessProtocolPath.muxEvents) }
-                group.addTask { await self.consumeStream(path: HarnessProtocolPath.hostEvents) }
-                await group.waitForAll()
+    /// session 基线 → Domain Events（added + 可选 running 同步）。
+    static func domainEvents(forSummary summary: HarnessSessionSummary) -> [HarnessDomainEvent] {
+        var events: [HarnessDomainEvent] = [.sessionAdded(id: summary.sessionId)]
+        if summary.running == true {
+            events.append(.sessionRunningChanged(id: summary.sessionId, running: true))
+        }
+        return events
+    }
+
+    /// `emit` 帧 → Domain Events。未知事件返回空数组（规格 19：忽略，不得关流）。
+    ///
+    /// 事件名与 args 形状对照上游 `packages/api/session-controller/src/index.ts`：
+    /// - `api-session/added`   `[summary{sessionId,running,...}]`
+    /// - `api-session/removed` `[sessionId]`
+    /// - `api-session/status`  `[sessionId, Bool]`（Bool = status === 'running'）
+    /// - `api-session/error`   `[sessionId, message]`
+    /// - `api-session/activity`（无领域对应，忽略）
+    static func domainEvents(forEmit event: String, args: [HarnessJSONValue]) -> [HarnessDomainEvent] {
+        switch event {
+        case "api-session/added":
+            guard let summary = args.first else { return [] }
+            guard let id = summary["sessionId"]?.stringValue else { return [] }
+            var events: [HarnessDomainEvent] = [.sessionAdded(id: id)]
+            if summary["running"]?.boolValue == true {
+                events.append(.sessionRunningChanged(id: id, running: true))
             }
+            return events
+        case "api-session/removed":
+            guard let id = args.first?.stringValue else { return [] }
+            return [.sessionRemoved(id: id)]
+        case "api-session/status":
+            guard let id = args.first?.stringValue else { return [] }
+            guard let running = args.dropFirst().first?.boolValue else { return [] }
+            return [.sessionRunningChanged(id: id, running: running)]
+        case "api-session/error":
+            guard let id = args.first?.stringValue else { return [] }
+            let message = args.dropFirst().first?.stringValue ?? "unknown"
+            return [.agentError(sessionID: id, message: message)]
+        default:
+            // 未知事件：忽略 + debug log（规格 19），不得关闭流。
+            AppLogger.compatibility.debug("未知 emit 事件：\(event, privacy: .public)")
+            return []
         }
     }
 
-    /// 单个流的消费循环：断线后按退避策略重连，直到任务取消。
-    private func consumeStream(path: String) async {
+    /// `waterfall` 交付 → Domain Event（观察者视角：开始等待 → requested）。
+    static func domainEvent(fromWaterfall event: String, agentId: String?) -> HarnessDomainEvent? {
+        guard let agentId, !agentId.isEmpty else { return nil }
+        switch event {
+        case "approval/request":
+            return .approvalRequested(sessionID: agentId)
+        case "user-questions/request":
+            return .questionRequested(sessionID: agentId)
+        default:
+            AppLogger.compatibility.debug("未知 waterfall 事件：\(event, privacy: .public)")
+            return nil
+        }
+    }
+
+    /// `cancel` 帧 → Domain Event（等待终结 → resolved）。
+    static func resolutionEvent(forWaterfall event: String, agentId: String?) -> HarnessDomainEvent? {
+        guard let agentId, !agentId.isEmpty else { return nil }
+        switch event {
+        case "approval/request":
+            return .approvalResolved(sessionID: agentId)
+        case "user-questions/request":
+            return .questionResolved(sessionID: agentId)
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - Private
+
+    private func startEventStreams(baseline: [HarnessSessionSummary]) {
+        streamsTask?.cancel()
+        // 先补基线（emit 不回放；reducer 对 sessionAdded 幂等、对 running 同步安全）。
+        for summary in baseline {
+            for event in Self.domainEvents(forSummary: summary) {
+                eventsContinuation.yield(event)
+            }
+        }
+        streamsTask = Task { [weak self] in
+            await self?.consumeEventStream()
+        }
+    }
+
+    /// 事件流消费循环：断线后按退避策略重连，直到任务取消。
+    private func consumeEventStream() async {
         var attempt = 0
         while !Task.isCancelled {
             if attempt > 0 {
@@ -142,74 +244,77 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
             attempt += 1
             guard !Task.isCancelled else { return }
 
-            AppLogger.compatibility.info("事件流连接中：\(path, privacy: .public)")
-            let stream = webSocketTransport.openStream(path: path, endpoint: endpoint) { [weak self] in
-                self?.markStreamOpened(path)
-            }
-
             do {
-                for try await frame in stream {
-                    guard !Task.isCancelled else { return }
-                    if let event = Self.mapFrame(frame) {
+                // 每次（重）连补拉基线：覆盖断线期间错过的 session 增删与状态迁移。
+                let baseline = try await transport.listSessions(endpoint: endpoint)
+                guard !Task.isCancelled else { return }
+                for summary in baseline {
+                    for event in Self.domainEvents(forSummary: summary) {
                         eventsContinuation.yield(event)
                     }
                 }
+                AppLogger.compatibility.info("事件流连接中：\(HarnessProtocolPath.remoteMux, privacy: .public)")
+                for try await frame in webSocketTransport.openEventStream(endpoint: endpoint) {
+                    guard !Task.isCancelled else { return }
+                    handle(frame: frame)
+                }
                 // 流正常结束（服务端关闭）→ 视为断开，进入重连。
-                AppLogger.compatibility.info("事件流结束，准备重连：\(path, privacy: .public)")
+                AppLogger.compatibility.info("事件流结束，准备重连")
             } catch {
-                AppLogger.compatibility.error("事件流断开：\(path, privacy: .public) \(String(describing: error), privacy: .public)")
+                AppLogger.compatibility.error(
+                    "事件流断开：\(String(describing: error), privacy: .public)"
+                )
             }
-            markStreamClosed(path)
+            markStreamClosed()
         }
     }
 
-    private func markStreamOpened(_ key: String) {
+    /// 单帧处理：ready / emit / waterfall / cancel。
+    private func handle(frame: HarnessRemoteEventFrame) {
+        switch frame {
+        case .ready(let clientId, let hostHome):
+            lock.withLock {
+                _clientId = clientId
+                _handshakeInfo = HarnessHandshakeInfo(hostHome: hostHome)
+                _streamState = .connected
+            }
+        case .emit(let event, let args):
+            for event in Self.domainEvents(forEmit: event, args: args) {
+                eventsContinuation.yield(event)
+            }
+        case .waterfall(let event, let eventId, let agentId, _):
+            if let domainEvent = Self.domainEvent(fromWaterfall: event, agentId: agentId) {
+                eventsContinuation.yield(domainEvent)
+            }
+            pendingWaterfalls[eventId] = (event, agentId)
+            acknowledge(eventId: eventId)
+        case .cancelled(let eventId):
+            if let pending = pendingWaterfalls.removeValue(forKey: eventId),
+               let domainEvent = Self.resolutionEvent(forWaterfall: pending.event, agentId: pending.agentId) {
+                eventsContinuation.yield(domainEvent)
+            }
+        }
+    }
+
+    /// 对单个 waterfall 交付应答 `next`（异步子任务，失败不拖垮事件循环）。
+    private func acknowledge(eventId: String) {
+        let clientId = lock.withLock { _clientId }
+        guard let clientId else {
+            AppLogger.compatibility.debug("waterfall 到达时还没有 ready 帧，跳过应答")
+            return
+        }
+        let transport = self.transport
+        let endpoint = self.endpoint
+        Task {
+            await transport.sendEventResult(endpoint: endpoint, clientId: clientId, eventId: eventId)
+        }
+    }
+
+    private func markStreamClosed() {
         lock.withLock {
-            _openStreams.insert(key)
-            _streamState = _openStreams == Set([HarnessProtocolPath.muxEvents, HarnessProtocolPath.hostEvents])
-                ? .connected
-                : .connecting
-        }
-    }
-
-    private func markStreamClosed(_ key: String) {
-        lock.withLock {
-            _openStreams.remove(key)
-            _streamState = _openStreams.isEmpty ? .disconnected : .reconnecting
-        }
-    }
-
-    /// 帧 → Domain Event 映射。未知帧类型忽略（返回 nil，调用方记录）。
-    static func mapFrame(_ frame: HarnessServerRequestFrame) -> HarnessDomainEvent? {
-        guard let payload = try? JSONDecoder().decode(HarnessEventFrame.self, from: frame.payload) else {
-            AppLogger.compatibility.debug("事件帧 payload 无法解析：method \(frame.method, privacy: .public)")
-            return nil
-        }
-
-        switch payload.type {
-        case "host/session-added", "session/subscribed":
-            // session/subscribed：mux 基线帧，表示该 session 已附加 → 视为已存在。
-            return payload.sessionId.map { .sessionAdded(id: $0) }
-        case "host/session-removed":
-            return payload.sessionId.map { .sessionRemoved(id: $0) }
-        case "host/session-status":
-            guard let sessionId = payload.sessionId, let running = payload.running else { return nil }
-            return .sessionRunningChanged(id: sessionId, running: running)
-        case "host/agent-error":
-            guard let sessionId = payload.sessionId else { return nil }
-            return .agentError(sessionID: sessionId, message: payload.message ?? "unknown")
-        case "approval/requested":
-            return payload.sessionId.map { .approvalRequested(sessionID: $0) }
-        case "approval/resolved":
-            return payload.sessionId.map { .approvalResolved(sessionID: $0) }
-        case "question/requested":
-            return payload.sessionId.map { .questionRequested(sessionID: $0) }
-        case "question/resolved":
-            return payload.sessionId.map { .questionResolved(sessionID: $0) }
-        default:
-            // 未知事件：忽略 + debug log（规格 19），不得关闭流。
-            AppLogger.compatibility.debug("未知事件帧类型：\(payload.type, privacy: .public)")
-            return nil
+            _clientId = nil
+            pendingWaterfalls.removeAll()
+            _streamState = .disconnected
         }
     }
 }

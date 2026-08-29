@@ -11,8 +11,10 @@ final class AppCoordinator {
     /// 连接状态只由 Integration 层输出，UI 不得自行推断。
     private(set) var connectionState: HarnessConnectionState = .unknown
     private(set) var webModel: HarnessWebViewModel?
-    /// Native 握手成功后读取的 Harness 描述信息（version 等）。
-    private(set) var harnessInfo: HarnessDescribeInfo?
+    /// Native 握手成功后读取的 Harness 握手信息。
+    /// 新协议（dsh v0.1.2 起）没有 `host.describe`：运行版本无法从协议读取，
+    /// 按仓库 AGENTS.md 约束保持 unknown，绝不以 npm / npx / 路径推断回填。
+    private(set) var handshakeInfo: HarnessHandshakeInfo?
     /// Phase 8：环境报告（运行版本 / 所有权 / Managed Runtime / 最新版本 / 更新状态）。
     /// 只由 Environment Doctor 与 Native 握手填充，UI 不自行推断。
     private(set) var environmentReport = HarnessEnvironmentReport()
@@ -58,6 +60,7 @@ final class AppCoordinator {
     /// 内部可见：协议边界可 mock（规格 29.10），测试可注入或校验。
     var discovery: any HarnessDiscovering
     var compatibilityResolver: HarnessCompatibilityResolver
+    private let baseDiscovery: any HarnessDiscovering
 
     private var healthCheckTask: Task<Void, Never>?
     private var handshakeTask: Task<Void, Never>?
@@ -101,6 +104,7 @@ final class AppCoordinator {
         // 默认 Discovery 必须使用用户配置的 host/port（规格 26：端口可配置）。
         let configuredDiscovery = discovery ?? LocalHarnessDiscovery(host: settings.host, port: settings.port)
         self.discovery = configuredDiscovery
+        self.baseDiscovery = configuredDiscovery
         self.compatibilityResolver = compatibilityResolver
         self.notificationCoordinator = NotificationCoordinator(settings: settings)
         // Phase 8：版本服务缓存复用 AppSettings（UserDefaults）。
@@ -339,6 +343,11 @@ final class AppCoordinator {
                     port: settings.port
                 )
                 externalRuntimeStatus = .running(record)
+                if let endpoint = await externalRuntimeManager.activeEndpoint() {
+                    let authenticatedDiscovery = LocalHarnessDiscovery(endpoint: endpoint)
+                    discovery = authenticatedDiscovery
+                    await externalRuntimeManager.update(discovery: authenticatedDiscovery)
+                }
                 await performDiscovery()
             } catch let failure as HarnessExternalRuntimeFailure {
                 externalRuntimeError = failure.userMessage
@@ -362,6 +371,8 @@ final class AppCoordinator {
                 try await externalRuntimeManager.stop()
                 externalRuntimeStatus = .stopped
                 externalRuntimeError = nil
+                discovery = baseDiscovery
+                await externalRuntimeManager.update(discovery: baseDiscovery)
                 rediscover()
             } catch let failure as HarnessExternalRuntimeFailure {
                 externalRuntimeError = failure.userMessage
@@ -393,6 +404,11 @@ final class AppCoordinator {
             do {
                 let record = try await externalRuntimeManager.restart()
                 externalRuntimeStatus = .running(record)
+                if let endpoint = await externalRuntimeManager.activeEndpoint() {
+                    let authenticatedDiscovery = LocalHarnessDiscovery(endpoint: endpoint)
+                    discovery = authenticatedDiscovery
+                    await externalRuntimeManager.update(discovery: authenticatedDiscovery)
+                }
                 await performDiscovery()
             } catch let failure as HarnessExternalRuntimeFailure {
                 externalRuntimeError = failure.userMessage
@@ -477,7 +493,7 @@ final class AppCoordinator {
         versionRefreshTask?.cancel()
         tearDownNativeAdapter()
         webModel = nil
-        harnessInfo = nil
+        handshakeInfo = nil
         environmentReport = HarnessEnvironmentReport()
         reducer = ActivityReducer()
         Task { await performDiscovery() }
@@ -506,8 +522,9 @@ final class AppCoordinator {
         isCheckingVersion = true
         Task {
             defer { isCheckingVersion = false }
-            // 1. 当前版本（无需 shell：host.describe 已通过 Native 握手拿到）。
-            let described = harnessInfo.flatMap { HarnessVersion($0.version) }
+            // 1. 运行版本：新协议（dsh v0.1.2 起）没有版本 RPC——
+            //    按仓库 AGENTS.md 约束保持未知，绝不回退到 npm / npx / Managed 版本。
+            let described: HarnessVersion? = nil
             // 2. 两个源互相独立，并发强制刷新。
             async let release = versionService.latestReleaseVersion(force: true)
             async let installable = versionService.latestInstallableVersion(force: true)
@@ -596,7 +613,7 @@ final class AppCoordinator {
         versionRefreshTask?.cancel()
         tearDownNativeAdapter()
         webModel = nil
-        harnessInfo = nil
+        handshakeInfo = nil
         environmentReport = HarnessEnvironmentReport()
         reducer = ActivityReducer()
         Task { await performDiscovery() }
@@ -654,8 +671,11 @@ final class AppCoordinator {
         }
     }
 
-    /// 等待 loopback ready（默认最多 30s）并校验 `host.describe` 报告版本 == expected
-    /// （文档 §21 health check / §23 version mismatch protection）。
+    /// 等待 loopback ready（默认最多 30s）并校验候选进程的协议可达性。
+    ///
+    /// 新协议（dsh v0.1.2 起）没有版本 RPC：版本等值校验不可用，退化为
+    /// `session/list` 成功即视为候选已在运行；不可达仍然返回 false
+    /// （文档 §21 health check / §23 的「失败即回滚」保护保持不变）。
     static func verifyHarnessVersion(expected: String,
                                      discovery: any HarnessDiscovering,
                                      maxAttempts: Int = 30,
@@ -669,8 +689,8 @@ final class AppCoordinator {
             try? await Task.sleep(for: pollInterval)
         }
         guard let endpoint else { return false }
-        guard let info = try? await HarnessHTTPTransport().describe(endpoint: endpoint) else { return false }
-        return HarnessVersion(info.version) == HarnessVersion(expected)
+        let sessions = try? await HarnessHTTPTransport().listSessions(endpoint: endpoint)
+        return sessions != nil
     }
 
     /// Phase 8：Environment Doctor（规格 §9 检查顺序，只读）。
@@ -680,11 +700,9 @@ final class AppCoordinator {
     private var environmentDoctor: HarnessEnvironmentDoctor {
         HarnessEnvironmentDoctor(
             discovery: discovery,
-            describe: { endpoint in
-                let transport = HarnessHTTPTransport()
-                guard let info = try? await transport.describe(endpoint: endpoint) else { return nil }
-                return HarnessVersion(info.version)
-            },
+            // 新协议没有版本 RPC：运行版本在 Doctor 阶段保持未知
+            //（AGENTS.md 约束），Native 握手与版本检查同样不会回填。
+            describe: { _ in nil },
             managedRuntimeStatus: { .unknown },
             managedVersion: { nil },
             latestInstallableVersionProvider: { [versionService] in
@@ -777,29 +795,26 @@ final class AppCoordinator {
             let adapter = HarnessGenericAdapter(endpoint: endpoint)
             do {
                 try await adapter.connect()
-                let verdict = self.compatibilityResolver.verdict(for: adapter.harnessInfo?.version)
+                // 新协议没有版本 RPC：verdict 恒为 .unknown → 宽容视为可用（规格 33 验收）。
+                let verdict = self.compatibilityResolver.verdict(for: nil)
                 switch verdict {
                 case .supported, .unknown:
                     // unknown 版本不 crash、宽容视为可用（规格 33 验收）。
-                    self.harnessInfo = adapter.harnessInfo
+                    self.handshakeInfo = adapter.handshakeInfo
                     self.nativeAdapter = adapter
                     self.consumeAdapterEvents(adapter)
-                    // Phase 8：host.describe.version 接入统一 Version Model（规格 §10 / §41）。
-                    self.environmentReport.setRunningVersion(
-                        from: adapter.harnessInfo.flatMap { HarnessVersion($0.version) }
-                    )
+                    // Phase 8：运行版本在新协议下不可读取 → 保持 unknown（AGENTS.md 约束）。
+                    self.environmentReport.setRunningVersion(from: nil)
                     self.environmentReport.ownership = .external
                     self.environmentReport.refreshUpdateStatus()
-                    AppLogger.compatibility.info(
-                        "Native handshake 成功：version \(self.harnessInfo?.version ?? "?", privacy: .public)"
-                    )
+                    AppLogger.compatibility.info("Native handshake 成功：remote.mux 事件流已建立")
                 case .unsupported:
-                    self.harnessInfo = nil
+                    self.handshakeInfo = nil
                     self.tearDownNativeAdapter()
                     self.updateState(.degraded(reason: "不支持的 Harness 版本"))
                 }
             } catch {
-                self.harnessInfo = nil
+                self.handshakeInfo = nil
                 self.lastConnectionError = String(describing: error)
                 self.tearDownNativeAdapter()
                 self.updateState(.degraded(reason: "Native 握手失败"))
@@ -843,7 +858,8 @@ final class AppCoordinator {
 extension AppCoordinator: DiagnosticsProviding {
     var settingsHost: String { settings.host }
     var settingsPort: Int { settings.port }
-    var harnessVersion: String? { harnessInfo?.version }
+    /// 新协议没有版本 RPC：诊断中运行版本如实显示未知（AGENTS.md 约束）。
+    var harnessVersion: String? { nil }
     var managedVersion: HarnessVersion? { environmentReport.managedVersion }
     var latestReleaseVersion: HarnessVersion? { environmentReport.latestReleaseVersion }
     var latestInstallableVersion: HarnessVersion? { environmentReport.latestInstallableVersion }

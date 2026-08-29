@@ -145,7 +145,7 @@ final class MenuBarCoordinator {
                 _ = coordinator.connectionState
                 _ = coordinator.activityState
                 _ = coordinator.sessionCount
-                _ = coordinator.harnessInfo?.version
+                _ = coordinator.handshakeInfo
                 _ = coordinator.petSettings.isBallVisible
                 // Phase 8：版本 / 更新状态（检查更新后菜单栏即时刷新）
                 _ = coordinator.environmentReport.updateStatus

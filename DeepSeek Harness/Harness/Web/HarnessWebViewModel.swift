@@ -35,10 +35,10 @@ final class HarnessWebViewModel {
         coordinator.model = self
     }
 
-    /// 加载初始页面（`http://127.0.0.1:3080/`）。
+    /// 加载初始页面；源码/npm 启动实例使用启动输出中的认证 URL 完成 Cookie 登录。
     func loadInitial() {
         navigationError = nil
-        webView.load(URLRequest(url: endpoint.baseURL))
+        webView.load(URLRequest(url: endpoint.browserURL))
     }
 
     func reload() {
@@ -48,7 +48,7 @@ final class HarnessWebViewModel {
 
     /// 在默认浏览器中打开 Harness。
     func openInBrowser() {
-        NSWorkspace.shared.open(endpoint.baseURL)
+        NSWorkspace.shared.open(endpoint.browserURL)
     }
 
     func goBack() {

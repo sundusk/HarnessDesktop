@@ -10,6 +10,7 @@ struct LocalHarnessDiscovery: HarnessDiscovering {
     let port: Int
     let timeout: TimeInterval
     let session: URLSession
+    let authenticatedEndpoint: HarnessEndpoint?
 
     init(host: String = "127.0.0.1",
          port: Int = 3080,
@@ -19,13 +20,22 @@ struct LocalHarnessDiscovery: HarnessDiscovering {
         self.port = port
         self.timeout = timeout
         self.session = session
+        self.authenticatedEndpoint = nil
+    }
+
+    init(endpoint: HarnessEndpoint, timeout: TimeInterval = 1.5, session: URLSession = .shared) {
+        self.host = endpoint.baseURL.host ?? "127.0.0.1"
+        self.port = endpoint.baseURL.port ?? 80
+        self.timeout = timeout
+        self.session = session
+        self.authenticatedEndpoint = endpoint.authenticatedURL == nil ? nil : endpoint
     }
 
     func discover() async -> HarnessEndpoint? {
-        guard let endpoint = HarnessEndpoint(host: host, port: port) else {
+        guard let endpoint = authenticatedEndpoint ?? HarnessEndpoint(host: host, port: port) else {
             return nil
         }
-        var request = URLRequest(url: endpoint.baseURL)
+        var request = URLRequest(url: endpoint.browserURL)
         request.timeoutInterval = timeout
         request.cachePolicy = .reloadIgnoringLocalCacheData
 

@@ -1,7 +1,7 @@
 # 桌面宠物设计、实现与进度
 
 > AI 快速入口：当任务涉及桌面宠物、小雨、心情球、状态气泡、悬浮窗、点击穿透、拖拽、精灵图或动画时，先读本文，再读对应源码。
-> 本文面向 Codex、DeepSeek Harness 和人工维护者。最后核验日期：**2026-08-23**。
+> 本文面向 Codex、DeepSeek Harness 和人工维护者。最后核验日期：**2026-08-29**。
 
 ## 1. 当前结论
 
@@ -12,8 +12,9 @@
 - 所有动作、气泡显示与隐藏均保持同一个宠物视口、角色尺度规则和屏幕底部锚点。
 - 目前没有自动行走、屏幕边缘巡逻、碰撞逻辑或鼠标视线跟随。
 - `HarnessActivityState`、事件协议、`ActivityReducer` 优先级和完成事件 2.5 秒 transient 行为没有因宠物功能而改变。
+- **协议适配（2026-08-29）**：Harness 侧 dsh-v0.1.2-alpha.1（commit `dcddaa1a6e`）移除了旧版 `host.describe` / `/api/events.mux` / `/api/events.host`，导致宠物曾无法随状态变化（永远 idle/disconnected）。App 的 `Harness/Compatibility` 层已迁移到新协议：认证交换（GET token URL 换持久 cookie，HTTP 与 WebSocket 共享 CookieStore）+ `POST /api/session/list` 握手与基线 + `/api/remote.mux` `$events` 事件流（`api-session/*` emit；`approval/request`、`user-questions/request` waterfall 由 App 观察后应答 `next`，`cancel` 帧映射为 resolved）。运行版本无 RPC 可读，App 按仓库 AGENTS.md 约束保持 unknown。
 
-截至最后核验：当前源码完整测试 **259/259 通过**，Universal Release 构建已验证 `arm64 + x86_64` 和签名；拖拽奔跑视觉 QA **97/100，通过**。双击展开主 App 属于尚未发布的源码改动，当前 `/Applications/DeepSeek Harness.app` 仍是已发布的 v0.2.10，不包含本次改动。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
+截至最后核验：当前源码完整测试 **285/285 通过**（2026-08-29，Debug test + Universal 构建验证），Release 构建已通过；拖拽奔跑视觉 QA **97/100，通过**。双击展开主 App 属于尚未发布的源码改动，当前 `/Applications/DeepSeek Harness.app` 仍是已发布的 v0.2.10，不包含本次改动。后续发布或安装后必须同步更新这里，不能把日期快照当作永久现状。
 
 ## 2. 架构与数据流
 

@@ -95,6 +95,14 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 - [x] 握手失败 → `degraded(reason:)`，但 Web UI 继续可用（冒烟：临时服务 501 → degraded + 页面加载完成）
 - [x] 修复：degraded 状态下主窗口仍显示 WebView（规格 5.1）
 - [x] Build 通过
+
+> ⚠️ 协议迁移（dsh-v0.1.2-alpha.1）：上游在本阶段实现的 `host.describe` /
+> `/api/events.mux` / `/api/events.host` 已被移除（commit `dcddaa1a6e`）。
+> 当前握手 = 认证交换（GET token URL 换持久 cookie）+ `POST /api/session/list`
+> （可达性探测 + session 基线）；事件流 = `/api/remote.mux` WebSocket 上的
+> `$events` 逻辑流（`api-session/*` emit + `approval/request`、
+> `user-questions/request` waterfall 观察者应答 `next`）。运行版本无 RPC 可读，
+> 保持 unknown。上表保留为历史记录。
 - [x] Test 通过（41 个，含 resolver / 宽松解码 / transport mock 16 个新测试）
 
 ### Phase 4 — WebSocket Event Layer ✅（实现完成，冒烟通过）
@@ -212,7 +220,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 
 ## 运行版本识别升级
 
-- `runningVersion` 只来自已连接实例的 `host.describe.version`；断开或握手失败时为未知。
+- `runningVersion` 原则上只来自已连接实例的握手；新协议（dsh v0.1.2 起）删除了版本 RPC，因此恒为未知，如实显示、不回退（AGENTS.md 约束不变）。
 - GitHub Release 与 npm Registry 分别表达官方发布版本与可安装版本，保留独立缓存。
 - `npx` 可解析版本仅供诊断，禁止作为运行版本的回退。
 - 外部 Harness（npm/npx 或源码启动）继续遵守 Attach First 与所有权保护，应用不停止、不更新、不管理它们。
