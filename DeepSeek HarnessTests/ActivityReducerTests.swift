@@ -102,6 +102,60 @@ final class ActivityReducerTests: XCTestCase {
         XCTAssertEqual(reducer.globalState(), .idle)
     }
 
+    // MARK: - turn 边界清除门（新协议 waterfall 无 resolved 推送的兜底）
+
+    /// 提问门跨 turn 不存活：turn 结束（running=false）清除提问门。
+    /// 复现：GUI 回答 ask_user_question 后观察者收不到任何 resolved 信号，
+    /// 宠物曾永远卡在「做出你的抉择」。
+    func testTurnEndClearsPendingQuestion() {
+        var reducer = reduced([
+            .sessionAdded(id: "a"),
+            .sessionRunningChanged(id: "a", running: true),
+            .questionRequested(sessionID: "a"),
+        ])
+        XCTAssertEqual(reducer.globalState(), .waitingForInput)
+        reducer.reduce(.sessionRunningChanged(id: "a", running: false), now: now)
+        XCTAssertEqual(reducer.globalState(), .idle)
+        XCTAssertEqual(reducer.sessions["a"]?.pendingQuestionCount, 0)
+    }
+
+    /// 审批门同理：turn 结束清除审批门。
+    func testTurnEndClearsPendingApproval() {
+        var reducer = reduced([
+            .sessionAdded(id: "a"),
+            .sessionRunningChanged(id: "a", running: true),
+            .approvalRequested(sessionID: "a"),
+        ])
+        XCTAssertEqual(reducer.globalState(), .waitingForApproval)
+        reducer.reduce(.sessionRunningChanged(id: "a", running: false), now: now)
+        XCTAssertEqual(reducer.globalState(), .idle)
+        XCTAssertEqual(reducer.sessions["a"]?.pendingApprovalCount, 0)
+    }
+
+    /// 门挂起期间（agent 冻结在工具调用上）running 仍为 true：状态保持等待，
+    /// 不能被运行中的其它信号清除。
+    func testGateSurvivesWhileStillRunning() {
+        var reducer = reduced([
+            .sessionAdded(id: "a"),
+            .sessionRunningChanged(id: "a", running: true),
+            .questionRequested(sessionID: "a"),
+            .sessionRunningChanged(id: "a", running: true),
+        ])
+        XCTAssertEqual(reducer.globalState(), .waitingForInput)
+    }
+
+    /// turn 结束清除门时，完成 transient 仍然产生（宠物先庆祝再回 idle）。
+    func testTurnEndGateClearStillEmitsCompletion() {
+        var reducer = reduced([
+            .sessionAdded(id: "a"),
+            .sessionRunningChanged(id: "a", running: true),
+            .questionRequested(sessionID: "a"),
+        ])
+        reducer.reduce(.sessionRunningChanged(id: "a", running: false), now: now)
+        XCTAssertEqual(reducer.drainCompletions().count, 1)
+        XCTAssertEqual(reducer.globalState(), .idle)
+    }
+
     func testSessionRemoved() {
         var reducer = reduced([.sessionAdded(id: "a"), .sessionRunningChanged(id: "a", running: true)])
         reducer.reduce(.sessionRemoved(id: "a"), now: now)

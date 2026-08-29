@@ -83,9 +83,19 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     private var _streamState: HarnessStreamState = .disconnected
     /// 待决 waterfall：eventId → (事件名, agentId)。仅在事件消费循环内读写。
     private var pendingWaterfalls: [String: (event: String, agentId: String?)] = [:]
+    /// 延迟应答任务：eventId → 定时 `next` 应答任务（收到 cancel 帧时取消）。
+    private var ackTasks: [String: Task<Void, Never>] = [:]
 
     private var streamsTask: Task<Void, Never>?
 
+    /// waterfall 观察者应答延迟（秒）。
+    ///
+    /// 应答 `next` 会被 Gateway 移出投递列表，此后该 waterfall 被认领 / 放行 /
+    /// 撤销时的 `cancel` 帧不再投递给本客户端——即应答后再也无法观察到解决。
+    /// 延迟应答以在窗口内捕获 GUI 认领（cancel → 立即映射 resolved）；
+    /// 超时才应答，保证纯观察者永远不会挂起 Host 瀑布链（全部客户端放行后才继续）。
+    /// 窗口外的解决由 ActivityReducer 在 turn 边界清除门计数兜底。
+    static let waterfallAckDelay: Duration = .seconds(15)
     /// 退避延迟（秒）：500ms / 1s / 2s / 4s / 8s / 10s / 10s…（规格 20）。
     private static let backoffDelays: [Duration] = [
         .milliseconds(500), .seconds(1), .seconds(2), .seconds(4), .seconds(8), .seconds(10), .seconds(10),
@@ -133,9 +143,12 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     func disconnect() async {
         streamsTask?.cancel()
         streamsTask = nil
+        let tasks = lock.withLock { self.ackTasks }
+        tasks.values.forEach { $0.cancel() }
         lock.withLock {
             _clientId = nil
             pendingWaterfalls.removeAll()
+            ackTasks.removeAll()
             _streamState = .disconnected
         }
         eventsContinuation.finish()
@@ -287,8 +300,12 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
                 eventsContinuation.yield(domainEvent)
             }
             pendingWaterfalls[eventId] = (event, agentId)
-            acknowledge(eventId: eventId)
+            scheduleAck(eventId: eventId)
         case .cancelled(let eventId):
+            let ackTask = lock.withLock {
+                self.ackTasks.removeValue(forKey: eventId)
+            }
+            ackTask?.cancel()
             if let pending = pendingWaterfalls.removeValue(forKey: eventId),
                let domainEvent = Self.resolutionEvent(forWaterfall: pending.event, agentId: pending.agentId) {
                 eventsContinuation.yield(domainEvent)
@@ -296,8 +313,8 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         }
     }
 
-    /// 对单个 waterfall 交付应答 `next`（异步子任务，失败不拖垮事件循环）。
-    private func acknowledge(eventId: String) {
+    /// 延迟应答单个 waterfall 交付（`next`）；若期间收到 cancel 帧则取消。
+    private func scheduleAck(eventId: String) {
         let clientId = lock.withLock { _clientId }
         guard let clientId else {
             AppLogger.compatibility.debug("waterfall 到达时还没有 ready 帧，跳过应答")
@@ -305,15 +322,22 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         }
         let transport = self.transport
         let endpoint = self.endpoint
-        Task {
+        let task = Task {
+            try? await Task.sleep(for: Self.waterfallAckDelay)
+            guard !Task.isCancelled else { return }
+            lock.withLock { self.ackTasks.removeValue(forKey: eventId) }
             await transport.sendEventResult(endpoint: endpoint, clientId: clientId, eventId: eventId)
         }
+        lock.withLock { self.ackTasks[eventId] = task }
     }
 
     private func markStreamClosed() {
+        let tasks = lock.withLock { Array(self.ackTasks.values) }
+        tasks.forEach { $0.cancel() }
         lock.withLock {
             _clientId = nil
             pendingWaterfalls.removeAll()
+            ackTasks.removeAll()
             _streamState = .disconnected
         }
     }

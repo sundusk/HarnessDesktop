@@ -52,6 +52,14 @@ struct ActivityReducer: Sendable {
                 // 新一轮工作开始，视作错误已处理。
                 session.lastError = nil
             }
+            if !running {
+                // Turn 结束：审批 / 提问门不可能跨 turn 存活（agent 在门上冻结，
+                // 门被认领或中止后 turn 才可能结束）。新协议（dsh v0.1.2 起）的
+                // waterfall 没有独立的 resolved 推送，观察者在延迟应答后无法再
+                // 收到 cancel 帧——以 turn 边界作为门的确定性清除点。
+                session.pendingApprovalCount = 0
+                session.pendingQuestionCount = 0
+            }
             session.lastUpdatedAt = now
             sessions[id] = session
 
