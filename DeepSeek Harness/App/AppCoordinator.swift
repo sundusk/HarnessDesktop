@@ -52,6 +52,8 @@ final class AppCoordinator {
     private(set) var isUpdatingManaged = false
     /// Phase 13：最近一次连接错误（诊断导出用；只存错误类型，非敏感）。
     private(set) var lastConnectionError: String?
+    /// 外部 Harness 无有效 Cookie 时，用于展示粘贴官方启动地址的端点。
+    private(set) var authenticationRequiredEndpoint: HarnessEndpoint?
 
     /// 心情球设置（悬浮球开关 / 外观 / 颜色 / 行为；供菜单栏与设置页共用）。
     let petSettings: MoodBallSettings
@@ -63,12 +65,15 @@ final class AppCoordinator {
     private let baseDiscovery: any HarnessDiscovering
 
     private var healthCheckTask: Task<Void, Never>?
+    private var authenticationTask: Task<Void, Never>?
     private var handshakeTask: Task<Void, Never>?
     private var eventTask: Task<Void, Never>?
     private var versionRefreshTask: Task<Void, Never>?
     private var nativeAdapter: HarnessGenericAdapter?
+    private var nativeSession: HarnessNativeSession?
     private var reducer = ActivityReducer()
     private let notificationCoordinator: NotificationCoordinator
+    private let authenticationCoordinator = HarnessAuthenticationCoordinator()
 
     /// 全局活动状态（规格 9：所有 UI 只依赖此状态）。
     var activityState: HarnessActivityState {
@@ -344,9 +349,10 @@ final class AppCoordinator {
                 )
                 externalRuntimeStatus = .running(record)
                 if let endpoint = await externalRuntimeManager.activeEndpoint() {
-                    let authenticatedDiscovery = LocalHarnessDiscovery(endpoint: endpoint)
-                    discovery = authenticatedDiscovery
-                    await externalRuntimeManager.update(discovery: authenticatedDiscovery)
+                    // 启动器已经从 stdout 捕获官方入口；不要先用 Discovery GET
+                    // token URL，直接交给统一鉴权协调器。
+                    connect(to: endpoint)
+                    return
                 }
                 await performDiscovery()
             } catch let failure as HarnessExternalRuntimeFailure {
@@ -405,9 +411,8 @@ final class AppCoordinator {
                 let record = try await externalRuntimeManager.restart()
                 externalRuntimeStatus = .running(record)
                 if let endpoint = await externalRuntimeManager.activeEndpoint() {
-                    let authenticatedDiscovery = LocalHarnessDiscovery(endpoint: endpoint)
-                    discovery = authenticatedDiscovery
-                    await externalRuntimeManager.update(discovery: authenticatedDiscovery)
+                    connect(to: endpoint)
+                    return
                 }
                 await performDiscovery()
             } catch let failure as HarnessExternalRuntimeFailure {
@@ -488,10 +493,13 @@ final class AppCoordinator {
     /// 用户点击「重新检测」时调用。
     func rediscover() {
         healthCheckTask?.cancel()
+        authenticationTask?.cancel()
         handshakeTask?.cancel()
         eventTask?.cancel()
         versionRefreshTask?.cancel()
         tearDownNativeAdapter()
+        nativeSession = nil
+        authenticationRequiredEndpoint = nil
         webModel = nil
         handshakeInfo = nil
         environmentReport = HarnessEnvironmentReport()
@@ -608,10 +616,13 @@ final class AppCoordinator {
         let currentDiscovery = discovery
         Task { await externalRuntimeManager.update(discovery: currentDiscovery) }
         healthCheckTask?.cancel()
+        authenticationTask?.cancel()
         handshakeTask?.cancel()
         eventTask?.cancel()
         versionRefreshTask?.cancel()
         tearDownNativeAdapter()
+        nativeSession = nil
+        authenticationRequiredEndpoint = nil
         webModel = nil
         handshakeInfo = nil
         environmentReport = HarnessEnvironmentReport()
@@ -626,6 +637,7 @@ final class AppCoordinator {
             Task { await adapter.disconnect() }
         }
         nativeAdapter = nil
+        nativeSession = nil
     }
 
     // MARK: - Private
@@ -689,7 +701,9 @@ final class AppCoordinator {
             try? await Task.sleep(for: pollInterval)
         }
         guard let endpoint else { return false }
-        let sessions = try? await HarnessHTTPTransport().listSessions(endpoint: endpoint)
+        let nativeSession = HarnessNativeSession()
+        try? await nativeSession.authenticate(authenticatedURL: endpoint.authenticatedURL)
+        let sessions = try? await HarnessHTTPTransport(session: nativeSession.session).listSessions(endpoint: endpoint)
         return sessions != nil
     }
 
@@ -747,12 +761,78 @@ final class AppCoordinator {
     }
 
     private func connect(to endpoint: HarnessEndpoint) {
-        updateState(.connected)
-        let model = HarnessWebViewModel(endpoint: endpoint)
-        webModel = model
-        model.loadInitial()
-        startHealthCheck()
-        startNativeHandshake(endpoint: endpoint)
+        authenticationTask?.cancel()
+        updateState(.connecting)
+        authenticationRequiredEndpoint = nil
+        let context = HarnessLaunchContext(endpoint: endpoint)
+        authenticationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let session = try await authenticationCoordinator.authenticate(context)
+                guard !Task.isCancelled else { return }
+
+                nativeSession = session
+                lastConnectionError = nil
+                // 认证入口只消费一次；后续健康检查必须探测干净 base URL。
+                let authenticatedDiscovery = LocalHarnessDiscovery(
+                    endpoint: endpoint,
+                    session: session.session,
+                    useAuthenticatedURL: false
+                )
+                discovery = authenticatedDiscovery
+                await externalRuntimeManager.update(discovery: authenticatedDiscovery)
+
+                let model = HarnessWebViewModel(endpoint: endpoint, launchURL: context.authenticatedURL)
+                webModel = model
+                updateState(.connected)
+                model.loadInitial()
+                startHealthCheck()
+                startNativeHandshake(endpoint: endpoint, nativeSession: session)
+            } catch let error as HarnessAuthenticationError {
+                guard !Task.isCancelled else { return }
+                webModel = nil
+                lastConnectionError = Self.authenticationErrorMessage(error)
+                if case .authenticationRequired = error {
+                    authenticationRequiredEndpoint = endpoint
+                    updateState(.authenticationRequired)
+                    AppLogger.compatibility.info("Harness 需要浏览器会话授权")
+                } else {
+                    updateState(.degraded(reason: "认证失败"))
+                    AppLogger.compatibility.info("Harness 认证入口响应失败")
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                // 认证失败可能来自 URLSession，不能把底层错误（或 URL）写入诊断。
+                lastConnectionError = "认证请求失败"
+                updateState(.degraded(reason: "连接失败"))
+            }
+        }
+    }
+
+    private static func authenticationErrorMessage(_ error: HarnessAuthenticationError) -> String {
+        switch error {
+        case .authenticationRequired:
+            return "需要浏览器会话授权"
+        case .unexpectedStatus:
+            return "认证入口响应异常"
+        case .invalidResponse:
+            return "认证入口响应无效"
+        }
+    }
+
+    /// External Harness 只能通过它自己输出的官方 authenticated URL 完成授权。
+    /// URL 只进入当前内存连接，不写入设置或诊断数据。
+    func attachUsingLaunchURL(_ rawValue: String) {
+        let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: value),
+              let context = HarnessLaunchContext(authenticatedURL: url) else {
+            lastConnectionError = "启动地址无效，请粘贴 Harness 输出的 Web 地址。"
+            return
+        }
+        let endpoint = context.endpoint
+        discovery = LocalHarnessDiscovery(host: endpoint.baseURL.host ?? settings.host,
+                                          port: endpoint.baseURL.port ?? settings.port)
+        connect(to: endpoint)
     }
 
     /// 统一的状态转换入口：只记录连接状态（非敏感），不记录任何内容数据。
@@ -788,11 +868,11 @@ final class AppCoordinator {
     ///
     /// 失败（网络 / 协议 / 不支持版本）→ Degraded Mode（`connectionState = .degraded`），
     /// 但 Web UI 必须继续可用——degraded 只禁用 Native 增强，不影响主窗口。
-    private func startNativeHandshake(endpoint: HarnessEndpoint) {
+    private func startNativeHandshake(endpoint: HarnessEndpoint, nativeSession: HarnessNativeSession) {
         handshakeTask?.cancel()
         handshakeTask = Task { [weak self] in
             guard let self else { return }
-            let adapter = HarnessGenericAdapter(endpoint: endpoint)
+            let adapter = HarnessGenericAdapter(endpoint: endpoint, nativeSession: nativeSession)
             do {
                 try await adapter.connect()
                 // 新协议没有版本 RPC：verdict 恒为 .unknown → 宽容视为可用（规格 33 验收）。
@@ -814,6 +894,14 @@ final class AppCoordinator {
                     self.updateState(.degraded(reason: "不支持的 Harness 版本"))
                 }
             } catch {
+                if let transportError = error as? HarnessTransportError,
+                   transportError == .unexpectedStatus(401) || transportError == .unexpectedStatus(403) {
+                    self.authenticationRequiredEndpoint = endpoint
+                    self.webModel = nil
+                    self.updateState(.authenticationRequired)
+                    AppLogger.compatibility.info("Harness Native 会话已失效，需要重新授权")
+                    return
+                }
                 self.handshakeInfo = nil
                 self.lastConnectionError = String(describing: error)
                 self.tearDownNativeAdapter()
@@ -872,6 +960,7 @@ extension AppCoordinator: DiagnosticsProviding {
         case .connecting: return "连接中"
         case .connected: return "已连接"
         case .reconnecting: return "重连中"
+        case .authenticationRequired: return "需要授权"
         case .degraded(let reason): return "降级（\(reason)）"
         }
     }
@@ -880,6 +969,7 @@ extension AppCoordinator: DiagnosticsProviding {
         switch connectionState {
         case .connected: return "正常（handshake + 事件流）"
         case .degraded: return "不可用（已降级，Web UI 正常）"
+        case .authenticationRequired: return "等待官方启动地址"
         default: return "未建立"
         }
     }

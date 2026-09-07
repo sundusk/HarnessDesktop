@@ -51,12 +51,12 @@ enum HarnessStreamState: Equatable, Sendable {
     case reconnecting
 }
 
-/// 通用适配器：认证交换 + `session/list` 基线 + `$events` 事件流消费。
+/// 通用适配器：共享 Native Session + `session/list` 基线 + `$events` 事件流消费。
 ///
 /// Wire contract 对照上游 `dsh-v0.1.2-alpha.1`（旧版 `host.describe` /
 /// `events.mux` / `events.host` 已在该版本移除）：
 ///
-/// - 握手 = 认证交换 + `session/list` 成功（同时验证认证、路由与协议版本）；
+/// - 握手 = 共享会话 + `session/list` 成功（同时验证认证、路由与协议版本）；
 /// - 事件流 = `/api/remote.mux` WebSocket 上的 `$events` 逻辑流；
 /// - `emit` 帧 → Domain Event；其中 `parentSessionId` 非空的 **子会话（subagent）**
 ///   及其 status / error 事件被过滤掉，不进入全局宠物状态（子会话是一次性的，
@@ -110,10 +110,14 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
     }
 
     init(endpoint: HarnessEndpoint,
+         nativeSession: HarnessNativeSession? = nil,
          transport: HarnessHTTPTransport = HarnessHTTPTransport(),
          webSocketTransport: HarnessWebSocketTransport = HarnessWebSocketTransport()) {
         self.endpoint = endpoint
-        if endpoint.authenticatedURL != nil,
+        if let nativeSession {
+            self.transport = HarnessHTTPTransport(session: nativeSession.session)
+            self.webSocketTransport = HarnessWebSocketTransport(session: nativeSession.session)
+        } else if endpoint.authenticatedURL != nil,
            transport.session === URLSession.shared,
            webSocketTransport.session === URLSession.shared {
             // HTTP 的认证交换必须与 WebSocket 共用 Cookie 存储；否则 native 握手虽成功，
@@ -128,9 +132,10 @@ final class HarnessGenericAdapter: HarnessProtocolAdapter, @unchecked Sendable {
         (eventsStream, eventsContinuation) = AsyncStream.makeStream(of: HarnessDomainEvent.self)
     }
 
-    /// Compatibility Handshake：认证交换 + session 基线成功 → 打开 `$events` 流。
+    /// Compatibility Handshake：共享会话 + session 基线成功 → 打开 `$events` 流。
     func connect() async throws {
-        try await transport.authenticate(endpoint: endpoint)
+        // token → Cookie 的交换由 HarnessAuthenticationCoordinator 完成；这里仅消费
+        // 已认证的共享 Native Session，避免重复 GET 一次性 authenticated URL。
         // 新协议没有 host.describe：session/list 同时充当协议可达性探测与基线来源。
         let baseline = try await transport.listSessions(endpoint: endpoint)
         lock.withLock {

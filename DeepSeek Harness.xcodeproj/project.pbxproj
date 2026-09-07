@@ -23,7 +23,9 @@
 		B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* HarnessNavigationPolicy.swift */; };
 		B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* HarnessWebViewModel.swift */; };
 		B00000000000000000000016 /* HarnessWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000017 /* HarnessWebView.swift */; };
-		B0000000000000000000009B /* HarnessBrowserSessionAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000009B /* HarnessBrowserSessionAuth.swift */; };
+		B0000000000000000000009C /* HarnessLaunchContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000009C /* HarnessLaunchContext.swift */; };
+		B0000000000000000000009D /* HarnessNativeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000009D /* HarnessNativeSession.swift */; };
+		B0000000000000000000009E /* HarnessAuthenticationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000009E /* HarnessAuthenticationCoordinator.swift */; };
 		B00000000000000000000017 /* LocalHarnessDiscoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */; };
 		B00000000000000000000018 /* HarnessNavigationPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */; };
 		B00000000000000000000019 /* AppCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001A /* AppCoordinatorTests.swift */; };
@@ -108,7 +110,6 @@
 		B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */; };
 		B10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift */; };
 		B10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */; };
-		B10000000000000000000003 /* HarnessBrowserSessionAuthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* HarnessBrowserSessionAuthTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -146,7 +147,9 @@
 		A00000000000000000000015 /* HarnessNavigationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicy.swift; sourceTree = "<group>"; };
 		A00000000000000000000016 /* HarnessWebViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebViewModel.swift; sourceTree = "<group>"; };
 		A00000000000000000000017 /* HarnessWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessWebView.swift; sourceTree = "<group>"; };
-		A0000000000000000000009B /* HarnessBrowserSessionAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessBrowserSessionAuth.swift; sourceTree = "<group>"; };
+		A0000000000000000000009C /* HarnessLaunchContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessLaunchContext.swift; sourceTree = "<group>"; };
+		A0000000000000000000009D /* HarnessNativeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNativeSession.swift; sourceTree = "<group>"; };
+		A0000000000000000000009E /* HarnessAuthenticationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessAuthenticationCoordinator.swift; sourceTree = "<group>"; };
 		A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalHarnessDiscoveryTests.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessNavigationPolicyTests.swift; sourceTree = "<group>"; };
 		A0000000000000000000001A /* AppCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -226,7 +229,6 @@
 		A00000000000000000000064 /* RuntimeIntegrityVerifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeIntegrityVerifierTests.swift; sourceTree = "<group>"; };
 		A10000000000000000000001 /* GitHubHarnessReleaseVersionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubHarnessReleaseVersionProvider.swift; sourceTree = "<group>"; };
 		A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubHarnessReleaseVersionProviderTests.swift; sourceTree = "<group>"; };
-		A10000000000000000000003 /* HarnessBrowserSessionAuthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HarnessBrowserSessionAuthTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -302,6 +304,7 @@
 		C0000000000000000000000F /* Harness */ = {
 			isa = PBXGroup;
 			children = (
+				C0000000000000000000001C /* Authentication */,
 				C00000000000000000000010 /* Discovery */,
 				C00000000000000000000011 /* Web */,
 				C00000000000000000000015 /* Transport */,
@@ -309,6 +312,16 @@
 				C00000000000000000000019 /* Runtime */,
 			);
 			path = Harness;
+			sourceTree = "<group>";
+		};
+		C0000000000000000000001C /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				A0000000000000000000009C /* HarnessLaunchContext.swift */,
+				A0000000000000000000009D /* HarnessNativeSession.swift */,
+				A0000000000000000000009E /* HarnessAuthenticationCoordinator.swift */,
+			);
+			path = Authentication;
 			sourceTree = "<group>";
 		};
 		C00000000000000000000019 /* Runtime */ = {
@@ -365,7 +378,6 @@
 				A00000000000000000000015 /* HarnessNavigationPolicy.swift */,
 				A00000000000000000000016 /* HarnessWebViewModel.swift */,
 				A00000000000000000000017 /* HarnessWebView.swift */,
-				A0000000000000000000009B /* HarnessBrowserSessionAuth.swift */,
 			);
 			path = Web;
 			sourceTree = "<group>";
@@ -505,7 +517,6 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift */,
-				A10000000000000000000003 /* HarnessBrowserSessionAuthTests.swift */,
 				A0000000000000000000000C /* HarnessEndpointTests.swift */,
 				A00000000000000000000018 /* LocalHarnessDiscoveryTests.swift */,
 				A00000000000000000000019 /* HarnessNavigationPolicyTests.swift */,
@@ -707,7 +718,9 @@
 				B00000000000000000000014 /* HarnessNavigationPolicy.swift in Sources */,
 				B00000000000000000000015 /* HarnessWebViewModel.swift in Sources */,
 				B00000000000000000000016 /* HarnessWebView.swift in Sources */,
-				B0000000000000000000009B /* HarnessBrowserSessionAuth.swift in Sources */,
+				B0000000000000000000009C /* HarnessLaunchContext.swift in Sources */,
+				B0000000000000000000009D /* HarnessNativeSession.swift in Sources */,
+				B0000000000000000000009E /* HarnessAuthenticationCoordinator.swift in Sources */,
 				B0000000000000000000001A /* AppDelegate.swift in Sources */,
 				B0000000000000000000001B /* MainWindowController.swift in Sources */,
 				B0000000000000000000001C /* MenuBarCoordinator.swift in Sources */,
@@ -784,7 +797,6 @@
 				B0000000000000000000005F /* DiagnosticsSnapshotTests.swift in Sources */,
 				B00000000000000000000062 /* RuntimeIntegrityVerifierTests.swift in Sources */,
 				B10000000000000000000002 /* GitHubHarnessReleaseVersionProviderTests.swift in Sources */,
-				B10000000000000000000003 /* HarnessBrowserSessionAuthTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

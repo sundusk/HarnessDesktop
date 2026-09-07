@@ -11,6 +11,8 @@ import WebKit
 @Observable
 final class HarnessWebViewModel {
     let endpoint: HarnessEndpoint
+    /// 仅用于首次加载；认证完成后的 reload 永远回到 endpoint.baseURL。
+    let launchURL: URL?
     let webView: WKWebView
 
     var isLoading = false
@@ -21,8 +23,9 @@ final class HarnessWebViewModel {
 
     private let coordinator: NavigationCoordinator
 
-    init(endpoint: HarnessEndpoint) {
+    init(endpoint: HarnessEndpoint, launchURL: URL? = nil) {
         self.endpoint = endpoint
+        self.launchURL = launchURL
         let configuration = WKWebViewConfiguration()
         // 持久化数据存储：保留 Harness Web UI 自己的合法浏览器状态（Cookie / LocalStorage / IndexedDB / Cache）。
         configuration.websiteDataStore = .default()
@@ -37,51 +40,10 @@ final class HarnessWebViewModel {
 
     /// 加载初始页面。
     ///
-    /// 认证策略：
-    /// - endpoint 带一次性认证入口（本 App 启动的 source/npm 实例捕获了 `dsh web: ...?token=`）
-    ///   → 直接加载该 URL，由 Harness 完成 token→cookie 交换；
-    /// - 否则（**外部启动**：手动 `dsh web` / 终端 / 源码）→ 尝试读取 `~/.dsh` 的持久化
-    ///   browser-session secret，为当前 endpoint 构造合法 `dsh-auth-*` cookie 并先注入
-    ///   WKWebView，再加载干净 URL。注入失败不阻塞加载（不崩溃），只回退到裸 URL。
+    /// 认证入口由启动层提供。WebView 不解析 stdout、读取 credentials 或生成 Cookie。
     func loadInitial() {
         navigationError = nil
-        guard endpoint.authenticatedURL == nil else {
-            webView.load(URLRequest(url: endpoint.browserURL))
-            return
-        }
-        let targetURL = endpoint.browserURL
-        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
-        Task { [webView] in
-            guard let cookie = Self.makeSessionCookie(for: endpoint) else {
-                AppLogger.webview.info("浏览器会话认证不可用（无持久化 secret），按裸 URL 加载")
-                await MainActor.run { webView.load(URLRequest(url: targetURL)) }
-                return
-            }
-            guard let httpCookie = cookie.makeHTTPCookie(endpoint: endpoint) else {
-                await MainActor.run { webView.load(URLRequest(url: targetURL)) }
-                return
-            }
-            // 先注入 cookie 再加载：确保首个请求与 WebSocket 握手都带认证。
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                cookieStore.setCookie(httpCookie) { cont.resume() }
-            }
-            AppLogger.webview.info("已注入浏览器会话 cookie（authority \(cookie.authority, privacy: .public)）")
-            await MainActor.run { webView.load(URLRequest(url: targetURL)) }
-        }
-    }
-
-    /// 构造可注入的浏览器会话 cookie；失败返回 nil（读取 `~/.dsh` 只读，绝不破坏）。
-    @MainActor
-    static func makeSessionCookie(for endpoint: HarnessEndpoint) -> HarnessBrowserSessionCookie? {
-        do {
-            return try HarnessBrowserSessionAuth.makeCookie(endpoint: endpoint)
-        } catch let error as HarnessBrowserSessionAuthError {
-            AppLogger.webview.debug("浏览器会话认证构造失败：\(String(describing: error), privacy: .public)")
-            return nil
-        } catch {
-            AppLogger.webview.debug("浏览器会话认证读取失败：\(String(describing: error), privacy: .public)")
-            return nil
-        }
+        webView.load(URLRequest(url: launchURL ?? endpoint.baseURL))
     }
 
     func reload() {
@@ -91,7 +53,7 @@ final class HarnessWebViewModel {
 
     /// 在默认浏览器中打开 Harness。
     func openInBrowser() {
-        NSWorkspace.shared.open(endpoint.browserURL)
+        NSWorkspace.shared.open(endpoint.baseURL)
     }
 
     func goBack() {

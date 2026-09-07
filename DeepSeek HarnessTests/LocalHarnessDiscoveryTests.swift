@@ -85,12 +85,38 @@ final class LocalHarnessDiscoveryTests: XCTestCase {
         XCTAssertEqual(endpoint, authenticatedEndpoint)
     }
 
+    func testAuthenticatedDiscoveryCanProbeBaseURLWithoutConsumingLaunchURL() async {
+        let tokenURL = URL(string: "http://127.0.0.1:3080/?token=launch-secret")!
+        let authenticatedEndpoint = HarnessEndpoint(authenticatedURL: tokenURL)!
+        MockURLProtocol.handler = { request in
+            XCTAssertEqual(request.url, authenticatedEndpoint.baseURL)
+            return try self.response(200, url: request.url)
+        }
+
+        let endpoint = await LocalHarnessDiscovery(
+            endpoint: authenticatedEndpoint,
+            timeout: 0.5,
+            session: makeSession(),
+            useAuthenticatedURL: false
+        ).discover()
+
+        XCTAssertEqual(endpoint, authenticatedEndpoint)
+    }
+
     func testDiscoverReturnsNilOn4xx() async {
         MockURLProtocol.handler = { request in
             try self.response(404, url: request.url)
         }
         let endpoint = await makeDiscovery().discover()
         XCTAssertNil(endpoint)
+    }
+
+    func testDiscoverReturnsEndpointOn401SoConnectionLayerCanRequestAuthorization() async {
+        MockURLProtocol.handler = { request in
+            try self.response(401, url: request.url)
+        }
+        let endpoint = await makeDiscovery().discover()
+        XCTAssertNotNil(endpoint)
     }
 
     func testDiscoverReturnsNilOn5xx() async {

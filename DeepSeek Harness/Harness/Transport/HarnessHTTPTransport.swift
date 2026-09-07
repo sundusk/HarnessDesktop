@@ -21,28 +21,6 @@ struct HarnessHTTPTransport: Sendable {
         self.session = session
     }
 
-    /// 认证交换：带 token 的入口 GET 一次，使共享 Cookie 会话获得持久认证。
-    ///
-    /// Harness 侧 `GET /?token=...` 换取持久 browser-session cookie；
-    /// 之后所有 `/api/*` RPC 与 `/api/remote.mux` WebSocket 升级都靠该 cookie 通过
-    /// 认证栅栏（未认证一律 401 "unauthorized"）。无认证入口时是空操作。
-    func authenticate(endpoint: HarnessEndpoint) async throws {
-        guard let authenticatedURL = endpoint.authenticatedURL else { return }
-        var request = URLRequest(url: authenticatedURL)
-        request.httpMethod = "GET"
-        request.timeoutInterval = 5
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw HarnessTransportError.invalidResponse
-        }
-        guard (200..<400).contains(http.statusCode) else {
-            throw HarnessTransportError.unexpectedStatus(http.statusCode)
-        }
-        // 响应体无业务含义（index HTML）；_data 仅用于驱动请求。
-        _ = data
-    }
-
     /// `POST /api/session/list`：session 基线（同时在协议层验证认证与路由可达）。
     ///
     /// 新协议没有 `host.describe`；本调用是握手可达性判定 + 连接/重连时的

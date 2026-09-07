@@ -10,5 +10,6 @@ enum HarnessConnectionState: Equatable, Sendable {
     case connecting
     case connected
     case reconnecting
+    case authenticationRequired
     case degraded(reason: String)
 }

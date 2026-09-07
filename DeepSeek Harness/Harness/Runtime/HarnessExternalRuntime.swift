@@ -359,7 +359,7 @@ struct SystemHarnessRuntimeProcessLauncher: HarnessRuntimeProcessLaunching, Send
         switch mode {
         case .npm:
             executableName = "npx"
-            arguments = ["@deepseek-ai/dsh", "web", "--port", String(port)]
+            arguments = ["@deepseek-ai/dsh", "web", "--host", "127.0.0.1", "--port", String(port), "--no-open"]
             currentDirectory = nil
         case .source:
             guard let sourcePath,
@@ -367,7 +367,7 @@ struct SystemHarnessRuntimeProcessLauncher: HarnessRuntimeProcessLaunching, Send
                 throw HarnessExternalRuntimeFailure.sourcePathMissing
             }
             executableName = "pnpm"
-            arguments = ["dsh", "web", "--port", String(port)]
+            arguments = ["dsh", "web", "--host", "127.0.0.1", "--port", String(port), "--no-open"]
             currentDirectory = sourcePath
         }
         guard let executable = HarnessExecutableLocator.url(for: executableName) else {
@@ -468,16 +468,8 @@ private final class FoundationHarnessRuntimeProcess: HarnessRuntimeProcessHandle
             let lines = outputBuffer.components(separatedBy: .newlines)
             outputBuffer = lines.last ?? ""
             for line in lines.dropLast() {
-                guard authenticatedURLValue == nil,
-                      let marker = line.range(of: "dsh web:") else { continue }
-                let printed = line[marker.upperBound...]
-                    .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-                    .first
-                    .map(String.init)
-                guard let printed,
-                      let url = URL(string: printed),
-                      let endpoint = HarnessEndpoint(authenticatedURL: url) else { continue }
-                authenticatedURLValue = endpoint.authenticatedURL ?? url
+                guard authenticatedURLValue == nil else { continue }
+                authenticatedURLValue = HarnessLaunchURLParser.authenticatedURL(from: line)
             }
         }
     }
@@ -662,8 +654,12 @@ actor HarnessRuntimeManager: HarnessRuntimeControlling {
         for _ in 0..<60 {
             if let authenticatedURL = process.authenticatedURL(),
                let endpoint = HarnessEndpoint(authenticatedURL: authenticatedURL) {
-                discovery = LocalHarnessDiscovery(endpoint: endpoint)
+                // 官方在打印 authenticated URL 前已完成 Web server 启动。不要在这里
+                // 预先 GET token URL，否则会抢先消耗一次性入口并让 WebView/Native
+                // 认证链路失去同一个官方地址。
                 activeEndpointValue = endpoint
+                AppLogger.runtimeProcess.info("外部 Harness 已输出 authenticated URL：mode=\(mode.rawValue, privacy: .public) pid=\(process.pid, privacy: .public) port=\(port, privacy: .public)")
+                return record
             }
             if let discoveredEndpoint = await discovery.discover() {
                 if activeEndpointValue == nil {

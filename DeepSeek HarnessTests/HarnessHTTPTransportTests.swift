@@ -16,6 +16,13 @@ final class HarnessHTTPTransportTests: XCTestCase {
         return HarnessHTTPTransport(session: URLSession(configuration: config))
     }
 
+    private func makeNativeSession() -> HarnessNativeSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        config.timeoutIntervalForRequest = 1
+        return HarnessNativeSession(configuration: config)
+    }
+
     /// HarnessEndpoint 为静态合法 loopback 值，force unwrap 是静态保证的。
     private var endpoint: HarnessEndpoint {
         HarnessEndpoint(host: "127.0.0.1", port: 3080)!
@@ -45,43 +52,29 @@ final class HarnessHTTPTransportTests: XCTestCase {
         return data
     }
 
-    // MARK: - authenticate
-
-    func testAuthenticateWithoutTokenIsNoOp() async throws {
-        MockURLProtocol.handler = { _ in
-            XCTFail("无认证入口时不应发起请求")
-            throw URLError(.badURL)
-        }
-        try await makeTransport().authenticate(endpoint: endpoint)
-    }
-
-    func testAuthenticatePerformsGETOnTokenURL() async throws {
-        let tokenURL = URL(string: "http://127.0.0.1:3080/?token=launch-secret")!
-        let authenticatedEndpoint = HarnessEndpoint(authenticatedURL: tokenURL)!
-        var requestURLs: [URL] = []
-        MockURLProtocol.handler = { request in
-            requestURLs.append(request.url!)
-            return try self.response(200, url: request.url!, json: "<html>ok</html>")
-        }
-        try await makeTransport().authenticate(endpoint: authenticatedEndpoint)
-        XCTAssertEqual(requestURLs, [tokenURL])
-    }
-
-    func testAuthenticateNon2xxThrows() async {
-        let authenticatedEndpoint = HarnessEndpoint(
-            authenticatedURL: URL(string: "http://127.0.0.1:3080/?token=bad")!
-        )!
+    func testNativeSessionMaps401ToAuthenticationRequired() async throws {
+        let tokenURL = URL(string: "http://127.0.0.1:3080/?token=expired")!
         MockURLProtocol.handler = { request in
             try self.response(401, url: request.url!, json: "unauthorized")
         }
+
         do {
-            try await makeTransport().authenticate(endpoint: authenticatedEndpoint)
-            XCTFail("应抛出 unexpectedStatus")
-        } catch let error as HarnessTransportError {
-            XCTAssertEqual(error, .unexpectedStatus(401))
+            try await makeNativeSession().authenticate(authenticatedURL: tokenURL)
+            XCTFail("401 应进入 authenticationRequired")
+        } catch let error as HarnessAuthenticationError {
+            XCTAssertEqual(error, .authenticationRequired)
         } catch {
             XCTFail("错误类型不对：\(error)")
         }
+    }
+
+    func testNativeSessionWithoutLaunchURLDoesNotRequest() async throws {
+        MockURLProtocol.handler = { _ in
+            XCTFail("无启动地址时不应发起认证请求")
+            throw URLError(.badURL)
+        }
+
+        try await makeNativeSession().authenticate(authenticatedURL: nil)
     }
 
     // MARK: - listSessions
@@ -113,33 +106,6 @@ final class HarnessHTTPTransportTests: XCTestCase {
         XCTAssertEqual(sessions.count, 1)
         XCTAssertEqual(sessions.first?.sessionId, "s1")
         XCTAssertEqual(sessions.first?.running, true)
-    }
-
-    /// Adapter connect 顺序：先认证交换（GET token URL），再 session/list RPC。
-    func testAuthenticateThenListSessionsMatchesConnectFlow() async throws {
-        let tokenURL = URL(string: "http://127.0.0.1:3080/?token=launch-secret")!
-        let authenticatedEndpoint = HarnessEndpoint(authenticatedURL: tokenURL)!
-        var requestURLs: [URL] = []
-        MockURLProtocol.handler = { request in
-            requestURLs.append(request.url!)
-            if request.httpMethod == "GET" {
-                return try self.response(200, url: request.url!, json: "<html>ok</html>")
-            }
-            return try self.response(200, url: request.url!, json: """
-            {
-              "type": "server-response",
-              "rpcId": "echo",
-              "result": { "ok": true, "value": { "items": [] } }
-            }
-            """)
-        }
-        let transport = makeTransport()
-        try await transport.authenticate(endpoint: authenticatedEndpoint)
-        let sessions = try await transport.listSessions(endpoint: authenticatedEndpoint)
-
-        XCTAssertTrue(sessions.isEmpty)
-        XCTAssertEqual(requestURLs.first, tokenURL)
-        XCTAssertTrue(requestURLs.last?.path.hasSuffix("/api/session/list") == true)
     }
 
     func testListSessionsRPCFailureThrows() async {

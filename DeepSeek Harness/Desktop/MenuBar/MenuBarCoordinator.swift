@@ -209,6 +209,8 @@ final class MenuBarCoordinator {
         switch coordinator.connectionState {
         case .unknown, .discovering, .connecting:
             return "状态：正在检测…"
+        case .authenticationRequired:
+            return "状态：需要授权"
         case .unavailable:
             return "状态：Harness 未运行"
         case .reconnecting:

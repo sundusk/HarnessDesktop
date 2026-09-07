@@ -11,6 +11,13 @@ struct MainWindowView: View {
             switch coordinator.connectionState {
             case .unknown, .discovering, .connecting:
                 PlaceholderView(text: "正在检测 DeepSeek Harness…", showsSpinner: true)
+            case .authenticationRequired:
+                AuthenticationRequiredView(
+                    host: coordinator.settings.host,
+                    port: coordinator.settings.port,
+                    onAttach: { coordinator.attachUsingLaunchURL($0) },
+                    onRediscover: { coordinator.rediscover() }
+                )
             case .connected, .degraded:
                 // degraded（Native 增强不可用）不影响主 Web UI —— 必须继续可用（规格 5.1）。
                 connectedContent
@@ -45,6 +52,46 @@ struct MainWindowView: View {
         } else {
             PlaceholderView(text: "正在连接…", showsSpinner: true)
         }
+    }
+}
+
+/// 外部 Harness 未提供可复用的浏览器会话时，只接受 Harness 官方输出的启动地址。
+private struct AuthenticationRequiredView: View {
+    let host: String
+    let port: Int
+    let onAttach: (String) -> Void
+    let onRediscover: () -> Void
+
+    @State private var launchURL = ""
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "lock.shield")
+                .font(.system(size: 42))
+                .foregroundStyle(.secondary)
+            Text("DeepSeek Harness 需要授权")
+                .font(.title2.weight(.semibold))
+            Text("请复制 Harness 启动时输出的 Web 地址，然后粘贴到这里。")
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            SecureField("粘贴启动地址", text: $launchURL)
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 520)
+            HStack(spacing: 12) {
+                Button("授权并连接") {
+                    onAttach(launchURL)
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(launchURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("重新检测") {
+                    onRediscover()
+                }
+            }
+            Text("检测地址：\(host):\(port)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(40)
     }
 }
 
@@ -95,7 +142,7 @@ private struct NotRunningView: View {
 
     @State private var copied = false
 
-    private static let command = "npx @deepseek-ai/dsh web"
+    private static let command = "npx @deepseek-ai/dsh web --no-open"
 
     var body: some View {
         VStack(spacing: 16) {

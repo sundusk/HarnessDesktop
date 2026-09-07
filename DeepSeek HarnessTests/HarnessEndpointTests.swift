@@ -54,6 +54,24 @@ final class HarnessEndpointTests: XCTestCase {
         XCTAssertNil(HarnessEndpoint(authenticatedURL: URL(string: "http://example.com:3080/?token=secret")!))
     }
 
+    func testLaunchURLParserAcceptsOfficialOutputAndRejectsUntrustedText() {
+        let line = "info dsh web: http://127.0.0.1:3080/?token=launch-secret"
+        XCTAssertEqual(
+            HarnessLaunchURLParser.authenticatedURL(from: line)?.absoluteString,
+            "http://127.0.0.1:3080/?token=launch-secret"
+        )
+        XCTAssertNil(HarnessLaunchURLParser.authenticatedURL(from: "dsh web: http://example.com:3080/?token=secret"))
+        XCTAssertNil(HarnessLaunchURLParser.authenticatedURL(from: "http://127.0.0.1:3080/?token=secret"))
+    }
+
+    func testLaunchContextKeepsAuthenticatedURLSeparateFromBaseEndpoint() throws {
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:3080/?token=launch-secret"))
+        let context = try XCTUnwrap(HarnessLaunchContext(authenticatedURL: url))
+
+        XCTAssertEqual(context.browserURL, url)
+        XCTAssertEqual(context.endpoint.baseURL.absoluteString, "http://127.0.0.1:3080/")
+    }
+
     func testEquality() {
         let a = HarnessEndpoint(host: "127.0.0.1", port: 3080)
         let b = HarnessEndpoint(host: "127.0.0.1", port: 3080)

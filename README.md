@@ -46,7 +46,7 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
 
    ```bash
    # npm / npx
-   npx @deepseek-ai/dsh web
+   npx @deepseek-ai/dsh web --no-open
    ```
 
    ```bash
@@ -55,13 +55,14 @@ xcodebuild -project 'DeepSeek Harness.xcodeproj' -scheme 'DeepSeek Harness' \
    cd deepseek-harness
    pnpm install
    pnpm run build
-   pnpm dsh web
+   pnpm dsh web --no-open
    ```
 
 2. 启动 DeepSeek Harness。
 3. 应用自动检测 `http://127.0.0.1:3080`：
    - 检测到 → 在 `WKWebView` 中加载官方 Harness Web UI；菜单栏显示运行版本；
    - 未检测到 → 显示「DeepSeek Harness 未运行」页，可复制启动命令或重新检测（**不会自动运行命令**）。
+   - 若外部实例需要认证且当前没有可用会话，应用会要求粘贴 Harness 官方输出的 `dsh web: ...` 地址；不会读取凭据文件或自行生成 Cookie。
 4. **版本检查（2.0 Phase 8）**：
    - 启动时静默检查 npm registry 上 `@deepseek-ai/dsh` 的最新版本（6 小时内不重复检查）；
    - 菜单栏与设置页独立显示「运行版本 / 官方最新版本 / npm 可安装版本」；
