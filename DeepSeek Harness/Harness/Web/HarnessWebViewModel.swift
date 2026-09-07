@@ -6,7 +6,9 @@ import WebKit
 /// Harness Web UI 的视图模型。
 ///
 /// 只负责：加载页面、reload、页面加载状态、导航控制、错误信息、外部链接处理。
-/// 禁止：注入状态监听 JavaScript、修改 Harness DOM/CSS、hook fetch/WebSocket、按 DOM 推断状态。
+/// 不参与 Harness 业务状态：不修改 DOM/CSS，不 hook fetch/WebSocket，不按 DOM 推断状态。
+/// 仅在页面脚本启动前安装引擎兼容垫片，修复 WebKit 与 Chromium 对原生函数源码
+/// 格式化不同导致的官方历史回放校验失败。
 @MainActor
 @Observable
 final class HarnessWebViewModel {
@@ -29,6 +31,7 @@ final class HarnessWebViewModel {
         let configuration = WKWebViewConfiguration()
         // 持久化数据存储：保留 Harness Web UI 自己的合法浏览器状态（Cookie / LocalStorage / IndexedDB / Cache）。
         configuration.websiteDataStore = .default()
+        HarnessWebKitCompatibility.install(in: configuration)
         let webView = WKWebView(frame: .zero, configuration: configuration)
         self.webView = webView
         let coordinator = NavigationCoordinator(policy: HarnessNavigationPolicy(endpoint: endpoint))
@@ -41,14 +44,38 @@ final class HarnessWebViewModel {
     /// 加载初始页面。
     ///
     /// 认证入口由启动层提供。WebView 不解析 stdout、读取 credentials 或生成 Cookie。
-    func loadInitial() {
+    ///
+    /// When Native has already exchanged the official launch URL, install the
+    /// returned cookies first and load the clean origin. This avoids making
+    /// WebView and URLSession race over the launch URL while keeping both
+    /// transports on the same server-issued session.
+    func loadInitial(authenticatedCookies: [HTTPCookie] = []) {
         navigationError = nil
-        webView.load(URLRequest(url: launchURL ?? endpoint.baseURL))
+        if !authenticatedCookies.isEmpty {
+            loadBaseURL(afterInstalling: authenticatedCookies)
+            return
+        }
+        load(URL: launchURL ?? endpoint.baseURL)
+    }
+
+    /// Reuse a previously authenticated WebView session for Native requests.
+    /// This is needed when attaching to a Harness that was started elsewhere.
+    func transferStoredCookies(to nativeSession: HarnessNativeSession) async {
+        let endpoint = endpoint
+        let store = webView.configuration.websiteDataStore.httpCookieStore
+        let cookies = await withCheckedContinuation { continuation in
+            store.getAllCookies { cookies in
+                continuation.resume(returning: cookies.filter {
+                    Self.cookie($0, matches: endpoint)
+                })
+            }
+        }
+        nativeSession.setCookies(cookies)
     }
 
     func reload() {
         navigationError = nil
-        webView.reload()
+        webView.reloadFromOrigin()
     }
 
     /// 在默认浏览器中打开 Harness。
@@ -68,6 +95,93 @@ final class HarnessWebViewModel {
         canGoBack = webView.canGoBack
         canGoForward = webView.canGoForward
         pageTitle = webView.title
+    }
+
+    private func loadBaseURL(afterInstalling cookies: [HTTPCookie]) {
+        let webView = webView
+        let cookieStore = webView.configuration.websiteDataStore.httpCookieStore
+        let baseURL = endpoint.baseURL
+        Task { @MainActor in
+            for cookie in cookies {
+                await withCheckedContinuation { continuation in
+                    cookieStore.setCookie(cookie) {
+                        continuation.resume()
+                    }
+                }
+            }
+            load(URL: baseURL)
+        }
+    }
+
+    private func load(URL url: URL) {
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        webView.load(request)
+    }
+
+    private static func cookie(_ cookie: HTTPCookie, matches endpoint: HarnessEndpoint) -> Bool {
+        guard let host = endpoint.baseURL.host?.lowercased() else {
+            return false
+        }
+        if let expires = cookie.expiresDate, expires <= Date() {
+            return false
+        }
+        let domain = cookie.domain
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            .lowercased()
+        let hostMatches = host == domain || host.hasSuffix(".\(domain)")
+        let schemeMatches = !cookie.isSecure || endpoint.baseURL.scheme?.lowercased() == "https"
+        return hostMatches && schemeMatches
+    }
+}
+
+/// WebKit-only compatibility for the official Harness Web UI.
+///
+/// The current upstream client validates streamed history records as lossless
+/// JSON and identifies each realm's intrinsic Object/Array prototype by the
+/// exact source string returned by `Function.prototype.toString`. Chromium
+/// returns the expected one-line form, while WebKit may insert newlines and
+/// indentation around `[native code]`. The resulting false negative aborts
+/// the session event feed before assistant history is assembled.
+///
+/// This is deliberately limited to the page's JavaScript world and runs before
+/// the official bundle. It does not read, rewrite, or synthesize Harness data.
+enum HarnessWebKitCompatibility {
+    static let nativeFunctionToStringNormalizationScript = #"""
+(() => {
+    const expectedObjectSource = 'function Object() { [native code] }'
+    const originalToString = Function.prototype.toString
+    if (originalToString.call(Object) === expectedObjectSource) return
+
+    const marker = Symbol.for('dsh.webkit.nativeFunctionToStringNormalized')
+    if (globalThis[marker]) return
+
+    const normalizedToString = function () {
+        const rendered = originalToString.call(this)
+        return rendered.includes('[native code]')
+            ? rendered.replace(/\s+/g, ' ')
+            : rendered
+    }
+    Object.defineProperty(normalizedToString, 'name', { value: 'toString' })
+    Object.defineProperty(normalizedToString, 'length', { value: 0 })
+    Object.defineProperty(Function.prototype, 'toString', {
+        configurable: true,
+        enumerable: false,
+        writable: true,
+        value: normalizedToString,
+    })
+    globalThis[marker] = true
+})()
+"""#
+
+    static func install(in configuration: WKWebViewConfiguration) {
+        let userScript = WKUserScript(
+            source: nativeFunctionToStringNormalizationScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true,
+            in: .page
+        )
+        configuration.userContentController.addUserScript(userScript)
     }
 }
 

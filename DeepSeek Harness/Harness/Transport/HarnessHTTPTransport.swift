@@ -2,6 +2,7 @@ import Foundation
 
 /// Harness HTTP 传输错误。不携带任何敏感信息。
 enum HarnessTransportError: Error, Equatable, Sendable {
+    case authenticationRequired
     case unexpectedStatus(Int)
     case invalidResponse
     case rpcFailure(message: String?)
@@ -56,6 +57,9 @@ struct HarnessHTTPTransport: Sendable {
             throw HarnessTransportError.invalidResponse
         }
         guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 401 || http.statusCode == 403 {
+                throw HarnessTransportError.authenticationRequired
+            }
             throw HarnessTransportError.unexpectedStatus(http.statusCode)
         }
 

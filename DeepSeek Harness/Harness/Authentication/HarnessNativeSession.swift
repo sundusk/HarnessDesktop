@@ -6,16 +6,38 @@ import Foundation
 /// authenticated URL 完成一次 GET/redirect/cookie 交换。
 final class HarnessNativeSession: @unchecked Sendable {
     let session: URLSession
+    private let cookieStorage: HTTPCookieStorage
 
     init(session: URLSession) {
         self.session = session
+        self.cookieStorage = session.configuration.httpCookieStorage ?? HTTPCookieStorage()
     }
 
     init(configuration: URLSessionConfiguration = .default) {
-        let configuration = configuration
+        var configuration = configuration
+        let cookieStorage = configuration.httpCookieStorage ?? HTTPCookieStorage()
+        configuration.httpCookieStorage = cookieStorage
         configuration.httpShouldSetCookies = true
         configuration.httpCookieAcceptPolicy = .always
+        self.cookieStorage = cookieStorage
         self.session = URLSession(configuration: configuration)
+    }
+
+    /// Copy WebKit-owned cookies into this Native session without constructing
+    /// or interpreting Harness credentials.
+    func setCookies(_ cookies: [HTTPCookie]) {
+        // Do not call setCookies(_:for:mainDocumentURL:) with a nil URL. On
+        // current macOS that path dereferences a null CFURL even for an empty
+        // cookie list, which would crash during ordinary unauthenticated attach.
+        for cookie in cookies {
+            cookieStorage.setCookie(cookie)
+        }
+    }
+
+    /// Return cookies that the official Harness URLSession received for this
+    /// loopback endpoint, so WebView can use the same authenticated session.
+    func cookies(for endpoint: HarnessEndpoint) -> [HTTPCookie] {
+        cookieStorage.cookies(for: endpoint.baseURL) ?? []
     }
 
     func authenticate(authenticatedURL: URL?) async throws {

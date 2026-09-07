@@ -768,7 +768,18 @@ final class AppCoordinator {
         authenticationTask = Task { [weak self] in
             guard let self else { return }
             do {
-                let session = try await authenticationCoordinator.authenticate(context)
+                // Build the WebView first so an attach to an already-authenticated
+                // external Harness can lend its persistent WebKit cookie to Native.
+                let model = HarnessWebViewModel(endpoint: endpoint, launchURL: context.authenticatedURL)
+                let session = HarnessNativeSession()
+                await model.transferStoredCookies(to: session)
+                _ = try await authenticationCoordinator.authenticate(context, using: session)
+                // A bare loopback URL can serve the Web shell while the RPC API
+                // still rejects the session. Validate the actual authenticated
+                // API before presenting WebView; otherwise the UI looks loaded
+                // but historical messages remain empty behind a 401.
+                _ = try await HarnessHTTPTransport(session: session.session)
+                    .listSessions(endpoint: endpoint)
                 guard !Task.isCancelled else { return }
 
                 nativeSession = session
@@ -782,10 +793,9 @@ final class AppCoordinator {
                 discovery = authenticatedDiscovery
                 await externalRuntimeManager.update(discovery: authenticatedDiscovery)
 
-                let model = HarnessWebViewModel(endpoint: endpoint, launchURL: context.authenticatedURL)
                 webModel = model
                 updateState(.connected)
-                model.loadInitial()
+                model.loadInitial(authenticatedCookies: session.cookies(for: endpoint))
                 startHealthCheck()
                 startNativeHandshake(endpoint: endpoint, nativeSession: session)
             } catch let error as HarnessAuthenticationError {
@@ -799,6 +809,17 @@ final class AppCoordinator {
                 } else {
                     updateState(.degraded(reason: "认证失败"))
                     AppLogger.compatibility.info("Harness 认证入口响应失败")
+                }
+            } catch let error as HarnessTransportError {
+                guard !Task.isCancelled else { return }
+                webModel = nil
+                if error == .authenticationRequired {
+                    authenticationRequiredEndpoint = endpoint
+                    updateState(.authenticationRequired)
+                    AppLogger.compatibility.info("Harness API 需要官方启动地址授权")
+                } else {
+                    lastConnectionError = "连接验证失败"
+                    updateState(.degraded(reason: "连接失败"))
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -895,7 +916,7 @@ final class AppCoordinator {
                 }
             } catch {
                 if let transportError = error as? HarnessTransportError,
-                   transportError == .unexpectedStatus(401) || transportError == .unexpectedStatus(403) {
+                   transportError == .authenticationRequired {
                     self.authenticationRequiredEndpoint = endpoint
                     self.webModel = nil
                     self.updateState(.authenticationRequired)

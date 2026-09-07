@@ -1,4 +1,5 @@
 import XCTest
+import JavaScriptCore
 @testable import DeepSeek_Harness
 
 /// HTTP Transport 测试：用 MockURLProtocol 模拟 Harness RPC，不需要真实 Harness。
@@ -77,6 +78,65 @@ final class HarnessHTTPTransportTests: XCTestCase {
         try await makeNativeSession().authenticate(authenticatedURL: nil)
     }
 
+    func testNativeSessionCookieBridgeRoundTripsEndpointCookie() throws {
+        let session = makeNativeSession()
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "127.0.0.1",
+            .path: "/",
+            .name: "dsh-auth-test",
+            .value: "session",
+            .expires: Date(timeIntervalSinceNow: 60),
+        ]))
+
+        session.setCookies([cookie])
+
+        XCTAssertTrue(session.cookies(for: endpoint).contains { $0.name == "dsh-auth-test" })
+    }
+
+    @MainActor
+    func testWebViewStoredCookieCanSeedNativeSession() async throws {
+        let model = HarnessWebViewModel(endpoint: endpoint)
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "127.0.0.1",
+            .path: "/",
+            .name: "dsh-auth-webview",
+            .value: "session",
+            .expires: Date(timeIntervalSinceNow: 60),
+        ]))
+        let cookieStore = model.webView.configuration.websiteDataStore.httpCookieStore
+
+        await withCheckedContinuation { continuation in
+            cookieStore.setCookie(cookie) {
+                continuation.resume()
+            }
+        }
+
+        let session = makeNativeSession()
+        await model.transferStoredCookies(to: session)
+
+        XCTAssertTrue(session.cookies(for: endpoint).contains { $0.name == "dsh-auth-webview" })
+    }
+
+    @MainActor
+    func testWebKitCompatibilityScriptNormalizesNativeFunctionWhitespace() throws {
+        let context = try XCTUnwrap(JSContext())
+        context.evaluateScript("""
+        (() => {
+            const originalToString = Function.prototype.toString
+            Function.prototype.toString = function () {
+                const rendered = originalToString.call(this)
+                return rendered.includes('[native code]')
+                    ? 'function Object() {\\n    [native code]\\n}'
+                    : rendered
+            }
+        })()
+        """)
+        context.evaluateScript(HarnessWebKitCompatibility.nativeFunctionToStringNormalizationScript)
+
+        let rendered = context.evaluateScript("Function.prototype.toString.call(Object)")?.toString()
+        XCTAssertEqual(rendered, "function Object() { [native code] }")
+    }
+
     // MARK: - listSessions
 
     func testListSessionsSuccess() async throws {
@@ -140,6 +200,20 @@ final class HarnessHTTPTransportTests: XCTestCase {
             XCTFail("应抛出 unexpectedStatus")
         } catch let error as HarnessTransportError {
             XCTAssertEqual(error, .unexpectedStatus(500))
+        } catch {
+            XCTFail("错误类型不对：\(error)")
+        }
+    }
+
+    func testListSessionsUnauthorizedRequiresAuthentication() async {
+        MockURLProtocol.handler = { request in
+            try self.response(401, url: request.url!, json: "unauthorized")
+        }
+        do {
+            _ = try await makeTransport().listSessions(endpoint: endpoint)
+            XCTFail("401 应进入 authenticationRequired")
+        } catch let error as HarnessTransportError {
+            XCTAssertEqual(error, .authenticationRequired)
         } catch {
             XCTFail("错误类型不对：\(error)")
         }
