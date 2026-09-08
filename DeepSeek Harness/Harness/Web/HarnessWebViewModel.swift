@@ -224,6 +224,27 @@ private final class NavigationCoordinator: NSObject, WKNavigationDelegate, WKUID
         return nil
     }
 
+    /// macOS 上 WKWebView 默认禁用 HTML 文件上传；把网页的 file input 转接到原生选择器。
+    func webView(_ webView: WKWebView,
+                 runOpenPanelWith parameters: WKOpenPanelParameters,
+                 initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping ([URL]?) -> Void) {
+        guard let window = webView.window else {
+            AppLogger.webview.error("无法打开附件选择器：WebView 没有关联窗口")
+            completionHandler(nil)
+            return
+        }
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+
+        panel.beginSheetModal(for: window) { response in
+            completionHandler(response == .OK ? panel.urls : nil)
+        }
+    }
+
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation?) {
         model?.isLoading = true
         model?.navigationError = nil

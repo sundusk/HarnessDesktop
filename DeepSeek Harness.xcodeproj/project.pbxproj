@@ -961,7 +961,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -989,7 +989,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness;
 				PRODUCT_NAME = "DeepSeek Harness";
 				PRODUCT_MODULE_NAME = "DeepSeek_Harness";
@@ -1006,7 +1006,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1022,7 +1022,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
@@ -1047,7 +1047,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1072,7 +1072,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.2.17;
+				MARKETING_VERSION = 0.2.18;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.deepseekharness.DeepSeekHarness.RuntimeHelper;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
